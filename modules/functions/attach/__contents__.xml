@@ -1,0 +1,21 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/modules/functions/attach" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="BinaryResource" name="attach_attachment.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="attach_attachment.xqy" mimetype="application/xquery" blob-id="c7b96df0547c6636ecbcdb5495d6d0abeba42b3402831668ddae2099a5b74835">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="attach_delivery-note.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="attach_delivery-note.xqy" mimetype="application/xquery" blob-id="e62a05d5c2fccf35f9143fac2b062caa9e82f153c1bd253d9ac65a72bc5478df">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="attach_dunning-fee.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="attach_dunning-fee.xqy" mimetype="application/xquery" blob-id="2adfb33e030fa65183ed2c8d65651039d553a023f665228b3297d8d80a95821a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="attach_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="attach_index.xqy" mimetype="application/xquery" blob-id="ea9fcc72e37f8fbbb3b12f53bd37296f886630848d59c82084fc1bfecf4066cc">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="attach_payment.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="attach_payment.xqy" mimetype="application/xquery" blob-id="e56368efdc363bc316af781af9111385139dc20305cd2742c15eaab767caf1f1">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="attach_transfer-voucher.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="attach_transfer-voucher.xqy" mimetype="application/xquery" blob-id="83f4cbfd9b2cce0f6f8a20ff33c3621c193f3dee9f2718d716a0436a71b4b1c8">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

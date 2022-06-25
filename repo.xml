@@ -1,0 +1,14 @@
+<meta xmlns="http://exist-db.org/xquery/repo">
+    <description>Moderne Belegverwaltung mit integerierter Stapelbuchung im DATEV Format und Online Banking (HBCI/FinTS) Anbindung</description>
+    <author>Eduard Huber</author>
+    <website>https://docman.bintellix.io</website>
+    <status>alpha</status>
+    <license>GNU-LGPL</license>
+    <copyright>true</copyright>
+    <type>application</type>
+    <target>docman</target>
+    <prepare>initialize.xqy</prepare>
+    <cleanup>cleanup.xqy</cleanup>
+    <finish/>
+    <permissions user="docman" password="acc" group="docman" mode="0664"/>
+</meta>

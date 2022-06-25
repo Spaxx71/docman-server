@@ -1,0 +1,85 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/modules" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:35+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="banking_csv_format.xml" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="banking_csv_format.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="csv_export.xsl" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="csv_export.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="datev_csv_format.xml" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="datev_csv_format.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="datev_csv_import_templat.xml" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="datev_csv_import_templat.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_account.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="module_account.xqm" mimetype="application/xquery" blob-id="0482d2d8bb9ffa606a7704834da046bcd7b516a1b4cba0165d2fb34502c8ee61">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_banking.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="module_banking.xqm" mimetype="application/xquery" blob-id="b0de6e5405c6f7a00b5fa3b5740524668e14a8767b54200284cfa360af621cc6">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_binder.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="module_binder.xqm" mimetype="application/xquery" blob-id="4330f6ca8f8758c3caab600265520a471e0d761fea3659d8efac742490018e99">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_bookings.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:08:38+02:00" filename="module_bookings.xqm" mimetype="application/xquery" blob-id="8b69ee3ff12cfa14deeac7659188a27112ffa10123abd418e3c9562367f63724">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_csv.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:08:38+02:00" filename="module_csv.xqm" mimetype="application/xquery" blob-id="d617026efc9f6182195ff45bea80f83d0e0c813e4f4fc509b66197f8cb87971c">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_document.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:08:38+02:00" filename="module_document.xqm" mimetype="application/xquery" blob-id="6525a04208977e322a4aafd3fb3db3a866daa5e5516a0e3719c3c778b027bcaa">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_email.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:08:38+02:00" filename="module_email.xqm" mimetype="application/xquery" blob-id="409c0adf44fb8345aeb53f88bb3d6277f987d03f64e0a6f663dc92946aaf3f1b">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_files.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:08:38+02:00" filename="module_files.xqm" mimetype="application/xquery" blob-id="336febf59aa24bbdadefb22773bff42cade7eb73d2d7d672d28ffb74fceb9df3">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_main.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:38+02:00" modified="2022-06-25T14:47:44+02:00" filename="module_main.xqm" mimetype="application/xquery" blob-id="ae1f75ea7ebfd278ee6f7926ef382cb841b64c6a4b5b9c13676ce85a07e3526e">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_tenant.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:39+02:00" modified="2022-06-25T14:08:39+02:00" filename="module_tenant.xqm" mimetype="application/xquery" blob-id="b7ef6381c9fb35a656b695c352189263bda46b725eb473abdb815bf3b2b4e9ff">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_transfer.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="module_transfer.xqm" mimetype="application/xquery" blob-id="47a158ca65f4e50d8099d76d63cdf4bb93f4e2f3bb6e862233d0f69a594cadf1">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_user.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="module_user.xqm" mimetype="application/xquery" blob-id="89b85154992b3947953f3fdc43f025ceb0017140708a540c50ad4f984aea3c44">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_xfo.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="module_xfo.xqm" mimetype="application/xquery" blob-id="48dc6aecdab3f8977949cad14c9d9fe6c2f11a09385a2777ba1dc6090751db7c">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="module_years.xqm" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="module_years.xqm" mimetype="application/xquery" blob-id="248e82b4e14cd433efae768a70ecb8ac0abae5011975daef69d58ba670ce540f">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="not_found.xql" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="not_found.xql" mimetype="application/xquery" blob-id="444f6e285c042818fa1db8f7bee4ff58cac30aa07b067c207e6c0e83029d998c">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-account.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="restxq-account.xqy" mimetype="application/xquery" blob-id="ef38a7a34f2303434032223189a365ab447485fabfd01a7a9f3c801df36958ef">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-bank.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:40+02:00" modified="2022-06-25T14:08:40+02:00" filename="restxq-bank.xqy" mimetype="application/xquery" blob-id="90594cf047b81693f25cb9b24ba418463a190d7697716d1e49b29959f83249a1">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-binder.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="restxq-binder.xqy" mimetype="application/xquery" blob-id="8b729179993cba9d0608a31d395127569251392539ae360caac830bb26806c72">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-document.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="restxq-document.xqy" mimetype="application/xquery" blob-id="53073907b4012b813be96d0d1d7bbfcc9b38e669298bbfcc6343e380bb2ea957">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-main.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="restxq-main.xqy" mimetype="application/xquery" blob-id="7c5ac29953a08c0778a86413a40a0d5464e8c3a9704cbbbba5077d8587ef4b0b">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-tenant.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="restxq-tenant.xqy" mimetype="application/xquery" blob-id="4303aca576665e2e5ccf0399f21d5593a9dac55feac349480159c70aa0fc1a4d">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="restxq-transfer.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="restxq-transfer.xqy" mimetype="application/xquery" blob-id="7df2477f295e0715cb3eba8ef362a8dc2e6f9920b643f99174cd4c34bf3da41f">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="xsl-fo.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="xsl-fo.xqy" mimetype="application/xquery" blob-id="b3466489631e8f2474e861d354b0ab6ab2199a4fbe636af8c6c527630c8cff9a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="functions" filename="functions"/>
+</collection>

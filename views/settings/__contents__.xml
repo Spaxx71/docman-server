@@ -1,0 +1,12 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/views/settings" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:42+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="banking_edit_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_edit_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="users_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="users_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

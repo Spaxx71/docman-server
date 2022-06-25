@@ -1,0 +1,503 @@
+<!-- Schnittstellen-Entwicklungsleitfaden für das DATEV Format --><Format name="DATEV" format="CSV" separator=";" newline="&#xA;">
+	<Part name="ExportDetails" headerlines="0" lines="1">
+		<!-- Spalte A: "Kennzeichen" DATEV-Format (DTVF - von DATEV erzeugt, EXTF Fremdprogramm) -->
+		<Column nr="1" name="Creator" headline="" type="string" default="EXTF" regex="^[&#34;](EXTF|DTVF)[&#34;]$"/>
+ 
+		<!-- B: "Versionsnummer" des DATEV-Formats (510 = 5.10, 720 = 7.20) -->
+		<Column nr="2" name="Version" headline="" type="integer" default="700" regex="^(700)$"/>
+ 
+		<!-- C: "Formatkategorie" (16 = Debitoren/Kreditoren, 20 = Sachkontenbeschriftungen, 21 = Buchungsstapel, 46 = Zahlungsbedingungen, 48 = Diverse Adressen, 65 = Wiederkehrende Buchungen, 67 = Buchungstextkonstanten,) -->
+		<Column nr="3" name="ExportType" headline="" type="integer" regex="^(16|20|21|46|48|65)$"/>
+ 
+		<!-- D: "Formatname" (Buchungsstapel, Buchungstextkonstanten, Debitoren/Kreditoren, Kontenbeschriftungen usw.) -->
+		<Column nr="4" name="ExportName" headline="" type="string" regex="^[&#34;](Buchungsstapel|Wiederkehrende Buchungen|Debitoren/Kreditoren|Kontenbeschriftungen|Zahlungsbedingungen|Diverse Adressen)[&#34;]$"/>
+ 
+		<!-- E: "Formatversion" (bezogen auf Formatname) (7 oder 9 für Buchungsstapel) 12 = Buchugsstapel -->
+		<Column nr="5" name="ExportVersion" headline="" type="integer" default="12" regex="^(2|4|5|12)$"/>
+ 
+		<!-- F: "Erzeugt am"  (20200716185209752 = 2020-07-16T18:52:09.752,  20200717123710906 = 2020-07-17T12:37:10.906)  -->
+		<Column nr="6" name="CreatedDate" headline="" type="dateTime" format="[Y0000][M00][D00][H00][m00][s00][f000]" regex="^([2])([0])([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])(2[0-3]|[01][0-9])([0-5][0-9])([0-5][0-9][0-9][0-9][0-9])$"/>
+ 
+		<!-- G: RESERVIERT - importiert am ()-->
+		<Column nr="7" name="ImportedDate" headline="" type="date" format="[Y0000][M00][D00][H00][m00][s00][f000]" regex="^$"/>
+ 
+		<!-- H: RESERVIERT - Herkunft – Erzeugerprogram (z. B. RE = KARE, AG = Agenda, DM = DocMan) -->
+		<Column nr="8" name="CreatorSystem" headline="" type="string" default="DM" regex="^[&#34;]\w{0,2}[&#34;]$"/>
+ 
+		<!-- I: RESERVIERT - exportiert von (leer oder msi = m. Sylvester) -->
+		<Column nr="9" name="CreatorName" headline="" type="string" regex="^([&#34;]\w{0,25}[&#34;]){0,1}$"/>
+ 
+		<!-- J: RESERVIERT - importiert von (leer)  [] -->
+		<Column nr="10" name="ImportedBy" headline="" type="string" regex="^([&#34;]\w{0,25}[&#34;]){0,1}$"/>
+ 
+		<!-- K: "Beraternummer" (1111 oder 36024) minimum 1001 -->
+		<Column nr="11" name="AdviserNr" headline="" type="integer" regex="^(\d{4,6}|\d{7})$"/>
+ 
+		<!-- L: "Mandantennummer" (111 oder 14) -->
+		<Column nr="12" name="TenantNr" headline="" type="integer" regex="^\d{1,5}$"/>
+ 
+		<!-- M: "WJ-Beginn" (Wirtschaftsjahr Beginn) (20200101 = 2020-01-01) -->
+		<Column nr="13" name="YearPeriodStart" headline="" type="date" format="[Y0000][M00][D00]" regex="^([2])([0])([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])$"/>
+ 
+		<!-- N: "Sachkontenlänge" [4] -->
+		<Column nr="14" name="ImpersonalAccountLenght" headline="" type="integer" default="4" regex="^[4-8]$"/>
+ 
+		<!-- O: "Datum von" Beginn Buchungsstapel (20200201 = 2020-02-01)  [$year$mont 01] -->
+		<Column nr="15" name="BookingStartDate" headline="" type="date" format="[Y0000][M00][D00]" regex="^([2])([0])([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])$"/>
+ 
+		<!-- P: "Datum bis" Buchungsstapel (20200229 = 2020-02-29) [$year$month$lastdayofmonth]-->
+		<Column nr="16" name="BookingEndDate" headline="" type="date" format="[Y0000][M00][D00]" regex="^([2])([0])([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])$"/>
+ 
+		<!-- Q: "Bezeichnung" (Vorlaufname, z. B. Buchungsstapel, Rechnungsausgang 09/2019)  [] -->
+		<Column nr="17" name="Description" headline="" type="string" regex="^[&#34;][\w\.\-/ ]{0,30}[&#34;]$"/>
+ 
+		<!-- R: "Diktatkürzel" [] -->
+		<Column nr="18" name="DictationCode" headline="" type="string" regex="^[&#34;]([A-Z]{2}){0,2}[&#34;]$"/>
+ 
+		<!-- S: "Buchungstyp" (1 = Buchungsstapel, 2 = Jahresabschluss) [1]-->
+		<Column nr="19" name="AccountingType" headline="" type="integer" regex="^[1-2]{0,1}$"/>
+ 
+		<!-- T: "Rechnungslegungszweck" [0] (0 = unabhängig (default) 30 = Steuerrecht 40 = Kalkulatorik 50 = Handelsrecht 64 = IFRS) -->
+		<Column nr="20" name="PurposeOfAccounting" headline="" type="integer" regex="^(0|30|40|50|64){0,1}$"/>
+ 
+		<!-- U: "Festschreibung" (0, 1) [0] (0 = keine Festschreibung 1 = Festschreibung (default) -->
+		<Column nr="21" name="LockingUp" headline="" type="boolean" format="0" regex="^(0|1)$"/>
+ 
+		<!-- V: "WKZ" Waerhungs-Kennzeichen (leer oder EUR) [EUR] -->
+		<Column nr="22" name="CurrencyCode" headline="" type="string" regex="^[&#34;]([A-Z]{3})[&#34;]{0,1}$"/>
+
+		<!-- RESERVIERT -->
+		<Column nr="23" name="Unknown" headline="" type="char" regex="^$"/>
+
+		<!-- "Derivatskennzeichen" -->
+		<Column nr="24" name="Unkonwn" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
+
+		<!-- RESERVIERT -->
+		<Column nr="25" name="Unkonwn" headline="" type="char" regex="^$"/>
+
+		<!-- RESERVIERT -->
+		<Column nr="26" name="Unkonwn" headline="" type="char" regex="^$"/>
+
+		<!-- "Sachkonten-rahmen" 03 = SKR03 04 = SKR04-->
+		<Column nr="27" name="AccountSystem" headline="" type="string" regex="^[&#34;](\d{2}){0,2}[&#34;]$"/>
+
+		<!-- "ID der Branchen-lösung" -->
+		<Column nr="28" name="Unkonwn" headline="" type="integer" regex="^\d{0,4}$"/>
+
+		<!-- RESERVIERT -->
+		<Column nr="29" name="Unkonwn" headline="" type="integer" regex="^$"/>
+
+		<!-- RESERVIERT -->
+		<Column nr="30" name="Unkonwn" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
+
+		<!-- Anwendungsinformation -->
+		<Column nr="31" name="ApplicationInfo" headline="" type="string" regex="^([&#34;](.){1,16}[&#34;]){0,1}$"/>
+
+	</Part>
+
+	<Part name="Buchungsstapel" headerlines="1">
+		<!-- https://apps.datev.de/dnlexka/document/1003221?jumpmark= --> 
+		<!-- https://developer.datev.de/portal/de/dtvf/changelog -->
+		<!-- Felder Version 510 (Stand 10/2015) -->
+		<Column nr="1" name="Umsatz" headline="Umsatz (ohne Soll/Haben-Kz)" type="money" format="EU" regex="^\d{1,10}[,]\d{2}$"/>
+		<Column nr="2" name="SH-Kennzeichen" headline="Soll/Haben-Kennzeichen" type="string" regex="^[&#34;](S|H){1}[&#34;]$"/>
+		<Column nr="3" name="WKZ-Umsatz" headline="WKZ Umsatz" type="string" regex="^([&#34;][A-Z]{3}[&#34;]){0,1}$"/>
+		<Column nr="4" name="Kurs" headline="Kurs" type="integer" regex="^([1-9]\d{0,3}[,]\d{2,6}){0,1}$"/>
+		<Column nr="5" name="Basis-Umsatz" headline="Basis-Umsatz" type="money" format="EU" regex="^(\d{1,10}[,]\d{2}){0,1}$"/>
+		<Column nr="6" name="WKZ-Basis-Umsatz" headline="WKZ Basis-Umsatz" type="string" regex="^([&#34;][A-Z]{3}[&#34;]){0,1}$"/>
+		<Column nr="7" name="Konto" headline="Konto" type="integer" regex="^(\d{1,9}){1}$"/>
+		<Column nr="8" name="Gegenkonto" headline="Gegenkonto (ohne BU-Schlüssel) " type="integer" regex="^(\d{1,9}){1}$"/>
+		<Column nr="9" name="BU-Schluessel" headline="BU-Schlüssel" type="string" regex="^([&#34;]\d{1,4}[&#34;]){0,1}$"/>
+		<Column nr="10" name="Belegdatum" headline="Belegdatum" type="date" format="[D00][M00]" regex="^(\d{4}){1}$"/>
+		<Column nr="11" name="Belegfeld1" headline="Belegfeld 1" type="string" regex="^([&#34;][\w$&amp;%*+\-/]{0,36}[&#34;]){0,1}$"/>
+		<Column nr="12" name="Belegfeld2" headline="Belegfeld 2" type="string" regex="^([&#34;][\w$&amp;%*+\-/]{0,12}[&#34;]){0,1}$"/>
+		<Column nr="13" name="Skonto" headline="Skonto" type="money" format="EU" regex="^([1-9]\d{0,7}[,]\d{2}){0,1}$"/>
+		<Column nr="14" name="Buchungstext" headline="Buchungstext" type="string" regex="^([&#34;].{0,60}[&#34;]){0,1}$"/>
+		<Column nr="15" name="Postensperre" headline="Postensperre" type="integer" regex="^(0|1){0,1}$"/>
+		<Column nr="16" name="DiverseAdressnummer" headline="Diverse Adressnummer" type="string" regex="^([&#34;]\w{0,9}[&#34;]){0,1}$"/>
+		<Column nr="17" name="Geschaeftspartnerbank" headline="Geschäftspartnerbank" type="integer" regex="^(\d{3}){0,1}$"/>
+		<Column nr="18" name="Sachverhalt" headline="Sachverhalt" type="integer" regex="^(\d{2}){0,1}$"/>
+		<Column nr="19" name="Zinssperre" headline="Zinssperre" type="integer" regex="^(0|1){0,1}$"/>
+		<Column nr="20" name="Beleglink" headline="Beleglink" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="21" name="BeleginfoArt1" headline="Beleginfo - Art 1" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="22" name="BeleginfoInhalt1" headline="Beleginfo - Inhalt 1" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="23" name="BeleginfoArt2" headline="Beleginfo - Art 2" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="24" name="BeleginfoInhalt2" headline="Beleginfo - Inhalt 2" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="25" name="BeleginfoArt3" headline="Beleginfo - Art 3" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="26" name="BeleginfoInhalt3" headline="Beleginfo - Inhalt 3" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="27" name="BeleginfoArt4" headline="Beleginfo - Art 4" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="28" name="BeleginfoInhalt4" headline="Beleginfo - Inhalt 4" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="29" name="BeleginfoArt5" headline="Beleginfo - Art 5" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="30" name="BeleginfoInhalt5" headline="Beleginfo - Inhalt 5" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="31" name="BeleginfoArt6" headline="Beleginfo - Art 6" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="32" name="BeleginfoInhalt6" headline="Beleginfo - Inhalt 6" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="33" name="BeleginfoArt7" headline="Beleginfo - Art 7" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="34" name="BeleginfoInhalt7" headline="Beleginfo - Inhalt 7" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="35" name="BeleginfoArt8" headline="Beleginfo - Art 8" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="36" name="BeleginfoInhalt8" headline="Beleginfo - Inhalt 8" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="37" name="Kostenstelle1" headline="KOST1 - Kostenstelle" type="string" regex="^([&#34;][\w ]{0,36}[&#34;]){0,1}$"/>
+		<Column nr="38" name="Kostenstelle2" headline="KOST2 - Kostenstelle" type="string" regex="^([&#34;][\w ]{0,36}[&#34;]){0,1}$"/>
+		<Column nr="39" name="KostenstelleMenge" headline="Kost-Menge" type="integer" regex="^(\d{1,12}[,]\d{1,4}){0,1}$"/>
+		<Column nr="40" name="EU-LandUStID" headline="EU-Land u. UStID" type="string" regex="^([&#34;].{0,15}[&#34;]){0,1}$"/>
+		<Column nr="41" name="EU-Steuersatz" headline="EU-Steuersatz" type="integer" regex="^(\d{1,2}[,]\d{1,2}){0,1}$"/>
+		<Column nr="42" name="AbwVersteuerungsart" headline="Abw. Versteuerungsart" type="string" regex="^([&#34;](I|K|P|S){0,1}[&#34;]){0,1}$"/>
+		<Column nr="43" name="SachverhaltLL" headline="Sachverhalt L+L" type="integer" regex="^(\d{1,3}){0,1}$"/>
+		<Column nr="44" name="FunktionsergaenzungLL" headline="Funktionsergänzung L+L" type="integer" regex="^\d{0,3}$"/>
+		<Column nr="45" name="BU49Hauptfunktionstyp" headline="BU 49 Hauptfunktionstyp" type="integer" regex="^\d{0,1}$"/>
+		<Column nr="46" name="BU49Hauptfunktionsnummer" headline="BU 49 Hauptfunktionsnummer" type="integer" regex="^\d{0,2}$"/>
+		<Column nr="47" name="BU49Funktionsergaenzung" headline="BU 49 Funktionsergänzung" type="integer" regex="^\d{0,3}$"/>
+		<Column nr="48" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 1" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="49" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 1" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="50" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 2" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="51" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 2" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="52" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 3" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="53" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 3" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="54" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 4" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="55" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 4" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="56" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 5" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="57" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 5" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="58" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 6" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="59" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 6" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="60" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 7" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="61" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 7" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="62" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 8" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="63" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 8" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="64" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 9" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="65" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 9" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="66" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 10" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="67" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 10" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="68" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 11" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="69" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 11" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="70" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 12" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="71" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 12" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="72" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 13" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="73" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 13" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="47" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 14" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="75" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 14" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="76" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 15" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="77" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 15" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="78" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 16" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="79" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 16" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="80" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 17" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="81" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 17" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="82" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 18" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="83" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 18" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="84" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 19" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="85" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 19" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="86" name="ZusatzinformationArt20" headline="Zusatzinformation - Art 20" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="87" name="ZusatzinformationInhalt20" headline="Zusatzinformation- Inhalt 20" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="88" name="Stueck" headline="Stück" type="integer" regex="^\d{0,8}$"/>
+		<Column nr="89" name="Gewicht" headline="Gewicht" type="integer" regex="^(\d{1,8}[,]\d{2}){0,1}$"/>
+		<Column nr="90" name="Zahlweise" headline="Zahlweise" type="integer" regex="^\d{0,2}$"/>
+		<Column nr="91" name="Forderungsart" headline="Forderungsart" type="string" regex="^([&#34;]\w{0,10}[&#34;]){0,1}$"/>
+		<Column nr="92" name="Veranlagungsjahr" headline="Veranlagungsjahr" type="integer" regex="^(([2])([0])([0-9]{2})){0,1}$"/>
+		<Column nr="93" name="ZugeordneteFaelligkeit" headline="Zugeordnete Fälligkeit" type="date" regex="^((0[1-9]|[1-2][0-9]|3[0-1])(0[1-9]|1[0-2])([2])([0])([0-9]{2})){0,1}$"/>
+		<Column nr="94" name="Skontotyp" headline="Skontotyp" type="integer" regex="^\d{0,1}$"/>
+		<Column nr="95" name="Auftragsnummer" headline="Auftragsnummer" type="string" regex="^([&#34;].{0,30}[&#34;]){0,1}$"/>
+		<Column nr="96" name="Buchungstyp" headline="Buchungstyp" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+		<Column nr="97" name="USt-SchluesselAnzahlungen" headline="USt-Schlüssel (Anzahlungen" type="integer" regex="^\d{0,2}$"/>
+		<Column nr="98" name="EU-LandAnzahlungen" headline="EU-Land (Anzahlungen" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+		<Column nr="99" name="SachverhaltLLAnzahlungen" headline="Sachverhalt L+L (Anzahlungen" type="integer" regex="^\d{0,3}$"/>
+		<Column nr="100" name="EU-SteuersatzAnzahlungen" headline="EU-Steuersatz (Anzahlungen" type="integer" regex="^(\d{1,2}[,]\d{2}){0,1}$"/>
+		<Column nr="101" name="ErloeskontoAnzahlungen" headline="Erlöskonto (Anzahlungen" type="integer" regex="^(\d{4,8}){0,1}$"/>
+		<Column nr="102" name="Herkunft-Kz" headline="Herkunft-Kz" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+		<Column nr="103" name="BuchungsGUID" headline="Buchungs GUID" type="string" regex="^([&#34;].{0,36}[&#34;]){0,1}$"/> <!-- Leerfeld -->
+		<Column nr="104" name="KOST-Datum" headline="KOST-Datum" type="date" regex="^((0[1-9]|[1-2]\d|3[0-1])(0[1-9]|1[0-2])([2])([0])(\d{2})){0,1}$"/>
+		<Column nr="105" name="SEPA-Mandatsreferenz" headline="SEPA-Mandatsreferenz" type="string" regex="^([&#34;].{0,35}[&#34;]){0,1}$"/>
+		<Column nr="106" name="Skontosperre" headline="Skontosperre" type="integer" regex="^[0|1]{0,1}$"/>
+		<Column nr="107" name="Gesellschaftername" headline="Gesellschaftername" type="string" regex="^([&#34;].{0,76}[&#34;]){0,1}$"/>
+		<Column nr="108" name="Beteiligtennummer" headline="Beteiligtennummer" type="integer" regex="^(\d{4}){0,1}$"/>
+		<Column nr="109" name="Identifikationsnummer" headline="Identifikationsnummer" type="string" regex="^([&#34;].{0,11}[&#34;]){0,1}$"/>
+		<Column nr="110" name="Zeichnernummer" headline="Zeichnernummer" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="111" name="PostensperreBis" headline="Postensperre bis" type="date" regex="^((0[1-9]|[1-2]\d|3[0-1])(0[1-9]|1[0-2])([2])([0])(\d{2})){0,1}$"/>
+		<Column nr="112" name="BezeichnungSoBil-Sachverhalt" headline="Bezeichnung SoBil-Sachverhalt" type="string" regex="^([&#34;].{0,30}[&#34;]){0,1}$"/>
+		<Column nr="113" name="KennzeichenSoBil-Buchung" headline="Kennzeichen SoBil-Buchung" type="integer" regex="^(\d{1,2}){0,1}$"/>
+		<Column nr="114" name="Festschreibung" headline="Festschreibung" type="boolean" format="0" regex="^(\d{1}){0,1}$"/>
+		<Column nr="115" name="Leistungsdatum" headline="Leistungsdatum" type="date" regex="^((0[1-9]|[1-2]\d|3[0-1])(0[1-9]|1[0-2])([2])([0])(\d{2})){0,1}$"/>
+		<Column nr="116" name="DatumZuordSteuerperiode" headline="Datum Zuord. Steuerperiode" type="date" regex="^((0[1-9]|[1-2]\d|3[0-1])(0[1-9]|1[0-2])([2])([0])(\d{2})){0,1}$"/>
+
+		<!-- Neue Felder Version 700 (Stand 10/2018) -->
+		<Column nr="117" name="Faelligkeit" headline="Fälligkeit" type="string" regex="^((0[1-9]|[1-2]\d|3[0-1])(0[1-9]|1[0-2])([2])([0])(\d{2})){0,1}$"/>
+		<Column nr="118" name="GeneralumkehrGU" headline="GeneralumkehrGU" type="string" regex="^([&#34;].{1}[&#34;]){0,1}$"/>
+		<Column nr="119" name="Steuersatz" headline="Steuersatz" type="money" regex="^(\d{1,2}[,]\d{2}){0,1}$"/>
+		<Column nr="120" name="Land" headline="Land" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+
+		<!-- Neue Felder Version 700 (Stand 06/2021) -->
+		<Column nr="121" name="Abrechnungsreferenz" headline="Abrechnungsreferenz" type="string" regex="^([&#34;].{0,50}[&#34;]){0,1}$"/>
+		<Column nr="122" name="BVV-Position" headline="BVV-Position (Betriebsvermögensvergleich)" type="integer" regex="^([1|2|3|4|5]){0,1}$"/>
+		<Column nr="123" name="EU-Mitgliedstaat" headline="EU-Mitgliedstaat u. UStID (Ursprung)" type="string" regex="^([&#34;].{0,15}[&#34;]){0,1}$"/>
+		<Column nr="124" name="EU-Steuersatz" headline="EU-Steuersatz (Ursprung)" type="integer" regex="^(\d{1,2}[,]\d{1,2}){0,1}$"/>
+
+	</Part>
+
+	<!-- https://www.datev.de/dnlexom/v2/content/files/st2899475083.pdf -->
+	<Part name="Account" headerlines="1">
+		<Column nr="1" name="Konto" headline="Konto" type="integer" regex="^([\d]{1,9}){1}$"/>
+		<Column nr="2" name="FirmaName" headline="Name (Adressattyp Unternehmen)" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="3" name="Unternehmensgegenstand" headline="Unternehmensgegenstand" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="4" name="PersonName" headline="Name (Adressattyp natürl. Person)" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="5" name="PersonVorname" headline="Vorname (Adressattyp natürl. Person)" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="6" name="NameSonstige" headline="Name (Adressattyp keine Angabe)" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="7" name="Adressattyp" headline="Adressattyp" type="integer" default="0" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="8" name="Kurzbezeichnung" headline="Kurzbezeichnung" type="string" regex="^([&#34;](.){0,15}[&#34;]){0,1}$"/>
+		<Column nr="9" name="EU-Land" headline="EU-Land" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="10" name="EU-UStID" headline="EU-UStId." type="string" regex="^([&#34;](.){0,13}[&#34;]){0,1}$"/>
+		<Column nr="11" name="Anrede" headline="Anrede" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="12" name="Titel" headline="Titel/Akad. Grad" type="string" regex="^([&#34;](.){0,25}[&#34;]){0,1}$"/>
+		<Column nr="13" name="Adelstitel" headline="Adelstitel" type="string" regex="^([&#34;](.){0,25}[&#34;]){0,1}$"/>
+		<Column nr="14" name="Namensvorsatz" headline="Namensvorsatz" type="string" regex="^([&#34;](.){0,14}[&#34;]){0,1}$"/>
+		<Column nr="15" name="Adressart" headline="Adressart" type="string" default="STR" regex="^([&#34;][\w]{0,3}[&#34;]){0,1}$"/>
+		<Column nr="16" name="Strasse" headline="Straße" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="17" name="Postfach" headline="Postfach" type="string" regex="^([&#34;](.){0,10}[&#34;]){0,1}$"/>
+		<Column nr="18" name="Postleitzahl" headline="Postleitzahl" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="19" name="Ort" headline="Ort" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="20" name="Land" headline="Land" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+		<Column nr="21" name="Versandzusatz" headline="Versandzusatz" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="22" name="Adresszusatz" headline="Adresszusatz" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="23" name="AbweichendeAnrede" headline="Abweichende Anrede" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="24" name="xxxx" headline="Abw. Zustellbezeichnung 1" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="25" name="xxxx" headline="Abw. Zustellbezeichnung 2" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="26" name="xxxx" headline="Kennz. Korrespondenzadresse" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="27" name="xxxx" headline="Adresse Gültig von" type="date" format="[D00][M00]" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="28" name="xxxx" headline="Adresse Gültig bis" type="date" format="[D00][M00]" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="29" name="Telefon" headline="Telefon" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="30" name="Bemerkung-Telefon" headline="Bemerkung (Telefon)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="31" name="Telefon-GL" headline="Telefon GL" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="32" name="Bemerkung-Telefon-GL" headline="Bemerkung (Telefon GL)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="33" name="E-Mail" headline="E-Mail" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="34" name="Bemerkung (E-Mail)" headline="Bemerkung (E-Mail)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="35" name="Internet" headline="Internet" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="36" name="Bemerkung-Internet" headline="Bemerkung (Internet)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="37" name="Fax" headline="Fax" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="38" name="Bemerkung-Fax" headline="Bemerkung (Fax)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="39" name="Sonstige" headline="Sonstige" type="string" regex="^([&#34;](.){0,60}[&#34;]){0,1}$"/>
+		<Column nr="40" name="Bemerkung" headline="Bemerkung (Sonstige 1)" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="41" name="Bank-Bankleitzahl1" headline="Bankleitzahl 1" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="42" name="Bank-Bezeichnung1" headline="Bankbezeichnung 1" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="43" name="Bank-Kontonummer1" headline="Bank-Kontonummer 1" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="44" name="Bank-Land1" headline="Länderkennzeichen 1" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="45" name="Bank-IBAN1" headline="IBAN-Nr. 1" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="46" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="47" name="Bank-SWIFT-Code1" headline="SWIFT-Code 1" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="48" name="Abw-Kontoinhaber1" headline="Abw. Kontoinhaber 1" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="49" name="KennzHauptbank1" headline="Kennz. Hauptbankverb. 1" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="50" name="Bank-gueltig-von1" headline="Bankverb. 1 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="51" name="Bank-gueltig-bis1" headline="Bankverb. 1 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="52" name="Bank-Bankleitzahl2" headline="Bankleitzahl 2" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="53" name="Bank-Bezeichnung2" headline="Bankbezeichnung 2" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="54" name="Bank-Kontonummer2" headline="Bank-Kontonummer 2" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="55" name="Bank-Land2" headline="Länderkennzeichen 2" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="56" name="Bank-IBAN2" headline="IBAN-Nr. 2" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="57" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="58" name="Bank-SWIFT-Code2" headline="SWIFT-Code 2" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="59" name="Abw-Kontoinhaber2" headline="Abw. Kontoinhaber 2" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="60" name="KennzHauptbank2" headline="Kennz. Hauptbankverb. 2" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="61" name="Bank-gueltig-von2" headline="Bankverb. 2 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="62" name="Bank-gueltig-bis2" headline="Bankverb. 2 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>		<Column nr="63" name="xxxx" headline="Bankleitzahl 3" type="string" regex=""/>
+
+		<Column nr="63" name="Bank-Bankleitzahl3" headline="Bankleitzahl 3" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="64" name="Bank-Bezeichnung3" headline="Bankbezeichnung 3" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="65" name="Bank-Kontonummer3" headline="Bank-Kontonummer 3" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="66" name="Bank-Land3" headline="Länderkennzeichen 3" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="67" name="Bank-IBAN3" headline="IBAN-Nr. 3" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="68" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="69" name="Bank-SWIFT-Code3" headline="SWIFT-Code 3" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="70" name="Abw-Kontoinhaber3" headline="Abw. Kontoinhaber 3" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="71" name="KennzHauptbank3" headline="Kennz. Hauptbankverb. 3" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="72" name="Bank-gueltig-von3" headline="Bankverb. 3 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="73" name="Bank-gueltig-bis3" headline="Bankverb. 3 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="74" name="Bank-Bankleitzahl4" headline="Bankleitzahl 4" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="75" name="Bank-Bezeichnung4" headline="Bankbezeichnung 4" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="76" name="Bank-Kontonummer4" headline="Bank-Kontonummer 4" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="77" name="Bank-Land4" headline="Länderkennzeichen 4" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="78" name="Bank-IBAN4" headline="IBAN-Nr. 4" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="79" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="80" name="Bank-SWIFT-Code4" headline="SWIFT-Code 4" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="81" name="Abw-Kontoinhaber4" headline="Abw. Kontoinhaber 4" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="82" name="KennzHauptbank4" headline="Kennz. Hauptbankverb. 4" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="83" name="Bank-gueltig-von4" headline="Bankverb. 4 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="84" name="Bank-gueltig-bis4" headline="Bankverb. 4 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="85" name="Bank-Bankleitzahl5" headline="Bankleitzahl 5" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="86" name="Bank-Bezeichnung5" headline="Bankbezeichnung 5" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="87" name="Bank-Kontonummer5" headline="Bank-Kontonummer 5" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="88" name="Bank-Land5" headline="Länderkennzeichen 5" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="89" name="Bank-IBAN5" headline="IBAN-Nr. 5" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="90" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="91" name="Bank-SWIFT-Code5" headline="SWIFT-Code 5" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="92" name="Abw-Kontoinhaber5" headline="Abw. Kontoinhaber 5" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="93" name="KennzHauptbank5" headline="Kennz. Hauptbankverb. 5" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="94" name="Bank-gueltig-von5" headline="Bankverb. 5 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="95" name="Bank-gueltig-bis5" headline="Bankverb. 5 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="96" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,3}[&#34;]){0,1}$"/>
+		<Column nr="97" name="Briefanrede" headline="Briefanrede" type="string" default="Sehr geehrte Damen und Herren," regex="([&#34;](.){0,100}[&#34;]){0,1}$"/>
+		<Column nr="98" name="Grussformel" headline="Grußformel" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="99" name="Kundennummer" headline="Kundennummer" type="string" regex="^([&#34;](.){0,15}[&#34;]){0,1}$"/>
+		<Column nr="100" name="Steuernummer" headline="Steuernummer" type="string" regex="^([&#34;](.){0,20}[&#34;]){0,1}$"/>
+		<Column nr="101" name="Sprache" headline="Sprache" type="integer" regex="^[\d]{0,2}$"/>
+		<Column nr="102" name="Ansprechpartner" headline="Ansprechpartner" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="103" name="Vertreter" headline="Vertreter" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="104" name="Sachbearbeiter" headline="Sachbearbeiter" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="105" name="Diverse-Konto" headline="Diverse-Konto" type="integer" regex="^[\d]{0,1}$"/>
+		<Column nr="106" name="Ausgabeziel" headline="Ausgabeziel" type="integer" regex="^[\d]{0,1}$"/>
+		<Column nr="107" name="Waehrungssteuerung" headline="Währungssteuerung" type="integer" regex="^[\d]{0,1}$"/>
+		<Column nr="108" name="Kreditlimit-Debitor" headline="Kreditlimit (Debitor)" type="double" regex="^[\d.]{0,13}$"/>
+		<Column nr="109" name="Zahlungsbedingung" headline="Zahlungsbedingung" type="integer" regex="^[\d]{0,3}$"/>
+		<Column nr="110" name="xxxx" headline="Fälligkeit in Tagen (Debitor)" type="integer" regex="^[\d]{0,3}$"/>
+		<Column nr="111" name="xxxx" headline="Skonto in Prozent (Debitor)" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="112" name="xxxx" headline="Kreditoren-Ziel 1 Tg." type="integer" regex="^[\d]{0,2}$"/>
+		<Column nr="113" name="xxxx" headline="Kreditoren-Skonto 1 %" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="114" name="xxxx" headline="Kreditoren-Ziel 2 Tg." type="integer" regex="^[\d]{0,2}$"/>
+		<Column nr="115" name="xxxx" headline="Kreditoren-Skonto 2 %" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="116" name="xxxx" headline="Kreditoren-Ziel 3 Brutto Tg." type="integer" regex="^[\d]{0,3}$"/>
+		<Column nr="117" name="xxxx" headline="Kreditoren-Ziel 4 Tg." type="integer" regex="^[\d]{0,2}$"/>
+		<Column nr="118" name="xxxx" headline="Kreditoren-Skonto 4 %" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="119" name="xxxx" headline="Kreditoren-Ziel 5 Tg." type="integer" regex="^[\d]{0,2}$"/>
+		<Column nr="120" name="xxxx" headline="Kreditoren-Skonto 5 %" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="121" name="Mahnung" headline="Mahnung" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="122" name="Kontoauszug" headline="Kontoauszug" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="123" name="xxxx" headline="Mahntext 1" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="124" name="xxxx" headline="Mahntext 2" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="125" name="xxxx" headline="Mahntext 3" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="126" name="xxxx" headline="Kontoauszugstest" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="127" name="xxxx" headline="Mahnlimit Betrag" type="money" regex="^([1-9][\d.]{0,5}[,][\d]{2}){0,1}$"/>
+		<Column nr="128" name="xxxx" headline="Mahnlimit %" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="129" name="xxxx" headline="Zinsberechnung" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="130" name="xxxx" headline="Mahnzinssatz 1" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="131" name="xxxx" headline="Mahnzinssatz 2" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="132" name="xxxx" headline="Mahnzinssatz 3" type="double" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="133" name="Lastschrift" headline="Lastschrift" type="string" regex="  ^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="134" name="Leerfeld" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="135" name="Mandantenbank" headline="Mandantenbank" type="integer" regex="^[\d]{0,4}$"/>
+		<Column nr="136" name="Zahlungstraeger" headline="Zahlungsträger" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="137" name="xxxx" headline="Indiv. Feld 1" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="138" name="xxxx" headline="Indiv. Feld 2" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="139" name="xxxx" headline="Indiv. Feld 3" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="140" name="xxxx" headline="Indiv. Feld 4" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="141" name="xxxx" headline="Indiv. Feld 5" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="142" name="xxxx" headline="Indiv. Feld 6" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="143" name="xxxx" headline="Indiv. Feld 7" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="144" name="xxxx" headline="Indiv. Feld 8" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="145" name="xxxx" headline="Indiv. Feld 9" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="146" name="xxxx" headline="Indiv. Feld 10" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="147" name="xxxx" headline="Indiv. Feld 11" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="148" name="xxxx" headline="Indiv. Feld 12" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="149" name="xxxx" headline="Indiv. Feld 13" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="150" name="xxxx" headline="Indiv. Feld 14" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="151" name="xxxx" headline="Indiv. Feld 15" type="string" regex="^([&#34;](.){0,40}[&#34;]){0,1}$"/>
+		<Column nr="152" name="xxxx" headline="Abweichende Anrede (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="153" name="xxxx" headline="Adressart (Rechnungsadresse)" type="string" regex="  ^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="154" name="xxxx" headline="Straße (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="155" name="xxxx" headline="Postfach (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,10}[&#34;]){0,1}$"/>
+		<Column nr="156" name="xxxx" headline="Postleitzahl (Rechnungsadresse)" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="157" name="xxxx" headline="Ort (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="158" name="xxxx" headline="Land (Rechnungsadresse)" type="string" regex="^([&#34;][A-Z]{2}[&#34;]){0,1}$"/>
+		<Column nr="159" name="xxxx" headline="Versandzusatz (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,50}[&#34;]){0,1}$"/>
+		<Column nr="160" name="xxxx" headline="Adresszusatz (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="161" name="xxxx" headline="Abw. Zustellbezeichnung 1 (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="162" name="xxxx" headline="Abw. Zustellbezeichnung 2 (Rechnungsadresse)" type="string" regex="^([&#34;](.){0,36}[&#34;]){0,1}$"/>
+		<Column nr="163" name="xxxx" headline="Adresse Gültig von (Rechnungsadresse)" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="164" name="xxxx" headline="Adresse Gültig bis (Rechnungsadresse)" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="165" name="Bank-Bankleitzahl6" headline="Bankleitzahl 6" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="166" name="Bank-Bezeichnung6" headline="Bankbezeichnung 6" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="167" name="Bank-Kontonummer6" headline="Bank-Kontonummer 6" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="168" name="Bank-Land6" headline="Länderkennzeichen 6" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="169" name="Bank-IBAN6" headline="IBAN-Nr. 6" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="170" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="171" name="Bank-SWIFT-Code6" headline="SWIFT-Code 6" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="172" name="Abw-Kontoinhaber6" headline="Abw. Kontoinhaber 6" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="173" name="KennzHauptbank6" headline="Kennz. Hauptbankverb. 6" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="174" name="Bank-gueltig-von6" headline="Bankverb. 6 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="175" name="Bank-gueltig-bis6" headline="Bankverb. 6 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="176" name="Bank-Bankleitzahl7" headline="Bankleitzahl 7" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="177" name="Bank-Bezeichnung7" headline="Bankbezeichnung 7" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="178" name="Bank-Kontonummer7" headline="Bank-Kontonummer 7" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="179" name="Bank-Land7" headline="Länderkennzeichen 7" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="180" name="Bank-IBAN7" headline="IBAN-Nr. 7" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="181" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="182" name="Bank-SWIFT-Code7" headline="SWIFT-Code 7" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="183" name="Abw-Kontoinhaber7" headline="Abw. Kontoinhaber 7" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="184" name="KennzHauptbank7" headline="Kennz. Hauptbankverb. 7" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="185" name="Bank-gueltig-von7" headline="Bankverb. 7 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="186" name="Bank-gueltig-bis7" headline="Bankverb. 7 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="187" name="Bank-Bankleitzahl8" headline="Bankleitzahl 8" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="188" name="Bank-Bezeichnung8" headline="Bankbezeichnung 8" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="189" name="Bank-Kontonummer8" headline="Bank-Kontonummer 8" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="190" name="Bank-Land8" headline="Länderkennzeichen 8" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="191" name="Bank-IBAN8" headline="IBAN-Nr. 8" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="192" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="193" name="Bank-SWIFT-Code8" headline="SWIFT-Code 8" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="194" name="Abw-Kontoinhaber8" headline="Abw. Kontoinhaber 8" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="195" name="KennzHauptbank8" headline="Kennz. Hauptbankverb. 8" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="196" name="Bank-gueltig-von8" headline="Bankverb. 8 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="197" name="Bank-gueltig-bis8" headline="Bankverb. 8 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="198" name="Bank-Bankleitzahl9" headline="Bankleitzahl 9" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="199" name="Bank-Bezeichnung9" headline="Bankbezeichnung 9" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="200" name="Bank-Kontonummer9" headline="Bank-Kontonummer 9" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="201" name="Bank-Land9" headline="Länderkennzeichen 9" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="202" name="Bank-IBAN9" headline="IBAN-Nr. 9" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="203" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="204" name="Bank-SWIFT-Code9" headline="SWIFT-Code 9" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="205" name="Abw-Kontoinhaber9" headline="Abw. Kontoinhaber 9" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="206" name="KennzHauptbank9" headline="Kennz. Hauptbankverb. 9" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="207" name="Bank-gueltig-von9" headline="Bankverb. 9 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="208" name="Bank-gueltig-bis9" headline="Bankverb. 9 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="209" name="Bank-Bankleitzahl10" headline="Bankleitzahl 10" type="string" regex="^([&#34;][\d]{0,8}[&#34;]){0,1}$"/>
+		<Column nr="210" name="Bank-Bezeichnung10" headline="Bankbezeichnung 10" type="string" regex="^([&#34;](.){0,30}[&#34;]){0,1}$"/>
+		<Column nr="211" name="Bank-Kontonummer10" headline="Bank-Kontonummer 10" type="string" regex="^([&#34;][\d]{0,10}[&#34;]){0,1}$"/>
+		<Column nr="212" name="Bank-Land10" headline="Länderkennzeichen 10" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="213" name="Bank-IBAN10" headline="IBAN-Nr. 10" type="string" regex="^([&#34;][\w]{0,2}[&#34;]){0,1}$"/>
+		<Column nr="214" name="xxxx" headline="Leerfeld" type="string" regex="^([&#34;](.){0,1}[&#34;]){0,1}$"/>
+		<Column nr="215" name="Bank-SWIFT-Code10" headline="SWIFT-Code 10" type="string" regex="^([&#34;](.){0,11}[&#34;]){0,1}$"/>
+		<Column nr="216" name="Abw-Kontoinhaber10" headline="Abw. Kontoinhaber 10" type="string" regex="^([&#34;](.){0,70}[&#34;]){0,1}$"/>
+		<Column nr="217" name="KennzHauptbank10" headline="Kennz. Hauptbankverb. 10" type="string" regex="^([&#34;][\d]{0,1}[&#34;]){0,1}$"/>
+		<Column nr="218" name="Bank-gueltig-von10" headline="Bankverb. 10 Gültig von" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="219" name="Bank-gueltig-bis10" headline="Bankverb. 10 Gültig bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+
+		<Column nr="220" name="Nummer Fremdsystem" headline="Nummer Fremdsystem" type="string" regex="^([&#34;](.){0,15}[&#34;]){0,1}$"/>
+		<Column nr="221" name="Insolvent" headline="Insolvent" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="222" name="SEPA-Mandatsreferenz-1" headline="SEPA-Mandatsreferenz 1" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="223" name="SEPA-Mandatsreferenz-2" headline="SEPA-Mandatsreferenz 2" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="224" name="SEPA-Mandatsreferenz-3" headline="SEPA-Mandatsreferenz 3" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="225" name="SEPA-Mandatsreferenz-4" headline="SEPA-Mandatsreferenz 4" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="226" name="SEPA-Mandatsreferenz-5" headline="SEPA-Mandatsreferenz 5" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="227" name="SEPA-Mandatsreferenz-6" headline="SEPA-Mandatsreferenz 6" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="228" name="SEPA-Mandatsreferenz-7" headline="SEPA-Mandatsreferenz 7" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="229" name="SEPA-Mandatsreferenz-8" headline="SEPA-Mandatsreferenz 8" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="230" name="SEPA-Mandatsreferenz-9" headline="SEPA-Mandatsreferenz 9" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="231" name="SEPA-Mandatsreferenz-10" headline="SEPA-Mandatsreferenz 10" type="string" regex="^([&#34;](.){0,35}[&#34;]){0,1}$"/>
+		<Column nr="232" name="xxxx" headline="Verknüpftes OPOS-Konto" type="integer" regex="^[\d]{0,9}$"/>
+		<Column nr="233" name="xxxx" headline="Mahnsperre bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="234" name="xxxx" headline="Lastschriftsperre bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="235" name="xxxx" headline="Zahlungssperre bis" type="date" regex="^((0[1-9]|[1-2][\d]|3[0-1])(0[1-9]|1[0-2])([2])([0])([\d]{2})){0,1}$"/>
+		<Column nr="236" name="xxxx" headline="Gebührenberechnung" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="237" name="xxxx" headline="Mahngebühr 1" type="money" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="238" name="xxxx" headline="Mahngebühr 2" type="money" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="239" name="xxxx" headline="Mahngebühr 3" type="money" regex="^([1-9][\d]{0,1}[,][\d]{2}){0,1}$"/>
+		<Column nr="240" name="xxxx" headline="Pauschalenberechnung" type="boolean" regex="^[\d]{0,1}$"/>
+		<Column nr="241" name="xxxx" headline="Verzugspauschale 1" type="money" regex="^([1-9][\d]{0,2}[,][\d]{2}){0,1}$"/>
+		<Column nr="242" name="xxxx" headline="Verzugspauschale 2" type="money" regex="^([1-9][\d]{0,2}[,][\d]{2}){0,1}$"/>
+		<Column nr="243" name="xxxx" headline="Verzugspauschale 3" type="money" regex="^([1-9][\d]{0,2}[,][\d]{2}){0,1}$"/>
+
+		<!-- 
+<Column nr="244" name="xxxx" headline="Alternativer Suchname" type="string" regex=""/>
+<Column nr="245" name="xxxx" headline="Status" type="string" regex=""/>
+<Column nr="246" name="xxxx" headline="Anschrift manuell geändert (Korrespondenzadresse)" type="string" regex=""/>
+<Column nr="247" name="xxxx" headline="Anschrift individuell (Korrespondenzadresse)" type="string" regex=""/>
+<Column nr="248" name="xxxx" headline="Anschrift manuell geändert (Rechnungsadresse)" type="string" regex=""/>
+<Column nr="249" name="xxxx" headline="Anschrift individuell (Rechnungsadresse)" type="string" regex=""/>
+<Column nr="250" name="xxxx" headline="Fristberechnung bei Debitor" type="string" regex=""/>
+<Column nr="251" name="xxxx" headline="Mahnfrist 1" type="string" regex=""/>
+<Column nr="252" name="xxxx" headline="Mahnfrist 2" type="string" regex=""/>
+<Column nr="253" name="xxxx" headline="Mahnfrist 3" type="string" regex=""/>
+<Column nr="254" name="xxxx" headline="Letzte Frist" type="string" regex=""/>
+		-->
+	</Part>
+</Format>

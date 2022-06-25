@@ -1,0 +1,27 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/views/templates" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:42+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="analysis_templates.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="analysis_templates.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_templates.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_templates.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="generate-pdf.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="generate-pdf.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="process-list.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="process-list.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="taglib-html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="taglib-html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="taglib-pdf.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="taglib-pdf.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="template_file.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="template_file.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="template_tasks.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="template_tasks.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

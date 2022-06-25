@@ -1,0 +1,165 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/views" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:42+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="account_delete_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="account_delete_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="account_details_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="account_details_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="account_edit_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="account_edit_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="account_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="account_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bankings_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bankings_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bankings_search_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bankings_search_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_assign-document_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_assign-document_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_attach_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_attach_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_create-periodics_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_create-periodics_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_details_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_details_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_periodic-payment_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_periodic-payment_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_templates.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_templates.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_update_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="banking_update_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="binders_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="binders_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="binder_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="binder_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="binder_search_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="binder_search_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bookings_accounts_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bookings_accounts_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bookings_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bookings_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bookings_refresh_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bookings_refresh_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="bookings_sheet_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="bookings_sheet_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="document_delete_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="document_delete_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="document_delete_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="document_delete_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="document_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="document_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="files_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="files_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="frame.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="frame.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="mail_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="mail_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="mail_message_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="mail_message_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="mail_record_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="mail_record_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="mail_transfer_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="mail_transfer_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="process_edit_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="process_edit_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="process_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="process_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="process_search_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="process_search_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="sitemap.xml" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="sitemap.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="tenants_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="tenants_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="tenant_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="tenant_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_banking_import_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_banking_import_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_banking_import_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_banking_import_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_delete_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_delete_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_delete_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_delete_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_hibiscus_import_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_hibiscus_import_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_rename_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_rename_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_rename_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_rename_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_upload_file_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_upload_file_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_upload_file_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_upload_file_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_upload_folder_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_upload_folder_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="transfer_upload_folder_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="transfer_upload_folder_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="user_change-password_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="user_change-password_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="user_change-password_response_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="user_change-password_response_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="user_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="user_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="year_index_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="year_index_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="year_test_html.xsl" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="year_test_html.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="attach" filename="attach"/>
+    <subcollection name="settings" filename="settings"/>
+    <subcollection name="templates" filename="templates"/>
+</collection>

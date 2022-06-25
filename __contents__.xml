@@ -1,0 +1,41 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:34+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="Accounts.xsd" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:34+02:00" modified="2022-06-25T14:08:34+02:00" filename="Accounts.xsd" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="Bank.xsd" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:34+02:00" modified="2022-06-25T14:08:34+02:00" filename="Bank.xsd" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_search.xqy" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:34+02:00" modified="2022-06-25T14:08:34+02:00" filename="banking_search.xqy" mimetype="application/xquery" blob-id="eff553c35a8daa07f8c589910ab239bdca71bc93b50eb5bdcd4b7cfc7da3161a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="controller.xql" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:34+02:00" modified="2022-06-25T14:08:34+02:00" filename="controller.xql" mimetype="application/xquery" blob-id="b977bf2243f91a5cda83e128f8e2489024d36056d9a74537434e48111814a333">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="expath-pkg.xml" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="expath-pkg.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="initialize.xqy" owner="admin" group="docman" mode="4755" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:14:30+02:00" filename="initialize.xqy" mimetype="application/xquery" blob-id="36066d19a85cafd88fcb43a7a8bce491814fa3f3f0f3f765c9a6345c70182249">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="LICENSE.txt" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="LICENSE.txt" mimetype="text/plain" blob-id="d3f4f2eaf845582cd1392166deaf22304315cfd15eca9dff0b333d51350a4e81">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="Process.xsd" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="Process.xsd" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="README.md" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:15:56+02:00" filename="README.md" mimetype="text/markdown" blob-id="89e21c42baafc77d6e39e3eb8c4c4982d64d57902f9f59c3777ff3c5226d7c06">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="repo.xml" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="repo.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="robots.txt" owner="admin" group="docman" mode="775" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="robots.txt" mimetype="text/plain" blob-id="9e57ab41078de3ce38d08463229c513b42dbd8780d7414e8bee38ff5f5cb1489">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="data" filename="data"/>
+    <subcollection name="docu" filename="docu"/>
+    <subcollection name="modules" filename="modules"/>
+    <subcollection name="resources" filename="resources"/>
+    <subcollection name="views" filename="views"/>
+</collection>

@@ -1,0 +1,168 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/modules/functions" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="BinaryResource" name="account_datev-export.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="account_datev-export.xqy" mimetype="application/xquery" blob-id="24fbcac2e2199ec93d9c9f32a1b25cd031b5f72e244e58b7878dae323612af22">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="account_delete.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="account_delete.xqy" mimetype="application/xquery" blob-id="97377ac4ab9148729b241f40bb4f0568e187940f9d6e16b0031839a6a610e9fe">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="account_details.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="account_details.xqy" mimetype="application/xquery" blob-id="f5ade576a4090a5bb0a5e77b06eeb15a7fb17f31c81e6d4feaf13f27365d7df7">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="account_edit.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="account_edit.xqy" mimetype="application/xquery" blob-id="ea019706cfea58cb480d90e6e4804f69b80fe9622d7ae978974a45f9b351ed30">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="account_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="account_index.xqy" mimetype="application/xquery" blob-id="0ab812b1d5ff180deb1093d60849846f220a7d7c2328eb75f6a1ee8e63392cd5">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bankings_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bankings_index.xqy" mimetype="application/xquery" blob-id="720aad4b9e9254da2d860432f1cafcc6ebca76d73b6f594c99235d55146d65c9">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bankings_search.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bankings_search.xqy" mimetype="application/xquery" blob-id="0f16b3b6b0d06f11aa18f5fac595834ed107c1e8e08f03e7e937041df1face8d">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_assign-document.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_assign-document.xqy" mimetype="application/xquery" blob-id="b174d927e0abf1476f767f145f061a69e353ce35b0f1047d002b03adfc47b690">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_attach.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_attach.xqy" mimetype="application/xquery" blob-id="b775841160d52ec5350b67fbd1301a783966bf070f93315dca69690c4ea00e0a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_create-periodics.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_create-periodics.xqy" mimetype="application/xquery" blob-id="6f912b71ca0d0cc41d4fdb2d296479160e0781a4bec0c0b59c0c8ef413dc258a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_details.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_details.xqy" mimetype="application/xquery" blob-id="396bf24dbbd8e05240d15e0fcbf56e1df057e7a2a635f02fe12ffeb2b0d9994d">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="banking_import_hibiscus.xsl" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_import_hibiscus.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_index.xqy" mimetype="application/xquery" blob-id="a08ef16ce9ce4311f0e87cff5c63ea085d34ec04430f1ef326a0cd661658d5c0">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_periodic-payment.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_periodic-payment.xqy" mimetype="application/xquery" blob-id="d4b38150918a74172ccdf34f1b497ca25c329a817c9acfe37198111f03561095">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_template.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_template.xqy" mimetype="application/xquery" blob-id="68bec2a11bd822e4a91a4ab027809f81083b34b0937dc5ce071f6a1972f58901">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_update.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_update.xqy" mimetype="application/xquery" blob-id="d4c0a6d345b8b657d17930dd1a679f3877f0f7bcb8ce0ea2c6ad64e5b5ecbca2">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="binder_datev-export.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="binder_datev-export.xqy" mimetype="application/xquery" blob-id="a5c7c56c8f8ab27375836bc1bcc5504c6a9a88754e722fc3fb645effc18a7fad">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="binder_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="binder_index.xqy" mimetype="application/xquery" blob-id="51b988f8d04005faad40004c29c335e1760412caa39f3b9b6e24a526b0e09eea">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="binder_search.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="binder_search.xqy" mimetype="application/xquery" blob-id="136b6152a1c870b985ff98528988c56c48fd055b2202fb5915b892a8850745bf">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bookings_accounts.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bookings_accounts.xqy" mimetype="application/xquery" blob-id="f830a689b69bfc0316df03b1db6dcf18565a50e73441583eb5abfee9f9da6c10">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bookings_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bookings_index.xqy" mimetype="application/xquery" blob-id="b8d3ddf066c0d40c8420afb0ba5171d150e7ba4aed87a54772655f26ec9ef9e4">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bookings_refresh.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bookings_refresh.xqy" mimetype="application/xquery" blob-id="031b2521840ea364aaa9b7706aeecbc2b405d632b4239c83eaedf0cfaadff1b9">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="bookings_sheet.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="bookings_sheet.xqy" mimetype="application/xquery" blob-id="71c5ea535726d1e1021d334219f91570ef5728d2ed33cb83c42d861ecaaf60f1">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="datev_transfer.xsl" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="datev_transfer.xsl" mimetype="application/xslt+xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="document_attach.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="document_attach.xqy" mimetype="application/xquery" blob-id="a445eec003b5c7dbe157c9395b993e283304fa02d64715a4fdf9d6e407be5283">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="document_delete.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="document_delete.xqy" mimetype="application/xquery" blob-id="88a53d346ca959b8fe34bf47d567e9dae673040da0603336315abda388b1033f">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="document_delete_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="document_delete_response.xqy" mimetype="application/xquery" blob-id="f4245cbdd703002a3323afbf0465a85d03713081c3430f3c9d5e06a97a5ac28a">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="document_edit.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="document_edit.xqy" mimetype="application/xquery" blob-id="e11164b3cb817bfb67850f5b7151e8fa41c6ca1850cdc90f69d1e28eecea46b7">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="document_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="document_index.xqy" mimetype="application/xquery" blob-id="911108dce698c5e73d1f08dc110e85a443bc131d351dcbcb8640acaa3a2d13d9">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="files_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="files_index.xqy" mimetype="application/xquery" blob-id="813fcc1bcb3461778472237a449c7dc9de92a881895fa78dc1c0e09d49d199a9">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="mail_attachment.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="mail_attachment.xqy" mimetype="application/xquery" blob-id="c2171007e05960c429000128b9cfc80743c5437c2079a9dda1daf623fd3df46f">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="mail_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="mail_index.xqy" mimetype="application/xquery" blob-id="1f7eba81f538c09a04df7084ae196b74f0103d1343a16df64946ba0031b4d527">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="mail_message.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="mail_message.xqy" mimetype="application/xquery" blob-id="fd2ca311326e808721558ef07b92fb10d89e8e8bf9ee1e6fef46dae3c9e016ab">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="mail_transfer.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="mail_transfer.xqy" mimetype="application/xquery" blob-id="37716b66888e20ce6d32939fe0d85a34864714403e31c8f023986978951c6083">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="process_edit.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="process_edit.xqy" mimetype="application/xquery" blob-id="2af1326c423241d008d1b12e7bf41215efb737050d5534089cbeb50d700923ab">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="process_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="process_index.xqy" mimetype="application/xquery" blob-id="5cf96012cdbdf2ffd005a828baf76294797a46e157cb134b07e120d35b850010">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="process_search.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="process_search.xqy" mimetype="application/xquery" blob-id="3affeccd7af4082c431d18f5425ec547c98a017e45d339b06e5eafea5ecbadaa">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="tenant_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="tenant_index.xqy" mimetype="application/xquery" blob-id="f115ef35cb8baed4dc8aa84b654d7f0d99a9eaa7f1ab7f1925d05d31c8c25c8b">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_banking_import.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="transfer_banking_import.xqy" mimetype="application/xquery" blob-id="eaac8ac14fcef75a60c5b0b4cecca1ccfaddefa598ec3d2766691b6b3fe430f1">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_datev-import.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="transfer_datev-import.xqy" mimetype="application/xquery" blob-id="4cce554bd8f1bd85debbf8b823c4c3b2cc87174812f5b361fd480c7a11d8ac91">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_delete.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="transfer_delete.xqy" mimetype="application/xquery" blob-id="b6c2594e580a9e411c2838922c0d36422ec76e9f8cc9387d748c9bf2da90d655">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_delete_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="transfer_delete_response.xqy" mimetype="application/xquery" blob-id="d70b4e8565cb839a4540018e0e21b52e2977c257add229a4ed0b27c9dc479b0e">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_hibiscus_import.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="transfer_hibiscus_import.xqy" mimetype="application/xquery" blob-id="bfb61725a46ea62c007aa6d4fd7d1e84cfd9ef1ea405b34ca0d1b01cc20b0e08">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_index.xqy" mimetype="application/xquery" blob-id="c9d169a63384a0cbd5a2349f5d5f6c4e40fb87659690522bcff4e9e652759ce8">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_rename.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_rename.xqy" mimetype="application/xquery" blob-id="5a4ff47d123e5307b520941d529a84f589933dc077b5bc0906ac1754b6fe5935">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_rename_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_rename_response.xqy" mimetype="application/xquery" blob-id="cd369663ced2e7aca2896e6fef56ea13c685edbf1a0f674ed45fa947fb22fb94">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_upload_file.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_upload_file.xqy" mimetype="application/xquery" blob-id="49e173dbcf5b31234ada2fd3cb0e5e0929b356d05527119b7778fd6ca78a567c">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_upload_file_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_upload_file_response.xqy" mimetype="application/xquery" blob-id="beba50df9afb8e52b9f1202ae5b725f606b4b8fd2f038b0f08cafdedd4212e29">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_upload_folder.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_upload_folder.xqy" mimetype="application/xquery" blob-id="3000f68866a9c6136e02ed006f70c6b4fe22504f65c269befb44a52e7aed13a4">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="transfer_upload_folder_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="transfer_upload_folder_response.xqy" mimetype="application/xquery" blob-id="4c662df658a55e4cf258892a0628c36767005b4e4c20591c92d49b219473a388">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="user_change-password.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="user_change-password.xqy" mimetype="application/xquery" blob-id="3ce83a4afe6113211dc720bda8418f7b05b29272e63ad6e16c72d4800511355b">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="user_change-password_response.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="user_change-password_response.xqy" mimetype="application/xquery" blob-id="c9f5c319c49df68da32dad8dac8efb4e3ba62365503613de1261bf1327bdb1af">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="user_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="user_index.xqy" mimetype="application/xquery" blob-id="d6557155c24e62fd0c2483fec966154a294f9f00823a058d1308e09ab20037b8">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="year_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:37+02:00" modified="2022-06-25T14:08:37+02:00" filename="year_index.xqy" mimetype="application/xquery" blob-id="4b8e7f9bd432c20b1f9a390f3ebf20de55a6d7c0e43a88c42b9895ee1e08d683">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="attach" filename="attach"/>
+    <subcollection name="automatic" filename="automatic"/>
+    <subcollection name="settings" filename="settings"/>
+</collection>

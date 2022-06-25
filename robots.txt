@@ -1,0 +1,13 @@
+# robots.txt for http://docman.mycompany.io/
+# type text/txt  http://www.robotstxt.org/wc/robots.html
+# type text/txt  http://www.robotstxt.org/wc/norobots.html  
+
+User-agent: *
+
+Disallow: /
+
+Disallow: *.pdf
+Disallow: *.png
+Disallow: *.gif
+Disallow: *.html
+Disallow: *.xml

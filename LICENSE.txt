@@ -1,0 +1,1 @@
+Source code in this repository is covered by a license under the Server Side Public License (SSPL), v 1.

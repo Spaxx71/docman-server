@@ -1,0 +1,6 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/modules/functions/automatic" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="BinaryResource" name="automatic_periodic-payments.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="automatic_periodic-payments.xqy" mimetype="application/xquery" blob-id="1be4311cc6fc9386301bb17cc2400507ced5d20851739396cd3f44aae08cbe2a">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

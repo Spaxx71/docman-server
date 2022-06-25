@@ -1,0 +1,9 @@
+<Tenant id="mycompany" priority="5">
+	<Name>MyCompany (test)</Name>
+	<Access>
+		<Group id="test"/>
+		<Users>
+			<User id="admin"/>
+		</Users>
+	</Access>
+</Tenant>

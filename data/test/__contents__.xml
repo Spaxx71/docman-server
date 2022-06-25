@@ -1,0 +1,8 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/data/test" owner="admin" group="test" mode="770" created="2022-06-25T14:08:34+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="tenant.dm.xml" owner="admin" group="test" mode="760" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="tenant.dm.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="2022" filename="2022"/>
+    <subcollection name="business-paper" filename="business-paper"/>
+</collection>

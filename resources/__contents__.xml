@@ -1,0 +1,12 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/resources" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:41+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="BinaryResource" name="docman.css" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="docman.css" mimetype="text/css" blob-id="b2a1caa6599d035ad12cc0d73a506e14156675e0c4f67a727d66a4d50edf367b">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="docman.js" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:41+02:00" modified="2022-06-25T14:08:41+02:00" filename="docman.js" mimetype="application/javascript" blob-id="8765b6418319a5a53a8412bc13af951826d119773e4b7770b10bc5215c0e2fd7">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="hbci4java-0.5.xar" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="hbci4java-0.5.xar" mimetype="application/expath+xar" blob-id="1228a39c2da9636843cf7128288b90f5a46203e959574bc9eb714f9c3352e36f">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

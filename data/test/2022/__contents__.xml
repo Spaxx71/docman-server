@@ -1,0 +1,24 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/data/test/2022" owner="admin" group="test" mode="770" created="2022-06-25T14:08:34+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="XMLResource" name="accounts.dm.xml" owner="admin" group="test" mode="760" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="accounts.dm.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="XMLResource" name="year.dm.xml" owner="admin" group="test" mode="760" created="2022-06-25T14:08:35+02:00" modified="2022-06-25T14:08:35+02:00" filename="year.dm.xml" mimetype="application/xml">
+        <acl entries="0" version="1"/>
+    </resource>
+    <subcollection name="01" filename="01"/>
+    <subcollection name="02" filename="02"/>
+    <subcollection name="03" filename="03"/>
+    <subcollection name="04" filename="04"/>
+    <subcollection name="05" filename="05"/>
+    <subcollection name="06" filename="06"/>
+    <subcollection name="07" filename="07"/>
+    <subcollection name="08" filename="08"/>
+    <subcollection name="09" filename="09"/>
+    <subcollection name="10" filename="10"/>
+    <subcollection name="11" filename="11"/>
+    <subcollection name="12" filename="12"/>
+    <subcollection name="dokumente" filename="dokumente"/>
+    <subcollection name="steuer" filename="steuer"/>
+    <subcollection name="transfer" filename="transfer"/>
+</collection>

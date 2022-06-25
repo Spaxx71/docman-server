@@ -1,0 +1,740 @@
+<Records>
+    <Record>
+        <Umsatz>EXTF</Umsatz>
+        <SH-Kennzeichen>510</SH-Kennzeichen>
+        <WKZ-Umsatz>21</WKZ-Umsatz>
+        <Kurs>Buchungsstapel</Kurs>
+        <Basis-Umsatz>7</Basis-Umsatz>
+        <WKZ-Basis-Umsatz>20200716185209752</WKZ-Basis-Umsatz>
+        <Konto/>
+        <Gegenkonto>AG</Gegenkonto>
+        <BU-Schluessel>msi</BU-Schluessel>
+        <Belegdatum/>
+        <Belegfeld1>36024</Belegfeld1>
+        <Belegfeld2>14</Belegfeld2>
+        <Skonto>20200101</Skonto>
+        <Buchungstext>4</Buchungstext>
+        <Postensperre>20200201</Postensperre>
+        <DiverseAdressnummer>20200229</DiverseAdressnummer>
+        <Geschaeftspartnerbank/>
+        <Sachverhalt/>
+        <Zinssperre>1</Zinssperre>
+        <Beleglink>0</Beleglink>
+        <BeleginfoArt1>0</BeleginfoArt1>
+        <BeleginfoInhalt1>EUR</BeleginfoInhalt1>
+        <BeleginfoArt2/>
+        <BeleginfoInhalt2/>
+        <BeleginfoArt3/>
+        <BeleginfoInhalt3/>
+        <BeleginfoArt4/>
+        <BeleginfoInhalt4/>
+        <BeleginfoArt5/>
+        <BeleginfoInhalt5/>
+        <BeleginfoArt6>
+</BeleginfoArt6>
+        <BeleginfoInhalt6/>
+        <BeleginfoArt7/>
+        <BeleginfoInhalt7/>
+        <BeleginfoArt8/>
+        <BeleginfoInhalt8/>
+        <Kostenstelle1/>
+        <Kostenstelle2/>
+        <KostenstelleMenge/>
+        <EU-LandUStID/>
+        <EU-Steuersatz/>
+        <AbwVersteuerungsart/>
+        <SachverhaltLL/>
+        <FunktionsergaenzungLL/>
+        <BU49Hauptfunktionstyp/>
+        <BU49Hauptfunktionsnummer/>
+        <BU49Funktionsergaenzung/>
+        <ZusatzinformationArt1/>
+        <ZusatzinformationInhalt1/>
+        <ZusatzinformationArt2/>
+        <ZusatzinformationInhalt2/>
+        <ZusatzinformationArt3/>
+        <ZusatzinformationInhalt3/>
+        <ZusatzinformationArt4/>
+        <ZusatzinformationInhalt4/>
+        <ZusatzinformationArt5/>
+        <ZusatzinformationInhalt5/>
+        <ZusatzinformationArt6/>
+        <ZusatzinformationInhalt6/>
+        <ZusatzinformationArt7/>
+        <ZusatzinformationInhalt7/>
+        <ZusatzinformationArt8/>
+        <ZusatzinformationInhalt8/>
+        <ZusatzinformationArt9/>
+        <ZusatzinformationInhalt9/>
+        <ZusatzinformationArt10/>
+        <ZusatzinformationInhalt10/>
+        <ZusatzinformationArt11/>
+        <ZusatzinformationInhalt11/>
+        <ZusatzinformationArt12/>
+        <ZusatzinformationInhalt12/>
+        <ZusatzinformationArt13/>
+        <ZusatzinformationInhalt13/>
+        <ZusatzinformationArt14/>
+        <ZusatzinformationInhalt14/>
+        <ZusatzinformationArt15/>
+        <ZusatzinformationInhalt15/>
+        <ZusatzinformationArt16/>
+        <ZusatzinformationInhalt16/>
+        <ZusatzinformationArt17/>
+        <ZusatzinformationInhalt17/>
+        <ZusatzinformationArt18/>
+        <ZusatzinformationInhalt18/>
+        <ZusatzinformationArt19/>
+        <ZusatzinformationInhalt19/>
+        <ZusatzinformationArt20/>
+        <ZusatzinformationInhalt20/>
+        <Stueck/>
+        <Gewicht/>
+        <Zahlweise/>
+        <Forderungsart/>
+        <Veranlagungsjahr/>
+        <ZugeordneteFaelligkeit/>
+        <Skontotyp/>
+        <Auftragsnummer/>
+        <BuchungstypAnzahlungen/>
+        <USt-SchluesselAnzahlungen/>
+        <EU-LandAnzahlungen/>
+        <SachverhaltLLAnzahlungen/>
+        <EU-SteuersatzAnzahlungen/>
+        <ErloeskontoAnzahlungen/>
+        <Herkunft-Kz/>
+        <BuchungsGUID/>
+        <KOST-Datum/>
+        <SEPA-Mandatsreferenz/>
+        <Skontosperre/>
+        <Gesellschaftername/>
+        <Beteiligtennummer/>
+        <Identifikationsnummer/>
+        <Zeichnernummer/>
+        <PostensperreBis/>
+        <BezeichnungSoBil-Sachverhalt/>
+        <KennzeichenSoBil-Buchung/>
+        <Festschreibung/>
+        <Leistungsdatum/>
+        <DatumZuordSteuerperiode/>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+    <Record>
+        <Umsatz>Umsatz (ohne Soll/Haben-Kz)</Umsatz>
+        <SH-Kennzeichen>Soll/Haben-Kennzeichen</SH-Kennzeichen>
+        <WKZ-Umsatz>WKZ Umsatz</WKZ-Umsatz>
+        <Kurs>Kurs</Kurs>
+        <Basis-Umsatz>Basis-Umsatz</Basis-Umsatz>
+        <WKZ-Basis-Umsatz>WKZ Basis-Umsatz</WKZ-Basis-Umsatz>
+        <Konto>Konto</Konto>
+        <Gegenkonto>Gegenkonto (ohne BU-Schl�ssel)</Gegenkonto>
+        <BU-Schluessel>BU-Schl�ssel</BU-Schluessel>
+        <Belegdatum>Belegdatum</Belegdatum>
+        <Belegfeld1>Belegfeld 1</Belegfeld1>
+        <Belegfeld2>Belegfeld 2</Belegfeld2>
+        <Skonto>Skonto</Skonto>
+        <Buchungstext>Buchungstext</Buchungstext>
+        <Postensperre>Postensperre</Postensperre>
+        <DiverseAdressnummer>Diverse Adressnummer</DiverseAdressnummer>
+        <Geschaeftspartnerbank>Gesch�ftspartnerbank</Geschaeftspartnerbank>
+        <Sachverhalt>Sachverhalt</Sachverhalt>
+        <Zinssperre>Zinssperre</Zinssperre>
+        <Beleglink>Beleglink</Beleglink>
+        <BeleginfoArt1>Beleginfo - Art 1</BeleginfoArt1>
+        <BeleginfoInhalt1>Beleginfo - Inhalt 1</BeleginfoInhalt1>
+        <BeleginfoArt2>Beleginfo - Art 2</BeleginfoArt2>
+        <BeleginfoInhalt2>Beleginfo - Inhalt 2</BeleginfoInhalt2>
+        <BeleginfoArt3>Beleginfo - Art 3</BeleginfoArt3>
+        <BeleginfoInhalt3>Beleginfo - Inhalt 3</BeleginfoInhalt3>
+        <BeleginfoArt4>Beleginfo - Art 4</BeleginfoArt4>
+        <BeleginfoInhalt4>Beleginfo - Inhalt 4</BeleginfoInhalt4>
+        <BeleginfoArt5>Beleginfo - Art 5</BeleginfoArt5>
+        <BeleginfoInhalt5>Beleginfo - Inhalt 5</BeleginfoInhalt5>
+        <BeleginfoArt6>Beleginfo - Art 6</BeleginfoArt6>
+        <BeleginfoInhalt6>Beleginfo - Inhalt 6</BeleginfoInhalt6>
+        <BeleginfoArt7>Beleginfo - Art 7</BeleginfoArt7>
+        <BeleginfoInhalt7>Beleginfo - Inhalt 7</BeleginfoInhalt7>
+        <BeleginfoArt8>Beleginfo - Art 8</BeleginfoArt8>
+        <BeleginfoInhalt8>Beleginfo - Inhalt 8</BeleginfoInhalt8>
+        <Kostenstelle1>KOST1 - Kostenstelle</Kostenstelle1>
+        <Kostenstelle2>KOST2 - Kostenstelle</Kostenstelle2>
+        <KostenstelleMenge>Kost-Menge</KostenstelleMenge>
+        <EU-LandUStID>EU-Land u. UStID</EU-LandUStID>
+        <EU-Steuersatz>EU-Steuersatz</EU-Steuersatz>
+        <AbwVersteuerungsart>Abw. Versteuerungsart</AbwVersteuerungsart>
+        <SachverhaltLL>Sachverhalt L+L</SachverhaltLL>
+        <FunktionsergaenzungLL>Funktionserg�nzung L+L</FunktionsergaenzungLL>
+        <BU49Hauptfunktionstyp>BU 49 Hauptfunktionstyp</BU49Hauptfunktionstyp>
+        <BU49Hauptfunktionsnummer>BU 49 Hauptfunktionsnummer</BU49Hauptfunktionsnummer>
+        <BU49Funktionsergaenzung>BU 49 Funktionserg�nzung</BU49Funktionsergaenzung>
+        <ZusatzinformationArt1>Zusatzinformation - Art 1</ZusatzinformationArt1>
+        <ZusatzinformationInhalt1>Zusatzinformation- Inhalt 1</ZusatzinformationInhalt1>
+        <ZusatzinformationArt2>Zusatzinformation - Art 2</ZusatzinformationArt2>
+        <ZusatzinformationInhalt2>Zusatzinformation- Inhalt 2</ZusatzinformationInhalt2>
+        <ZusatzinformationArt3>Zusatzinformation - Art 3</ZusatzinformationArt3>
+        <ZusatzinformationInhalt3>Zusatzinformation- Inhalt 3</ZusatzinformationInhalt3>
+        <ZusatzinformationArt4>Zusatzinformation - Art 4</ZusatzinformationArt4>
+        <ZusatzinformationInhalt4>Zusatzinformation- Inhalt 4</ZusatzinformationInhalt4>
+        <ZusatzinformationArt5>Zusatzinformation - Art 5</ZusatzinformationArt5>
+        <ZusatzinformationInhalt5>Zusatzinformation- Inhalt 5</ZusatzinformationInhalt5>
+        <ZusatzinformationArt6>Zusatzinformation - Art 6</ZusatzinformationArt6>
+        <ZusatzinformationInhalt6>Zusatzinformation- Inhalt 6</ZusatzinformationInhalt6>
+        <ZusatzinformationArt7>Zusatzinformation - Art 7</ZusatzinformationArt7>
+        <ZusatzinformationInhalt7>Zusatzinformation- Inhalt 7</ZusatzinformationInhalt7>
+        <ZusatzinformationArt8>Zusatzinformation - Art 8</ZusatzinformationArt8>
+        <ZusatzinformationInhalt8>Zusatzinformation- Inhalt 8</ZusatzinformationInhalt8>
+        <ZusatzinformationArt9>Zusatzinformation - Art 9</ZusatzinformationArt9>
+        <ZusatzinformationInhalt9>Zusatzinformation- Inhalt 9</ZusatzinformationInhalt9>
+        <ZusatzinformationArt10>Zusatzinformation - Art 10</ZusatzinformationArt10>
+        <ZusatzinformationInhalt10>Zusatzinformation- Inhalt 10</ZusatzinformationInhalt10>
+        <ZusatzinformationArt11>Zusatzinformation - Art 11</ZusatzinformationArt11>
+        <ZusatzinformationInhalt11>Zusatzinformation- Inhalt 11</ZusatzinformationInhalt11>
+        <ZusatzinformationArt12>Zusatzinformation - Art 12</ZusatzinformationArt12>
+        <ZusatzinformationInhalt12>Zusatzinformation- Inhalt 12</ZusatzinformationInhalt12>
+        <ZusatzinformationArt13>Zusatzinformation - Art 13</ZusatzinformationArt13>
+        <ZusatzinformationInhalt13>Zusatzinformation- Inhalt 13</ZusatzinformationInhalt13>
+        <ZusatzinformationArt14>Zusatzinformation - Art 14</ZusatzinformationArt14>
+        <ZusatzinformationInhalt14>Zusatzinformation- Inhalt 14</ZusatzinformationInhalt14>
+        <ZusatzinformationArt15>Zusatzinformation - Art 15</ZusatzinformationArt15>
+        <ZusatzinformationInhalt15>Zusatzinformation- Inhalt 15</ZusatzinformationInhalt15>
+        <ZusatzinformationArt16>Zusatzinformation - Art 16</ZusatzinformationArt16>
+        <ZusatzinformationInhalt16>Zusatzinformation- Inhalt 16</ZusatzinformationInhalt16>
+        <ZusatzinformationArt17>Zusatzinformation - Art 17</ZusatzinformationArt17>
+        <ZusatzinformationInhalt17>Zusatzinformation- Inhalt 17</ZusatzinformationInhalt17>
+        <ZusatzinformationArt18>Zusatzinformation - Art 18</ZusatzinformationArt18>
+        <ZusatzinformationInhalt18>Zusatzinformation- Inhalt 18</ZusatzinformationInhalt18>
+        <ZusatzinformationArt19>Zusatzinformation - Art 19</ZusatzinformationArt19>
+        <ZusatzinformationInhalt19>Zusatzinformation- Inhalt 19</ZusatzinformationInhalt19>
+        <ZusatzinformationArt20>Zusatzinformation - Art 20</ZusatzinformationArt20>
+        <ZusatzinformationInhalt20>Zusatzinformation- Inhalt 20</ZusatzinformationInhalt20>
+        <Stueck>St�ck</Stueck>
+        <Gewicht>Gewicht</Gewicht>
+        <Zahlweise>Zahlweise</Zahlweise>
+        <Forderungsart>Forderungsart</Forderungsart>
+        <Veranlagungsjahr>Veranlagungsjahr</Veranlagungsjahr>
+        <ZugeordneteFaelligkeit>Zugeordnete F�lligkeit</ZugeordneteFaelligkeit>
+        <Skontotyp>Skontotyp</Skontotyp>
+        <Auftragsnummer>Auftragsnummer</Auftragsnummer>
+        <BuchungstypAnzahlungen>Buchungstyp</BuchungstypAnzahlungen>
+        <USt-SchluesselAnzahlungen>USt-Schl�ssel (Anzahlungen)</USt-SchluesselAnzahlungen>
+        <EU-LandAnzahlungen>EU-Land (Anzahlungen)</EU-LandAnzahlungen>
+        <SachverhaltLLAnzahlungen>Sachverhalt L+L (Anzahlungen)</SachverhaltLLAnzahlungen>
+        <EU-SteuersatzAnzahlungen>EU-Steuersatz (Anzahlungen)</EU-SteuersatzAnzahlungen>
+        <ErloeskontoAnzahlungen>Erl�skonto (Anzahlungen)</ErloeskontoAnzahlungen>
+        <Herkunft-Kz>Herkunft-Kz</Herkunft-Kz>
+        <BuchungsGUID>Buchungs GUID</BuchungsGUID>
+        <KOST-Datum>KOST-Datum</KOST-Datum>
+        <SEPA-Mandatsreferenz>SEPA-Mandatsreferenz</SEPA-Mandatsreferenz>
+        <Skontosperre>Skontosperre</Skontosperre>
+        <Gesellschaftername>Gesellschaftername</Gesellschaftername>
+        <Beteiligtennummer>Beteiligtennummer</Beteiligtennummer>
+        <Identifikationsnummer>Identifikationsnummer</Identifikationsnummer>
+        <Zeichnernummer>Zeichnernummer</Zeichnernummer>
+        <PostensperreBis>Postensperre bis</PostensperreBis>
+        <BezeichnungSoBil-Sachverhalt>Bezeichnung SoBil-Sachverhalt</BezeichnungSoBil-Sachverhalt>
+        <KennzeichenSoBil-Buchung>Kennzeichen SoBil-Buchung</KennzeichenSoBil-Buchung>
+        <Festschreibung>Festschreibung</Festschreibung>
+        <Leistungsdatum>Leistungsdatum</Leistungsdatum>
+        <DatumZuordSteuerperiode>Datum Zuord. Steuerperiode
+</DatumZuordSteuerperiode>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+    <Record>
+        <Umsatz>50</Umsatz>
+        <SH-Kennzeichen>H</SH-Kennzeichen>
+        <WKZ-Umsatz/>
+        <Kurs/>
+        <Basis-Umsatz/>
+        <WKZ-Basis-Umsatz/>
+        <Konto>70303</Konto>
+        <Gegenkonto>6800</Gegenkonto>
+        <BU-Schluessel/>
+        <Belegdatum>0202</Belegdatum>
+        <Belegfeld1>1234</Belegfeld1>
+        <Belegfeld2/>
+        <Skonto/>
+        <Buchungstext>Porto</Buchungstext>
+        <Postensperre>0</Postensperre>
+        <DiverseAdressnummer/>
+        <Geschaeftspartnerbank/>
+        <Sachverhalt/>
+        <Zinssperre/>
+        <Beleglink/>
+        <BeleginfoArt1/>
+        <BeleginfoInhalt1/>
+        <BeleginfoArt2/>
+        <BeleginfoInhalt2/>
+        <BeleginfoArt3/>
+        <BeleginfoInhalt3/>
+        <BeleginfoArt4/>
+        <BeleginfoInhalt4/>
+        <BeleginfoArt5/>
+        <BeleginfoInhalt5/>
+        <BeleginfoArt6/>
+        <BeleginfoInhalt6/>
+        <BeleginfoArt7/>
+        <BeleginfoInhalt7/>
+        <BeleginfoArt8/>
+        <BeleginfoInhalt8/>
+        <Kostenstelle1/>
+        <Kostenstelle2/>
+        <KostenstelleMenge/>
+        <EU-LandUStID/>
+        <EU-Steuersatz/>
+        <AbwVersteuerungsart/>
+        <SachverhaltLL/>
+        <FunktionsergaenzungLL/>
+        <BU49Hauptfunktionstyp/>
+        <BU49Hauptfunktionsnummer/>
+        <BU49Funktionsergaenzung/>
+        <ZusatzinformationArt1/>
+        <ZusatzinformationInhalt1/>
+        <ZusatzinformationArt2/>
+        <ZusatzinformationInhalt2/>
+        <ZusatzinformationArt3/>
+        <ZusatzinformationInhalt3/>
+        <ZusatzinformationArt4/>
+        <ZusatzinformationInhalt4/>
+        <ZusatzinformationArt5/>
+        <ZusatzinformationInhalt5/>
+        <ZusatzinformationArt6/>
+        <ZusatzinformationInhalt6/>
+        <ZusatzinformationArt7/>
+        <ZusatzinformationInhalt7/>
+        <ZusatzinformationArt8/>
+        <ZusatzinformationInhalt8/>
+        <ZusatzinformationArt9/>
+        <ZusatzinformationInhalt9/>
+        <ZusatzinformationArt10/>
+        <ZusatzinformationInhalt10/>
+        <ZusatzinformationArt11/>
+        <ZusatzinformationInhalt11/>
+        <ZusatzinformationArt12/>
+        <ZusatzinformationInhalt12/>
+        <ZusatzinformationArt13/>
+        <ZusatzinformationInhalt13/>
+        <ZusatzinformationArt14/>
+        <ZusatzinformationInhalt14/>
+        <ZusatzinformationArt15/>
+        <ZusatzinformationInhalt15/>
+        <ZusatzinformationArt16/>
+        <ZusatzinformationInhalt16/>
+        <ZusatzinformationArt17/>
+        <ZusatzinformationInhalt17/>
+        <ZusatzinformationArt18/>
+        <ZusatzinformationInhalt18/>
+        <ZusatzinformationArt19/>
+        <ZusatzinformationInhalt19/>
+        <ZusatzinformationArt20/>
+        <ZusatzinformationInhalt20/>
+        <Stueck/>
+        <Gewicht/>
+        <Zahlweise/>
+        <Forderungsart/>
+        <Veranlagungsjahr/>
+        <ZugeordneteFaelligkeit/>
+        <Skontotyp/>
+        <Auftragsnummer/>
+        <BuchungstypAnzahlungen/>
+        <USt-SchluesselAnzahlungen/>
+        <EU-LandAnzahlungen/>
+        <SachverhaltLLAnzahlungen/>
+        <EU-SteuersatzAnzahlungen/>
+        <ErloeskontoAnzahlungen/>
+        <Herkunft-Kz/>
+        <BuchungsGUID/>
+        <KOST-Datum/>
+        <SEPA-Mandatsreferenz/>
+        <Skontosperre/>
+        <Gesellschaftername/>
+        <Beteiligtennummer/>
+        <Identifikationsnummer/>
+        <Zeichnernummer/>
+        <PostensperreBis/>
+        <BezeichnungSoBil-Sachverhalt/>
+        <KennzeichenSoBil-Buchung/>
+        <Festschreibung>0</Festschreibung>
+        <Leistungsdatum/>
+        <DatumZuordSteuerperiode>
+    </DatumZuordSteuerperiode>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+    <Record>
+        <Umsatz>50</Umsatz>
+        <SH-Kennzeichen>H</SH-Kennzeichen>
+        <WKZ-Umsatz/>
+        <Kurs/>
+        <Basis-Umsatz/>
+        <WKZ-Basis-Umsatz/>
+        <Konto>1800</Konto>
+        <Gegenkonto>70303</Gegenkonto>
+        <BU-Schluessel/>
+        <Belegdatum>0302</Belegdatum>
+        <Belegfeld1>1234</Belegfeld1>
+        <Belegfeld2/>
+        <Skonto/>
+        <Buchungstext>Zahlung</Buchungstext>
+        <Postensperre>0</Postensperre>
+        <DiverseAdressnummer/>
+        <Geschaeftspartnerbank/>
+        <Sachverhalt/>
+        <Zinssperre/>
+        <Beleglink/>
+        <BeleginfoArt1/>
+        <BeleginfoInhalt1/>
+        <BeleginfoArt2/>
+        <BeleginfoInhalt2/>
+        <BeleginfoArt3/>
+        <BeleginfoInhalt3/>
+        <BeleginfoArt4/>
+        <BeleginfoInhalt4/>
+        <BeleginfoArt5/>
+        <BeleginfoInhalt5/>
+        <BeleginfoArt6/>
+        <BeleginfoInhalt6/>
+        <BeleginfoArt7/>
+        <BeleginfoInhalt7/>
+        <BeleginfoArt8/>
+        <BeleginfoInhalt8/>
+        <Kostenstelle1/>
+        <Kostenstelle2/>
+        <KostenstelleMenge/>
+        <EU-LandUStID/>
+        <EU-Steuersatz/>
+        <AbwVersteuerungsart/>
+        <SachverhaltLL/>
+        <FunktionsergaenzungLL/>
+        <BU49Hauptfunktionstyp/>
+        <BU49Hauptfunktionsnummer/>
+        <BU49Funktionsergaenzung/>
+        <ZusatzinformationArt1/>
+        <ZusatzinformationInhalt1/>
+        <ZusatzinformationArt2/>
+        <ZusatzinformationInhalt2/>
+        <ZusatzinformationArt3/>
+        <ZusatzinformationInhalt3/>
+        <ZusatzinformationArt4/>
+        <ZusatzinformationInhalt4/>
+        <ZusatzinformationArt5/>
+        <ZusatzinformationInhalt5/>
+        <ZusatzinformationArt6/>
+        <ZusatzinformationInhalt6/>
+        <ZusatzinformationArt7/>
+        <ZusatzinformationInhalt7/>
+        <ZusatzinformationArt8/>
+        <ZusatzinformationInhalt8/>
+        <ZusatzinformationArt9/>
+        <ZusatzinformationInhalt9/>
+        <ZusatzinformationArt10/>
+        <ZusatzinformationInhalt10/>
+        <ZusatzinformationArt11/>
+        <ZusatzinformationInhalt11/>
+        <ZusatzinformationArt12/>
+        <ZusatzinformationInhalt12/>
+        <ZusatzinformationArt13/>
+        <ZusatzinformationInhalt13/>
+        <ZusatzinformationArt14/>
+        <ZusatzinformationInhalt14/>
+        <ZusatzinformationArt15/>
+        <ZusatzinformationInhalt15/>
+        <ZusatzinformationArt16/>
+        <ZusatzinformationInhalt16/>
+        <ZusatzinformationArt17/>
+        <ZusatzinformationInhalt17/>
+        <ZusatzinformationArt18/>
+        <ZusatzinformationInhalt18/>
+        <ZusatzinformationArt19/>
+        <ZusatzinformationInhalt19/>
+        <ZusatzinformationArt20/>
+        <ZusatzinformationInhalt20/>
+        <Stueck/>
+        <Gewicht/>
+        <Zahlweise/>
+        <Forderungsart/>
+        <Veranlagungsjahr/>
+        <ZugeordneteFaelligkeit/>
+        <Skontotyp/>
+        <Auftragsnummer/>
+        <BuchungstypAnzahlungen/>
+        <USt-SchluesselAnzahlungen/>
+        <EU-LandAnzahlungen/>
+        <SachverhaltLLAnzahlungen/>
+        <EU-SteuersatzAnzahlungen/>
+        <ErloeskontoAnzahlungen/>
+        <Herkunft-Kz/>
+        <BuchungsGUID/>
+        <KOST-Datum/>
+        <SEPA-Mandatsreferenz/>
+        <Skontosperre/>
+        <Gesellschaftername/>
+        <Beteiligtennummer/>
+        <Identifikationsnummer/>
+        <Zeichnernummer/>
+        <PostensperreBis/>
+        <BezeichnungSoBil-Sachverhalt/>
+        <KennzeichenSoBil-Buchung/>
+        <Festschreibung>0</Festschreibung>
+        <Leistungsdatum/>
+        <DatumZuordSteuerperiode>
+    </DatumZuordSteuerperiode>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+    <Record>
+        <Umsatz>15000</Umsatz>
+        <SH-Kennzeichen>S</SH-Kennzeichen>
+        <WKZ-Umsatz/>
+        <Kurs/>
+        <Basis-Umsatz/>
+        <WKZ-Basis-Umsatz/>
+        <Konto>10000</Konto>
+        <Gegenkonto>4400</Gegenkonto>
+        <BU-Schluessel/>
+        <Belegdatum>0502</Belegdatum>
+        <Belegfeld1>1234</Belegfeld1>
+        <Belegfeld2/>
+        <Skonto/>
+        <Buchungstext>Erl�s</Buchungstext>
+        <Postensperre>0</Postensperre>
+        <DiverseAdressnummer/>
+        <Geschaeftspartnerbank/>
+        <Sachverhalt/>
+        <Zinssperre/>
+        <Beleglink/>
+        <BeleginfoArt1/>
+        <BeleginfoInhalt1/>
+        <BeleginfoArt2/>
+        <BeleginfoInhalt2/>
+        <BeleginfoArt3/>
+        <BeleginfoInhalt3/>
+        <BeleginfoArt4/>
+        <BeleginfoInhalt4/>
+        <BeleginfoArt5/>
+        <BeleginfoInhalt5/>
+        <BeleginfoArt6/>
+        <BeleginfoInhalt6/>
+        <BeleginfoArt7/>
+        <BeleginfoInhalt7/>
+        <BeleginfoArt8/>
+        <BeleginfoInhalt8/>
+        <Kostenstelle1/>
+        <Kostenstelle2/>
+        <KostenstelleMenge/>
+        <EU-LandUStID/>
+        <EU-Steuersatz/>
+        <AbwVersteuerungsart/>
+        <SachverhaltLL/>
+        <FunktionsergaenzungLL/>
+        <BU49Hauptfunktionstyp/>
+        <BU49Hauptfunktionsnummer/>
+        <BU49Funktionsergaenzung/>
+        <ZusatzinformationArt1/>
+        <ZusatzinformationInhalt1/>
+        <ZusatzinformationArt2/>
+        <ZusatzinformationInhalt2/>
+        <ZusatzinformationArt3/>
+        <ZusatzinformationInhalt3/>
+        <ZusatzinformationArt4/>
+        <ZusatzinformationInhalt4/>
+        <ZusatzinformationArt5/>
+        <ZusatzinformationInhalt5/>
+        <ZusatzinformationArt6/>
+        <ZusatzinformationInhalt6/>
+        <ZusatzinformationArt7/>
+        <ZusatzinformationInhalt7/>
+        <ZusatzinformationArt8/>
+        <ZusatzinformationInhalt8/>
+        <ZusatzinformationArt9/>
+        <ZusatzinformationInhalt9/>
+        <ZusatzinformationArt10/>
+        <ZusatzinformationInhalt10/>
+        <ZusatzinformationArt11/>
+        <ZusatzinformationInhalt11/>
+        <ZusatzinformationArt12/>
+        <ZusatzinformationInhalt12/>
+        <ZusatzinformationArt13/>
+        <ZusatzinformationInhalt13/>
+        <ZusatzinformationArt14/>
+        <ZusatzinformationInhalt14/>
+        <ZusatzinformationArt15/>
+        <ZusatzinformationInhalt15/>
+        <ZusatzinformationArt16/>
+        <ZusatzinformationInhalt16/>
+        <ZusatzinformationArt17/>
+        <ZusatzinformationInhalt17/>
+        <ZusatzinformationArt18/>
+        <ZusatzinformationInhalt18/>
+        <ZusatzinformationArt19/>
+        <ZusatzinformationInhalt19/>
+        <ZusatzinformationArt20/>
+        <ZusatzinformationInhalt20/>
+        <Stueck/>
+        <Gewicht/>
+        <Zahlweise/>
+        <Forderungsart/>
+        <Veranlagungsjahr/>
+        <ZugeordneteFaelligkeit/>
+        <Skontotyp/>
+        <Auftragsnummer/>
+        <BuchungstypAnzahlungen/>
+        <USt-SchluesselAnzahlungen/>
+        <EU-LandAnzahlungen/>
+        <SachverhaltLLAnzahlungen/>
+        <EU-SteuersatzAnzahlungen/>
+        <ErloeskontoAnzahlungen/>
+        <Herkunft-Kz/>
+        <BuchungsGUID/>
+        <KOST-Datum/>
+        <SEPA-Mandatsreferenz/>
+        <Skontosperre/>
+        <Gesellschaftername/>
+        <Beteiligtennummer/>
+        <Identifikationsnummer/>
+        <Zeichnernummer/>
+        <PostensperreBis/>
+        <BezeichnungSoBil-Sachverhalt/>
+        <KennzeichenSoBil-Buchung/>
+        <Festschreibung>0</Festschreibung>
+        <Leistungsdatum/>
+        <DatumZuordSteuerperiode>
+    </DatumZuordSteuerperiode>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+    <Record>
+        <Umsatz>650</Umsatz>
+        <SH-Kennzeichen>H</SH-Kennzeichen>
+        <WKZ-Umsatz/>
+        <Kurs/>
+        <Basis-Umsatz/>
+        <WKZ-Basis-Umsatz/>
+        <Konto>70001</Konto>
+        <Gegenkonto>6600</Gegenkonto>
+        <BU-Schluessel>9</BU-Schluessel>
+        <Belegdatum>0502</Belegdatum>
+        <Belegfeld1>1234</Belegfeld1>
+        <Belegfeld2/>
+        <Skonto/>
+        <Buchungstext>Werbung</Buchungstext>
+        <Postensperre>0</Postensperre>
+        <DiverseAdressnummer/>
+        <Geschaeftspartnerbank/>
+        <Sachverhalt/>
+        <Zinssperre/>
+        <Beleglink/>
+        <BeleginfoArt1/>
+        <BeleginfoInhalt1/>
+        <BeleginfoArt2/>
+        <BeleginfoInhalt2/>
+        <BeleginfoArt3/>
+        <BeleginfoInhalt3/>
+        <BeleginfoArt4/>
+        <BeleginfoInhalt4/>
+        <BeleginfoArt5/>
+        <BeleginfoInhalt5/>
+        <BeleginfoArt6/>
+        <BeleginfoInhalt6/>
+        <BeleginfoArt7/>
+        <BeleginfoInhalt7/>
+        <BeleginfoArt8/>
+        <BeleginfoInhalt8/>
+        <Kostenstelle1/>
+        <Kostenstelle2/>
+        <KostenstelleMenge/>
+        <EU-LandUStID/>
+        <EU-Steuersatz/>
+        <AbwVersteuerungsart/>
+        <SachverhaltLL/>
+        <FunktionsergaenzungLL/>
+        <BU49Hauptfunktionstyp/>
+        <BU49Hauptfunktionsnummer/>
+        <BU49Funktionsergaenzung/>
+        <ZusatzinformationArt1/>
+        <ZusatzinformationInhalt1/>
+        <ZusatzinformationArt2/>
+        <ZusatzinformationInhalt2/>
+        <ZusatzinformationArt3/>
+        <ZusatzinformationInhalt3/>
+        <ZusatzinformationArt4/>
+        <ZusatzinformationInhalt4/>
+        <ZusatzinformationArt5/>
+        <ZusatzinformationInhalt5/>
+        <ZusatzinformationArt6/>
+        <ZusatzinformationInhalt6/>
+        <ZusatzinformationArt7/>
+        <ZusatzinformationInhalt7/>
+        <ZusatzinformationArt8/>
+        <ZusatzinformationInhalt8/>
+        <ZusatzinformationArt9/>
+        <ZusatzinformationInhalt9/>
+        <ZusatzinformationArt10/>
+        <ZusatzinformationInhalt10/>
+        <ZusatzinformationArt11/>
+        <ZusatzinformationInhalt11/>
+        <ZusatzinformationArt12/>
+        <ZusatzinformationInhalt12/>
+        <ZusatzinformationArt13/>
+        <ZusatzinformationInhalt13/>
+        <ZusatzinformationArt14/>
+        <ZusatzinformationInhalt14/>
+        <ZusatzinformationArt15/>
+        <ZusatzinformationInhalt15/>
+        <ZusatzinformationArt16/>
+        <ZusatzinformationInhalt16/>
+        <ZusatzinformationArt17/>
+        <ZusatzinformationInhalt17/>
+        <ZusatzinformationArt18/>
+        <ZusatzinformationInhalt18/>
+        <ZusatzinformationArt19/>
+        <ZusatzinformationInhalt19/>
+        <ZusatzinformationArt20/>
+        <ZusatzinformationInhalt20/>
+        <Stueck/>
+        <Gewicht/>
+        <Zahlweise/>
+        <Forderungsart/>
+        <Veranlagungsjahr/>
+        <ZugeordneteFaelligkeit/>
+        <Skontotyp/>
+        <Auftragsnummer/>
+        <BuchungstypAnzahlungen/>
+        <USt-SchluesselAnzahlungen/>
+        <EU-LandAnzahlungen/>
+        <SachverhaltLLAnzahlungen/>
+        <EU-SteuersatzAnzahlungen/>
+        <ErloeskontoAnzahlungen/>
+        <Herkunft-Kz/>
+        <BuchungsGUID/>
+        <KOST-Datum/>
+        <SEPA-Mandatsreferenz/>
+        <Skontosperre/>
+        <Gesellschaftername/>
+        <Beteiligtennummer/>
+        <Identifikationsnummer/>
+        <Zeichnernummer/>
+        <PostensperreBis/>
+        <BezeichnungSoBil-Sachverhalt/>
+        <KennzeichenSoBil-Buchung/>
+        <Festschreibung>0</Festschreibung>
+        <Leistungsdatum/>
+        <DatumZuordSteuerperiode>
+    </DatumZuordSteuerperiode>
+        <Faelligkeit/>
+        <GeneralumkehrGU/>
+        <Steuersatz/>
+        <Land/>
+    </Record>
+ </Records>

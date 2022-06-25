@@ -1,0 +1,61 @@
+<Format name="BankAccount" format="CSV" separator=";" newline="&#xA;">
+<!-- 
+https://de.wikipedia.org/wiki/Camt-Format 
+https://de.wikipedia.org/wiki/MT940
+https://www.bexio.com/de-CH/iso20022
+-->
+<!--
+Ums‰tze Kontokorrentkonto (00);;;Kundennummer: 220 2229714
+20.04.2020 - 15.07.2020
+Letzter Kontostand;;;;-4.919,34;EUR
+Vorgemerkte und noch nicht gebuchte Umsätze sind nicht Bestandteil dieser Übersicht.
+-->
+	<Part name="Account" headerlines="0" lines="1">
+		<Column nr="1" name="Inhalt" headline="" type="string"/>
+		<Column nr="2" name="Unknown" headline="" type="string"/>
+		<Column nr="3" name="Unknown" headline="" type="string"/>
+ 		<Column nr="4" name="CustomerID" headline="" type="string"/>
+	</Part>
+	<Part name="Timeframe" headerlines="0" lines="1">
+		<Column nr="1" name="Period" headline="" type="string"/>
+	</Part>
+	<Part name="Saldo" headerlines="0" lines="1">
+		<Column nr="1" name="Status" headline="" type="string"/>
+		<Column nr="2" name="Unknown" headline="" type="string"/>
+		<Column nr="3" name="Unknown" headline="" type="string"/>
+		<Column nr="4" name="Unknown" headline="" type="string"/>
+ 		<Column nr="5" name="SaldoAmount" headline="" type="money"/>
+		<Column nr="6" name="SaldoUnit" headline="" type="string"/>
+	</Part>
+	<Part name="Info" headerlines="0" lines="1">
+		<Column nr="1" name="Notes" headline="" type="string"/>
+	</Part>
+	<Part name="Statement" headerlines="1">
+		<Column nr="1" name="BookingDate" headline="Buchungstag" type="date" pattern="[D00].[M00].[Y0000]"/>
+		<Column nr="2" name="ValueDate" headline="Wert" type="date" pattern="[D00].[M00].[Y0000]"/>
+		<Column nr="3" name="SalesType" headline="Umsatzart" type="string"/>
+		<Column nr="4" name="Recipient" headline="Begünstigter / Auftraggeber" type="string"/>
+ 		<Column nr="5" name="PaymentDetails" headline="Verwendungszweck" type="string"/>
+		<Column nr="6" name="IBAN" headline="IBAN" type="string"/>
+		<Column nr="7" name="BIC" headline="BIC" type="string"/>
+		<Column nr="8" name="CustomerRef" headline="Kundenreferenz" type="string"/>
+		<Column nr="9" name="MandantRef" headline="Mandatsreferenz" type="string"/>
+		<Column nr="10" name="CreditorID" headline="Gläubiger ID" type="string"/>
+		<Column nr="11" name="ExternalCosts" headline="Fremde Gebühren" type="string"/>
+		<Column nr="12" name="Amount" headline="Betrag" type="money"/>
+		<Column nr="13" name="DivergentRecepient" headline="Abweichender Empfänger" type="string"/>
+		<Column nr="14" name="NumberOfOrders" headline="Anzahl der Aufträge" type="string"/>
+		<Column nr="15" name="NumberOfChecks" headline="Anzahl der Schecks" type="string"/>
+		<Column nr="16" name="DebitAmount" headline="Soll" type="money"/>
+		<Column nr="17" name="CreditAmount" headline="Haben" type="money"/>
+		<Column nr="18" name="CurrencyUnit" headline="Währung" type="string"/>
+	</Part>
+	<Part name="Summary" headerlines="0" lines="1">
+		<Column nr="1" name="Status" headline="" type="string"/>
+		<Column nr="2" name="Unknown" headline="" type="string"/>
+		<Column nr="3" name="Unknown" headline="" type="string"/>
+		<Column nr="4" name="Unknown" headline="" type="string"/>
+ 		<Column nr="5" name="CurrencyAmount" headline="" type="money"/>
+		<Column nr="6" name="CurrencyUnit" headline="" type="string"/>
+	</Part>
+</Format>

@@ -1,0 +1,854 @@
+<!--/*--><css><![CDATA[/**/
+
+/*
+========================================================================
+LICENSE AGREEMENT:
+This software is distributed WITHOUT ANY WARRANTY and without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+========================================================================
+This copy of Checker (an automated compare tool) is licensed under the
+Lesser General Public License (LGPL), version 3 ("the License").
+
+See the License for details about distribution rights, 
+modification and transformation of it.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
+========================================================================
+Copyright:
+(c) 2010-2014 by InterSecurity GmbH &amp; Co. KG, Germany
+========================================================================
+@Author: Eduard Huber
+@Version: 1.0
+======================================================================== 
+*/
+
+/* IMPORTANT: This fancy header is needed to enable the CSS to be handled by the XSLT trasformer */
+
+@namespace xf url("http://www.w3.org/2002/xforms");
+
+/* latin */
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: italic;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/robotocondensed/v19/ieVj2ZhZI2eCN5jzbjEETS9weq8-19eLDwM9.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: italic;
+  font-weight: 700;
+  src: url(https://fonts.gstatic.com/s/robotocondensed/v19/ieVg2ZhZI2eCN5jzbjEETS9weq8-19eDtCYobdNZ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/robotocondensed/v19/ieVl2ZhZI2eCN5jzbjEETS9weq8-19K7DQ.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://fonts.gstatic.com/s/robotocondensed/v19/ieVi2ZhZI2eCN5jzbjEETS9weq8-32meGCQYbw.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+
+body{
+  /* 'DIN 1451 Mittelschrift' */
+    font-family: 'Roboto Condensed','Tahoma', 'Geneva', Arial, sans-serif;
+    font-size: 1rem;
+    font-size-adjust:0.58;
+    color:#262626;
+    background:none;
+    margin:0 1ex 0 1ex;
+    line-height:1.5;
+}
+
+.xforms-label,
+.xforms-value {
+    font-size:inherit;
+}
+
+a img{
+    border:none;
+}
+
+table{
+    min-width: 700px;
+    font-size:100%;
+    border-spacing: 3px;
+}
+
+table th.index,
+table td.index {
+    width: 4ex;
+    text-align: center;
+}
+
+table th,
+thead td{
+    font-weight:bold;
+    position: -webkit-sticky; /* Safari */
+    position: sticky;
+    top: 3.9em;    
+}
+
+table td,
+table th{
+    padding-left:1ex;
+    padding-right:1ex;
+}
+
+th,
+th .xfControl,
+th a:link,
+thead tr{
+    color:#FFF;
+    background-color:#999;
+    text-align:left;
+    font-weight:normal;
+}
+
+th,
+th .xfControl{
+    padding:0 1ex 0 1ex;
+}
+
+.tableform{
+    border-collapse:collapse;
+}
+
+.tableform,
+.tableform th,
+.tableform td{
+    border:1px solid #666;
+}
+
+tr {
+    background-color: #eee;
+}
+
+tr.even{
+    background-color:#EEDFCC;
+}
+
+tr.odd{
+	background-color: #FDF5E6;
+}
+
+.tableform tfoot td,
+.tableform tfoot th{
+    background-color: #CCC;    
+}
+
+#header {
+    position:fixed;
+    width:100%
+}
+#menu {
+}
+#headline {
+    /* font-size:130%; */
+    background-color:#E9E9E9;
+    padding-top: 1px;
+    padding-left: 1ex;
+    padding-right: 1ex;
+    padding-bottom: 1px;
+    margin: 0 -1ex 1ex -1ex;
+ 	box-shadow: 0px 1px 5px 0px #aaa;
+}
+#content {
+    padding-top: 5.5em;
+}
+
+div.breadcrump,
+div.menue{
+    background-color:#999;
+    color:#FFF;
+    margin:0px;
+    padding:0px 5px 5px 5px;
+    height:2em;
+    line-height:2em;
+    margin-left: -1ex;
+    margin-right: -1ex;
+    margin-bottom: 0;
+}
+
+div.breadcrump a,
+div.menue a{
+    color:#FFF;
+}
+
+h1,
+h2,
+h3,
+h4,
+h1 .xfControl,
+h2 .xfControl,
+h3 .xfControl,
+h4 .xfControl{
+    font-weight:normal;
+}
+
+h1,
+h2{
+    font-size:130%;
+    background-color:#E9E9E9;
+    padding: 2px 1ex;
+    margin: 0 -1ex 1ex -1ex;
+}
+
+.widgetContainer{
+    /*width:100%;*/
+}
+
+.xfControl .xfValue{
+}
+
+label,
+label.xfLabel{
+    font-weight:500;
+    color:#262626;
+    vertical-align: top;
+    padding-right: 1em;
+}
+
+.left label.xfLabel{
+    float:left;
+    padding-right:1em;
+}
+
+input {
+  font-size:initial;
+  line-height: inherit;
+}
+
+button,
+input.xfValue,
+select.xfValue{
+    /* font-family:Arial,sans-serif;
+    font-size:13px; */
+}
+
+.fixedLenght input.xfValue{
+    width:37ex;
+    margin-right:1ex;
+}
+
+tr.xfRepeatItem td{
+    padding:1px 2px 1px 2px;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+    border:2px solid #1C69D4;
+}
+
+div#content span.xfContainer{
+    display:table;
+}
+
+.xfControl{
+    color:#262626;
+    display:inline-block;
+}
+
+.xfRepeatIndex,
+.xfRepeatIndex th,
+.xfRepeatIndex .xfControl{
+    background-color:#1C69D4;
+}
+
+.xfOptional input,
+.xfOptional select,
+.xfOptional textarea{
+    background-color:#DFD;
+}
+
+.xfRequired input,
+.xfRequired select,
+.xfRequired textarea{
+    background-color:#FFD;
+}
+/*
+.xfCase .xfInvalid,
+.xfCase .xfRequiredEmpty,
+*/
+.xfInvalidCase,
+.xfInvalid input,
+.xfInvalid select,
+.xfInvalid textarea,
+.xfRequiredEmpty .xfValue{
+    background-color:#FDD !important;
+    border-width: 2px;
+}
+
+.Status{
+    display: none;
+}
+
+.Status .xfInvalid,
+.Status .xfInvalidCase,
+.Status .xfRequiredEmpty{
+    display:inline-block;
+    background-color:#FDD !important;
+    border-width: 2px;
+}
+
+.buttonComp button,
+a.buttonComp{
+    text-align:center;
+    overflow:hidden;
+    display:inline-block;
+    color:#FFF;
+    padding:4px 1em 4px 1em;
+    border:0px none;
+    background-color:#777;
+    cursor:pointer;
+    max-height:30px;
+    line-height:1em;
+    margin-top:5px;
+}
+
+.buttonBlue button{
+    background-color:#1C69D4;
+    background-position:0px -149px;
+}
+
+
+.tooltip{
+    display:inline;
+    position:relative;
+}
+
+.tooltip:hover:after{
+    background:#333;
+    background:rgba(0, 0, 0, .8);
+    border-radius:5px;
+    bottom:26px;
+    color:#fff;
+    content:attr(title);
+    left:20%;
+    padding:5px 15px;
+    position:absolute;
+    z-index:98;
+    width:220px;
+}
+
+.tooltip:hover:before{
+    border:solid;
+    border-color:#333 transparent;
+    border-width:6px 6px 0 6px;
+    bottom:20px;
+    content:"";
+    left:50%;
+    position:absolute;
+    z-index:99;
+}
+
+:link{
+    color:#33A;
+}
+:visited{
+    color:#333;
+}
+
+div.Error{
+    background-color:#FA0;
+}
+.step-info{
+    border: 1px solid #CCC;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    padding:1ex;
+}
+
+div#content .inline span.xfContainer{
+    display: inline-block;
+}
+
+.xfReadOnly > .widgetContainer > .xfValue{
+    cursor: text !important;
+}
+
+ul.Nav {
+  margin: 0;
+  padding: 0;
+}
+
+button,
+input[type="submit"],
+ul.Nav li {
+  display: inline-block;
+  margin: 0.25rem 0.4rem;
+  padding: 0.1rem 0.5rem;
+
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: rgba(255, 165, 0, 0.5);
+  box-shadow: 1px 1px 3px 0px #aaa;
+}
+
+button,
+input[type="submit"],
+ul.Nav li a {
+  color:#000;
+  font-weight: 600;
+  text-decoration: none;
+  font-size:initial;
+}
+
+
+ul.Nav li a:link {
+  color: #333;
+}
+
+ul.Nav li a:visited {
+  color: #444;
+}
+
+
+iframe {
+	border: 1px solid #333;
+}
+
+.xforms-group {
+    display: inline-block;
+}
+
+.Form .xforms-group {
+    width: 100%;
+}
+
+button[disabled] {
+	color: #999;
+}
+
+.xforms-invalid .xforms-value {
+	background-color: #ffc0cb;
+}
+
+.xforms-invalid .xforms-value[readonly] {
+	background-color: #ffe0ee;
+}
+
+.hidden .xf-value {
+	display: none;
+}
+
+td,
+th {
+	vertical-align: top;
+}
+
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid gray;
+}
+ 
+.tabs > label {
+  order: 1;
+  display: block;
+  padding: 1rem 2rem;
+  margin-right: 0.2rem;
+  cursor: pointer;
+  background:  #3CC0F8;
+  font-weight: bold;
+  transition: background ease 0.2s;
+}
+ 
+.tabs .tab {
+  order: 99;
+  flex-grow: 1;
+  width: 100%;
+  display: none;
+  padding: 0 1rem 1rem 1rem;
+  background: #fff;
+}
+ 
+.tabs > input[type="radio"] {
+  display: none;
+}
+ 
+.tabs > input[type="radio"]:checked + label {
+  background: #fff;
+}
+ 
+.tabs > input[type="radio"]:checked + label + .tab {
+  display: block;
+}
+ 
+@media (max-width: 45em) {
+  .tabs > .tab,
+  .tabs > label {
+    order: initial;
+  }
+ 
+  .tabs > label {
+    width: 100%;
+    margin-right: 0;
+    margin-top: 0.2rem;
+  }
+}
+
+				.Long .xforms-value {
+					width: 100ex;
+				}
+				
+				.xforms-value {
+					/* font-size: 110%; */
+				}
+
+				/* align the labels but not the save label */
+				xf|group xf|label,
+				xf|output xf|label,
+				xf|input xf|label, 
+				xf|textarea xf|label, 
+				xf|select1 xf|label {
+				display: inline-block;
+				width: 15ex;
+				text-align: right;
+				vertical-align: top;
+				margin-right: 1ex;
+        font-weight: bold;
+        font-size: inherit;
+				}
+		 
+				xf|input, 
+				xf|select1, 
+				xf|textarea, 
+				xf|ouptut {
+				margin: 0ex;
+        display: inline-block;
+        font-size: inherit;
+				}
+			fieldset {
+				background-color: #eee;
+				padding: 1rem;
+				margin: 1rem;
+				border: 1px solid #333;
+			}
+
+			.xforms-repeat-item > span {
+				display: inline-block;
+			}
+
+			.large-textarea textarea {
+				font-family: Courier, sans-serif;
+				height: 10em;
+				width: 500px;
+			}
+
+			.xforms-focus input {
+				border: 2px solid #FF9;
+				background: #FF9;
+			}
+
+			.xforms-repeat-item {
+				/* display: block; */
+			}
+
+div.flex {
+	display: flex;
+    justify-content: space-around;
+    align-items: baseline;
+	/* align-items:center; */
+	/* flex-flow: column; */
+}
+
+.error,
+.error * {
+	background-color: red !important;
+}
+
+/* div.flex > table,
+div.flex div {
+
+} */
+
+button {
+	display: inline-block; 
+	min-height: 3ex; 
+	min-width: 10em; 
+	border-radius: 5px;
+	text-align: center;
+}
+
+.xforms-repeat-item button {
+		min-width: inherit;	
+}
+
+.Money {
+	text-align: right;
+}
+
+.PaymentDetail {
+
+}
+
+.Usage {
+	font-style: italic;
+	color: #999;
+}
+
+
+tr.Trusted td:first-child {
+    border-left: 2px solid #0F0;
+}
+
+tr.NoTrust td:first-child {
+    border-left: 2px solid #ccc;
+}
+
+tr.Invalid td:first-child {
+    border-left: 2px solid #F00;
+}
+
+tr.Duplicate td {
+	background-color: #C61;
+}
+
+.TilesHeader {
+	padding: 0 1rem;
+	margin: 1rem auto 0 auto;
+	color: #fff;
+	background-color: #09F;
+	font-weight: bold;
+}
+
+.Tiles {
+	list-style-type: none;
+	display: flex;
+	padding: 0rem;
+	margin: 0rem;
+	background-color: #eee;
+}
+
+.Tile {
+	color: #fff;
+	background-color: #09f;
+	border: 1px solid white;
+
+}
+
+.Tile a {
+	display: block;
+	color: inherit;
+	width: 10rem;
+	height: 5rem;
+	padding: 1rem;
+	font-style: normal;
+	text-decoration: none;
+	font-weight: 550;
+}
+
+.disabled .Tile, 
+.disabled.Tile {
+	background-color: #ccc;
+}
+
+.done {
+	background-color: #3C3;
+}
+
+.part {
+	background-color: #e61;
+}
+
+.invalid {
+	background-color: #e40; /* #F63 */
+}
+
+.open {
+	background-color: #EE9A49;
+}
+
+
+div.tabmenu .value {
+	order: 1;
+	display: inline-block;
+	padding: 0.1rem 1rem;
+	margin-right: 0.5rem;
+	cursor: pointer;
+	background: #3CC0F8;
+	font-weight: bold;
+	transition: background ease 0.2s;
+	border: none;
+	border-radius: 10px 10px 0 0;
+	min-width: 12rem;
+}
+
+/* Make non-selected tabs appear in the background */
+div.tabmenu div:not(:target) a {
+   border-bottom: none;	
+   background: #999;
+}		
+
+/* Make the selected (targeted) item or default selection to appear on top */
+div.tabmenu div:target  a {
+   border-bottom: 0.1em solid #CCC;  
+   background: #CCC;
+}
+
+
+.header,
+.tabbody {
+	padding: 0;
+
+}
+
+.inline .xforms-repeat-item {
+   display:table-cell;
+}
+
+
+.DoubleInputSize input,
+.DoubleInputSize textarea {
+	min-width: 50ex;
+}
+
+.DoubleInputSize button {
+
+}
+
+.DoubleInputSize button > .xforms-label{
+	display: inline-block;
+	text-align: center;
+	line-height: 1;
+}
+
+.TabTitle {
+	padding: 0.5ex 1ex;
+	margin: -1ex -1ex 1ex -1ex;
+}
+
+div.tabmenu .TabBase .value {
+	background-color: #fccf7c;
+}
+
+div.tabmenu .TabBooking .value {
+	background-color: #f9cccc;
+}
+
+div.tabmenu .TabAttachment .value {
+	background-color: #3CC0F8;
+}
+
+
+div.tabbody {
+	min-height: 280px;
+	border: 1px solid #333;
+	padding: 1rem 5px;
+}
+
+div.tabbody.TabBase {
+	background-color: #fff8f0;
+}
+
+div.tabbody.TabBooking {
+	background-color: #fee;
+}
+
+div.tabbody.TabAttachment {
+	background-color: #0cf;
+}
+
+
+div.tabmenu {
+	padding-top: 7px;
+	line-height:1.9;
+}
+
+.xforms-group {
+	border: none;
+}
+
+.xforms-repeat-item {
+	margin: 3px 0;
+}
+
+.MainTask fieldset {
+	background-color: #f9f9f9;
+}
+
+fieldset {
+	padding: 1rem;
+	margin: 0rem 0.25rem;
+}
+
+fieldset > legend {
+	display: none;
+}
+
+.popup {
+  /* position: relative;
+  display: inline-block; */
+}
+
+.popup-content {
+  display: none;
+  position: absolute;
+  background-color: #f1f1f1;
+  min-width: 160px;
+  min-height: 5rem;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.popup-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.popup-content a:hover {background-color: #ddd;}
+
+.popup:hover .popup-content {display: block;}
+
+.popup-content button:active::before {
+    display: none;
+}
+
+.DocHeader {
+	padding: 1rem 0;
+}
+
+.Form {
+	background-color:#f9f9f9; 
+	padding: 0 1ex; 
+	border: 1px solid #333;
+}
+
+.Booking,
+.Booking tr,
+.Booking td,
+.Booking th {
+    padding:0;
+    margin:0;
+    background-color: inherit;
+}
+
+table.Booking {
+    min-width: inherit;
+    width: 100%;
+}
+
+.Booking td:not(:first-child) {
+    border-left: 2px solid #fff;
+}
+
+/*]]>*/<!--/*--></css><!--*/-->

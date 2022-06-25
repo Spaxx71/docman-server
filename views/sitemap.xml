@@ -1,0 +1,378 @@
+<!-- ========================================================================
+LICENSE AGREEMENT:
+This software is distributed WITHOUT ANY WARRANTY and without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. ========================================================================
+This copy of Checker (an automated compare tool) is licensed under the
+Lesser General Public License (LGPL), version 3 ("the License").
+
+See the License for details about distribution rights, 
+modification and transformation of it.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/. ========================================================================
+Copyright:
+(c) 2010-2014 by InterSecurity GmbH & Co. KG, Germany ========================================================================
+@Author: Eduard Huber
+@Version: 1.0 ======================================================================== 
+--><sitemap>
+	<page url="/about.html">
+		<title>About</title>
+	</page>
+	<page url="/index.html">
+		<title>Docman</title>
+		<breadcrumb>Docman</breadcrumb>
+		<page url="/$tenant/index.html">
+			<title>Mandant '$tenant'</title>
+			<breadcrumb>'$tenant'</breadcrumb>
+			<page url="/$tenant/$year/index.html">
+				<title>Übersicht Jahr $year</title>
+				<breadcrumb>$year</breadcrumb>
+				<page url="/$tenant/$year/binders/index.html">
+					<title>Belegordner im Kalenderjahr $year</title>
+					<breadcrumb>Ablageordner</breadcrumb>
+
+					<page url="/$tenant/$year/binders/$resource-id/search.html">
+						<title>Vorgang suchen</title>
+						<breadcrumb>Suche</breadcrumb>
+					</page>
+
+					<page url="/$tenant/$year/binders/enter/index.html">
+						<title>Vorgang erstellen</title>
+						<breadcrumb>Vorgang erstellen</breadcrumb>
+						<!--
+						<page url="/$tenant/$year/binders/enter/note.html">
+							<title>Notiz erstellen</title>
+							<breadcrumb>Notiz</breadcrumb>
+						</page>
+						-->
+						<page url="/$tenant/$year/binders/enter/Simple.html">
+							<title>Basisvorgang erstellen</title>
+							<breadcrumb>Basisvorgang</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/enter/Document.html">
+							<title>Dokumment für Ablage erstellen</title>
+							<breadcrumb>Dokument</breadcrumb>
+						</page>							
+						<page url="/$tenant/$year/binders/enter/InvoiceIn.html">
+							<title>Beleg für Eingangsrechnung erstellen</title>
+							<breadcrumb>Eingangsrechnung</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/enter/InvoiceOut.html">
+							<title>Beleg für Ausgangsrechnung erstellen</title>
+							<breadcrumb>Ausgangsrechnung</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/enter/BankBalancing.html">
+							<title>Kontoausgleich</title>
+							<breadcrumb>Kontoausgleich</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/enter/Tax.html">
+							<title>Steuerzahlung erstellen</title>
+							<breadcrumb>Steuer</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/enter/EmployeeSalary.html">
+							<title>Gehalt erstellen</title>
+							<breadcrumb>Gehalt</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/binders/attach/index.html">
+						<title>Beleg anheften</title>
+						<breadcrumb>Beleg</breadcrumb>
+						<page url="/$tenant/$year/binders/attach/banking.html">
+							<title>Kontobewegung verknüpfen</title>
+							<breadcrumb>Kontobewegung</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/attach/transfer-voucher.html">
+							<title>Überweisungsbeleg anhängen</title>
+							<breadcrumb>Überweisungsbeleg</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/binders/attach/dunning-fee.html">
+							<title>Mahnbeleg anhängen</title>
+							<breadcrumb>Mahnbeleg</breadcrumb>
+						</page>
+					</page>					
+
+					<page url="/$tenant/$year/binders/$binder/index.html">
+						<title>Übersicht Vorgänge von $binder / $year</title>
+						<breadcrumb>$binder</breadcrumb>
+
+						<page url="/$tenant/$year/binders/$binder/New/edit.html">
+							<title>Neuen Vorgang erstellen</title>
+							<breadcrumb>neuer Vorgang</breadcrumb>
+						</page>
+
+						<page url="/$tenant/$year/binders/$binder/$resource-id">
+							<title>Vorgang '$resource-id'</title>
+							<breadcrumb>$resource-id</breadcrumb>
+
+							<page url="/$tenant/$year/binders/$binder/$resource-id/delete.html">
+								<title>Vorgang löschen</title>
+								<breadcrumb>Löschen</breadcrumb>
+								<page url="/$tenant/$year/binders/$binder/$resource-id/delete_response.html">
+									<title>Vorgang gelöscht</title>
+									<breadcrumb>Gelöscht</breadcrumb>
+								</page>
+							</page>
+
+							<page url="/$tenant/$year/binders/$binder/$resource-id/edit/index.html">
+								<title>Vorgang bearbeiten</title>
+								<breadcrumb>Vorgang</breadcrumb>
+								<!--
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/note.html">
+									<title>Notiz bearbeiten</title>
+									<breadcrumb>Notiz</breadcrumb>
+								</page>
+								-->
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/Simple.html">
+									<title>Basisvorgang bearbeiten</title>
+									<breadcrumb>Basisvorgang</breadcrumb>
+								</page>	
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/Document.html">
+									<title>Ablage-Dokument bearbeiten</title>
+									<breadcrumb>Dokument</breadcrumb>
+								</page>
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/InvoiceIn.html">
+									<title>Eingangsrechnung bearbeiten</title>
+									<breadcrumb>Eingangsrechnung</breadcrumb>
+								</page>
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/InvoiceOut.html">
+									<title>Ausgehende Rechnung bearbeiten</title>
+									<breadcrumb>Ausgangsrechnung</breadcrumb>
+								</page>
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/BankBalancing.html">
+									<title>Kontoausgleich bearbeiten</title>
+									<breadcrumb>Kontoausgleich</breadcrumb>
+								</page>								
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/Tax.html">
+									<title>Steuerzahlung bearbeiten</title>
+									<breadcrumb>Steuer</breadcrumb>
+								</page>
+								<page url="/$tenant/$year/binders/$binder/$resource-id/edit/EmployeeSalary.html">
+									<title>Gehalt bearbeiten</title>
+									<breadcrumb>Gehalt</breadcrumb>
+								</page>
+							</page>
+						</page>
+					</page>
+				</page>
+				<page url="/$tenant/$year/binder/$binder/create.html">
+					<title>Neuen Beleg erstellen</title>
+					<breadcrumb>Neuer Beleg</breadcrumb>
+					<page url="/$tenant/$year/binder/$binder/create_response.html">
+						<title>Rückmeldung</title>
+						<breadcrumb>Rückmeldung</breadcrumb>
+					</page>
+				</page>
+
+				<page url="/$tenant/$year/process/index.html">
+					<title>Vorgang</title>
+					<breadcrumb>Vorgang</breadcrumb>
+					<page url="/$tenant/$year/process/search.html">
+						<title>Vorgang suchen</title>
+						<breadcrumb>Suche</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/process/$resource-id/index.html">
+						<title>Vorgang anzeigen</title>
+						<breadcrumb>anzeigen</breadcrumb>
+					</page>
+				</page>
+
+				<page url="/$tenant/$year/transfer/index.html">
+					<title>Übersicht Transfer-Ordner</title>
+					<breadcrumb>Transfer-Ordner</breadcrumb>
+					<page url="/$tenant/$year/transfer/upload_file.html">
+						<title>Datei in Transferordner hochladen</title>
+						<breadcrumb>Datei hochladen</breadcrumb>
+						<page url="/$tenant/$year/transfer/upload_file_response.html">
+							<title>Datei in Transferordner hochladen – Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+					<page url="/$tenant/$year/transfer/upload_folder.html">
+						<title>Verzeichnis in Transferordner hochladen</title>
+						<breadcrumb>Verzeichnis hochladen</breadcrumb>
+						<page url="/$tenant/$year/transfer/upload_folder_response.html">
+							<title>Verzeichnis in Transferordner hochladen – Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/rename.html">
+						<title>Datei '$resource-id' umbenennen</title>
+						<breadcrumb>Datei umbenennen</breadcrumb>
+						<page url="/$tenant/$year/transfer/$resource-id/rename_response.html">
+							<title>Datei '$resource-id' umbenennen - Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/file.html">
+						<title>Datei '$resource-id' als Beleg abheften</title>
+						<breadcrumb>Beleg abheften</breadcrumb>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/delete.html">
+						<title>Datei löschen</title>
+						<breadcrumb>Datei löschen</breadcrumb>
+						<page url="/$tenant/$year/transfer/$resource-id/delete_response.html">
+							<title>Datei Löschen - Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/datev_import.html">
+						<title>Datei als DATEV importieren</title>
+						<breadcrumb>DATEV Import</breadcrumb>
+						<page url="/$tenant/$year/transfer/$resource-id/datev_import_response.html">
+							<title>Datei als DATEV importieren - Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/banking_import.html">
+						<title>Datei als Bank Kontoauszug importieren</title>
+						<breadcrumb>Kontoauszug Import</breadcrumb>
+						<page url="/$tenant/$year/transfer/$resource-id/banking_import_response.html">
+							<title>Datei als Bank Kontoauszug importieren – Rückmeldung</title>
+							<breadcrumb>Rückmeldung</breadcrumb>
+						</page>
+					</page>
+
+					<page url="/$tenant/$year/transfer/$resource-id/hibiscus_import.html">
+						<title>Hibiscus Export XML als Kontobewegungen importieren</title>
+						<breadcrumb>Hibiscus Import</breadcrumb>
+					</page>
+				</page>
+
+				<page url="/$tenant/$year/banking/index.html">
+					<title>Übersicht Bankkonten $year</title>
+					<breadcrumb>Bankkonto</breadcrumb>
+					<page url="/$tenant/$year/banking/search.html">
+							<title>Suche in Bankbewegungen</title>
+							<breadcrumb>Suche Bank</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/banking/$bank-account/index.html">
+						<title>Bankkonto $bank-account</title>
+						<breadcrumb>$bank-account</breadcrumb>
+						<page url="/$tenant/$year/banking/$bank-account/update.html">
+							<title>Kontobewegungen per Fin-TS aktualisieren</title>
+							<breadcrumb>aktualisieren</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$bank-account/$resource-id/details.html">
+							<title>Kontobewegung Detailanzeige</title>
+							<breadcrumb>Details</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$bank-account/$resource-id/attach.html">
+							<title>Kontobewegung mit Vorgängen verknüpfen</title>
+							<breadcrumb>verknüpfen</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$bank-account/$resource-id/assign-document.html">
+							<title>Kontobewegung mit Vorgängen verknüpfen</title>
+							<breadcrumb>verknüpfen</breadcrumb>
+						</page>											
+						<page url="/$tenant/$year/banking/$bank-account/$resource-id/file.html">
+							<title>Kontobewegung abheften (verbuchen)</title>
+							<breadcrumb>abheften</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$resource-id/edit.html">
+							<title>Kontobewegungen von Konto '$resource-id' bearbeiten</title>
+							<breadcrumb>'$resource-id'</breadcrumb>
+						</page>
+					</page>
+					<page url="/$tenant/$year/banking/$bank-account/attach.html">
+						<title>Kontobewegung einem oder mehreren Vorgang zuordnen</title>
+						<breadcrumb>zuordnen</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/banking/$bank-account/create-periodics.html">
+						<title>Kontobewegung einem Dauerauftrag zuordnen (und entsprechenden Vorgang erstellen)</title>
+						<breadcrumb>Daueraufträge zuordnen</breadcrumb>
+					</page>					
+				</page>
+
+				<page url="/$tenant/$year/bookings/index.html">
+					<title>Übersicht Buchungen $year</title>
+					<breadcrumb>Buchungen</breadcrumb>
+					<page url="/$tenant/$year/bookings/refresh.html">
+						<title>Summen &amp; Salden aktualisieren</title>
+						<breadcrumb>aktualisieren</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/bookings/accounts.html">
+						<title>Hauptbuch anzeigen</title>
+						<breadcrumb>Hauptbuch</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/bookings/sheet.html">
+						<title>Bilanz (Vor)Ansicht</title>
+						<breadcrumb>Bilanz</breadcrumb>
+					</page>					
+				</page>
+
+				<page url="/$tenant/$year/accounts/index.html">
+					<title>Kreditoren/Debitoren Übersicht</title>
+					<breadcrumb>Kreditoren/Debitoren</breadcrumb>
+					<page url="/$tenant/$year/accounts/$resource-id/details.html">
+						<title>Debitor / Kreditor '$resource-id' – Details anzeigen</title>
+						<breadcrumb>Details anzeigen</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/accounts/New/edit.html">
+						<title>Debitor / Kreditor '$resource-id' – erstellen</title>
+						<breadcrumb>erstellen</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/accounts/$resource-id/edit.html">
+						<title>Debitor / Kreditor '$resource-id' – bearbeiten</title>
+						<breadcrumb>bearbeiten</breadcrumb>
+					</page>
+					<page url="/$tenant/$year/accounts/$resource-id/delete.html">
+						<title>Debitor / Kreditor '$resource-id' – gelöscht</title>
+						<breadcrumb>gelöscht</breadcrumb>
+					</page>
+				</page>
+
+				<page url="/$tenant/$year/mail/index.html">
+					<title>E-Mail Posteingang</title>
+					<breadcrumb>E-Mail</breadcrumb>
+					<page url="/$tenant/$year/mail/$message/message.html">
+						<title>Nachricht</title>
+						<breadcrumb>Nachricht</breadcrumb>
+						<page url="/$tenant/$year/mail/$message/attachment.html">
+							<title>E-Mail Anhang</title>
+							<breadcrumb>Anhang</breadcrumb>
+							<page url="/$tenant/$year/mail/$message/attachment/transfer.html">
+								<title>In Transfer hinterlegen</title>
+								<breadcrumb>In Transfer hinterlegen</breadcrumb>
+							</page>
+						</page>
+					</page>
+				</page>
+			</page>
+
+			<page url="/$tenant/fils/index.html">
+				<title>Benutzer Übersicht</title>
+				<breadcrumb>Benutzer</breadcrumb>
+				<page url="/$tenant/user/change-password.html">
+					<title>Passwort von Benutzer '$resource-id' ändern</title>
+					<breadcrumb>Passwort ändern</breadcrumb>
+				</page>
+			</page>
+
+
+			<page url="/$tenant/files/$folder/index.html">
+				<title>Geschäftspapiere</title>
+				<breadcrumb>Company papers</breadcrumb>
+			</page>
+
+
+			<page url="/$tenant/settings/index.html">
+				<title>Einstellungen</title>
+				<breadcrumb>Einstellungen</breadcrumb>
+				<page url="/$tenant/settings/users/index.html">
+					<title>Benutzer Übersicht</title>
+					<breadcrumb>Benutzer</breadcrumb>
+					<page url="/$tenant/settings/users/$resource-id/index.html">
+						<title>Benutzer '$resource-id'</title>
+						<breadcrumb>'$resource-id'</breadcrumb>
+					</page>
+				</page>
+			</page>
+		</page>
+	</page>
+</sitemap>

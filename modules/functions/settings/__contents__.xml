@@ -1,0 +1,12 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/modules/functions/settings" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <resource type="BinaryResource" name="banking_edit.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_edit.xqy" mimetype="application/xquery" blob-id="d1200b1f6684585e471228fefec3a4e4373f6324cfd245eefb997e2f732cfd83">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="banking_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="banking_index.xqy" mimetype="application/xquery" blob-id="1de528b184f9966ca12aaa3024dcdff48c302995ebccd4d8725bd5bc1a8ac473">
+        <acl entries="0" version="1"/>
+    </resource>
+    <resource type="BinaryResource" name="users_index.xqy" owner="admin" group="docman" mode="771" created="2022-06-25T14:08:36+02:00" modified="2022-06-25T14:08:36+02:00" filename="users_index.xqy" mimetype="application/xquery" blob-id="bfb74b31ec8db0d29682138d125fe218ee078a8ff54410c1b39f6ee6102c0d6c">
+        <acl entries="0" version="1"/>
+    </resource>
+</collection>

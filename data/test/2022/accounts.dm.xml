@@ -1,0 +1,156 @@
+<!--
+A	70000
+B	70100
+C	70200
+D	70300
+E	70400
+F	70500
+G	70600
+H	70700
+I	70800
+J	70900
+K	71000
+L	71100
+M	71200
+N	71300
+O	71400
+P	71500
+Q	71600
+R	71700
+S	71800
+T	71900
+U	72000
+V	72100
+W	72200
+X	72300
+Y	72400
+Z	72500
+--><Accounts>
+	<Account id="Diverse_Kreditoren" kto="70000" iban="" type="creditor">
+		<Name>Diverse Liveranten</Name>
+		<Service>Alle Lieferanten</Service>
+		<Company>
+			<Name/>
+		</Company>
+		<Notes/>
+	</Account>
+
+
+<Account id="Fremdleistung" kto="5906" type="expense">
+	<Name>Fremdleistung Subunternehmer (die in ihre Leistungen eingehen, Subunternehmer)</Name>
+	<Notes/>
+</Account>
+<Account id="Miete" kto="6310" type="expense">
+	<Name>Miete</Name>
+	<Notes/>
+</Account>
+<Account id="Gas_Strom_Wasser" kto="6325" type="expense">
+	<Name>Gas Strom Wasser</Name>
+	<Notes/>
+</Account>
+<Account id="Instandh_Raeume" kto="6335" type="expense">
+	<Name>Instandhaltung betr. Räume</Name>
+	<Notes>s. a. Sonst_Raumkosten</Notes>
+</Account>
+<Account id="Sonst_Raumkosten" kto="6335" type="expense">
+	<Name>Sonst. Raumkosten</Name>
+	<Notes>s. a. Instandh_Raeume</Notes>
+</Account>
+<Account id="Versicherungen" kto="6400" type="expense">
+	<Name>Versicherungen</Name>
+	<Notes/>
+</Account>
+<Account id="Sonstige_Abgaben" kto="6420" type="expense">
+	<Name>Sonstige Abgaben</Name>
+	<Notes>(an Stadtverwaltung u.ä.)</Notes>
+</Account>
+<Account id="Wart_Hard_Software" kto="6495" type="expense">
+	<Name>Wartungskosten für Hard- und Software</Name>
+	<Notes/>
+</Account>
+<Account id="Garagenmiete" kto="6550" type="expense">
+	<Name>Garagenmiete</Name>
+	<Notes/>
+</Account>
+<Account id="Werbekosten" kto="6600" type="expense">
+	<Name>Werbekosten</Name>
+	<Notes/>
+</Account>
+<Account id="Bewirtung" kto="6640" type="expense">
+	<Name>Bewirtungskosten</Name>
+	<Notes>s. a. Aufmerksamkeiten</Notes>
+</Account>
+<Account id="Aufmerksamkeiten" kto="6643" type="expense">
+	<Name>Aufmerksamkeiten</Name>
+	<Notes>Kaffee, Kekse etc.</Notes>
+</Account>
+<Account id="Reisekosten" kto="6670" type="expense">
+	<Name>Reisekosten</Name>
+	<Notes>Taxi, Bus, Bahn</Notes>
+</Account>
+<Account id="Porto" kto="6800" type="expense">
+	<Name>Porto</Name>
+	<Notes>Post</Notes>
+</Account>
+<Account id="Telefon" kto="6805" type="expense">
+	<Name>Telefon</Name>
+	<Notes>Telekom</Notes>
+</Account>
+<Account id="Internet" kto="6810">
+	<Name>Telefax und Internetkosten</Name>
+	<Notes>Telekom</Notes>
+</Account>
+<Account id="Buerobedarf" kto="6815" type="expense">
+	<Name>Bürobedarf</Name>
+	<Notes/>
+</Account>
+<Account id="Buecher" kto="6820" type="expense">
+	<Name>Bücher und Zeitschriften</Name>
+	<Notes/>
+</Account>
+<Account id="Fortbildung" kto="6821" type="expense">
+	<Name/>
+	<Notes/>
+</Account>
+<Account id="Rechtsberatung" kto="6825" type="expense">
+	<Name>Rechts- und Beratungskosten</Name>
+	<Notes/>
+</Account>
+<Account id="Buchfuehrung" kto="6830" type="expense">
+	<Name>Buchführungskosten</Name>
+	<Notes/>
+</Account>
+<Account id="Steuerberater" kto="6827" type="expense">
+	<Name>Abschluss und Prüfungskosten (Steuerberater)</Name>
+	<Notes/>
+</Account>
+<Account id="Rechte_Lizenzen" kto="6837" type="expense">
+	<Name>Aufwendungen für zeitlich befristete Überlassung von Rechten (z.B. Lizenzkosten Software)</Name>
+	<Notes/>
+</Account>
+<Account id="Leasing_Miete_Produkte" kto="6840" type="expense">
+	<Name>Leasing Miete Gegenstände (ohne KFZ)</Name>
+	<Notes/>
+</Account>
+<Account id="Sonst_Betriebsbed" kto="6850" type="expense">
+	<Name>Sonstiger Betriebsbedarf</Name>
+	<Notes>(ist eigentlich ein Sammelkonto, wo man Dinge reintut, die unter die anderen Positionen nicht passen)</Notes>
+</Account>
+<Account id="Gewerbesteuer" kto="7610" type="expense">
+	<Name>Gewerbesteuer</Name>
+	<Notes/>
+</Account>
+<Account id="Ungeklaerte_Posten" kto="1371" type="expense">
+	<Name>Ungeklärte Posten</Name>
+	<Notes/>
+</Account>
+<Account id="Geringw_Wirtschaftsg" kto="0670" type="expense">
+	<Name>Geringwertige Wirtschaftsgüter (selbständig nutzbar bis 800€ netto)</Name>
+	<Notes>Anlagegüter</Notes>
+</Account>
+<Account id="Bueroeinrichtung" kto="0650" type="expense">
+	<Name>Büroeinrichtung</Name>
+	<Notes>Anlagegüter</Notes>
+</Account>
+
+</Accounts>

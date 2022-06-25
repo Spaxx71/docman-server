@@ -1,0 +1,4 @@
+<collection xmlns="http://exist.sourceforge.net/NS/exist" name="/db/apps/docman/data" owner="admin" group="docman" mode="770" created="2022-06-25T14:08:34+02:00" deduplicate-blobs="false" version="2">
+    <acl entries="0" version="1"/>
+    <subcollection name="test" filename="test"/>
+</collection>
