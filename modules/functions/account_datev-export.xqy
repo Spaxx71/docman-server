@@ -54,7 +54,7 @@ let $datevHead :=
 				<AdviserNr>416766</AdviserNr>
 				<TenantNr>50328</TenantNr>
 				<YearPeriodStart>{$year}-01-01</YearPeriodStart>
-				<Description>Deb/Kred {$tenant} {format-number($month,'00')}/{format-number($year,'0000')}</Description>
+				<Description>Deb/Kred {$tenant} {format-number($year,'0000')}</Description>
 				<DictationCode>DM</DictationCode>
 			</ExportDetails>
 		</Export>

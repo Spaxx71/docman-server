@@ -46,7 +46,7 @@ let $task := request:get-parameter('task','*')
 let $subtask := request:get-parameter('subtask','*')
 
 return
-	<result resource-type="{$resource-type}" resource-id="{$resource-id}" xx="">
+	<result resource-type="{$resource-type}" resource-id="{$resource-id}" tenant="{$tenant}" year="{$year}" binder="{$binder}" owner="{$owner}" task="{$task}" subtask="{$subtask}">
 		{
 			let $binder := document:listDocumentsForBinder($home-data, $tenant, $year, $binder)
 			return
@@ -58,7 +58,7 @@ return
 							for $process in $binder//Process
 							where matches($process/Tasks/*[@isMaster=true()]/Owner, replace($owner,'\*','.*'))
 							where matches($process/Tasks/*[@isMaster=true()]/name(), concat(replace($task,'\*','.*'),'Task'))
-							where matches($process/Tasks/*[@isMaster=true()]/@type, replace($subtask,'\*','.*'))
+							where matches($process/Tasks/*[@isMaster=true()]/@type, replace($subtask,'\*','.*')) or (not($process/Tasks/*[@isMaster=true()]/@type) and $subtask='*')
 							return
 								$process
 						}

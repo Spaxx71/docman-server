@@ -265,7 +265,7 @@ declare function document:createDocument($home-data as xs:string, $tenant as xs:
 	let $collection := concat($home-data,'/',$tenant,'/',$year,'/',$binder)
 	let $resource-uri := concat('/',$tenant,'/',$year,'/binders/',$binder)
 	let $document-id := concat('PRO',util:uuid())
-	let $schema := doc('/db/apps/docman/Process.xsd')
+	let $schema := doc('/db/apps/docman/resources/Process.xsd')
 	return
 
 	try {
