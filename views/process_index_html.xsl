@@ -134,7 +134,21 @@
 							</xsl:choose>
 						</xsl:attribute>
 						<a href="Document.html?ref={$ref}&amp;type=bank-statement">Kontoauszug</a>
-					</li>						
+					</li>
+					<li>
+						<xsl:attribute name="class">
+							<xsl:text>Tile </xsl:text>
+							<xsl:choose>
+								<xsl:when test="contains($ref, '/bank-transfer/')">
+									<!-- active -->
+								</xsl:when>
+								<xsl:otherwise>
+									<xsl:text>disabled</xsl:text>
+								</xsl:otherwise>
+							</xsl:choose>
+						</xsl:attribute>
+						<a href="BankTransfer.html?ref={$ref}">Überweisung</a>
+					</li>
 				</ul>
 				<div class="TilesHeader">Steuern:</div>
 				<ul class="Tiles">

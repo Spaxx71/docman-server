@@ -51,10 +51,10 @@ declare function user:listUsers($dm-home-data, $tenant) as node()? {
 };
 
 
-declare function user:getUser($dm-home-data, $tenant, $username) as node()? {
+declare function user:getUser($dm-home-data, $tenant) as node()? {
  	let $tenant-collection := $dm-home-data||'/'||$tenant
 	return
-	<User version="1.0" id="{sm:id()/sm:id/sm:real/sm:username}" isAuthenticated="{sm:is-authenticated()}" isEnabled="{sm:is-account-enabled($username)}">
+	<User version="1.0" id="{sm:id()/sm:id/sm:real/sm:username}" isAuthenticated="{sm:is-authenticated()}" isEnabled="{sm:is-account-enabled(sm:id()/sm:id/sm:real/sm:username)}">
 		<Groups>
 		{
 			for $group in sm:id()/sm:id/sm:real/sm:groups/sm:group
@@ -62,6 +62,51 @@ declare function user:getUser($dm-home-data, $tenant, $username) as node()? {
 			<Group id="{$group}"/>
 		}
 		</Groups>
+	</User>
+};
+
+(: isEnabled="{sm:is-account-enabled($username)}" :)
+declare function user:getUser($dm-home-data, $tenant, $username) as node()? {
+	let $activities := doc($dm-home-data||'/activities.dm.xml')/Activities/Activity[@user=$username]
+ 	let $tenant-collection := $dm-home-data||'/'||$tenant
+	let $start-date := current-date() - xdt:yearMonthDuration("P3M")
+	return
+	<User version="1.0" id="{$username}">  
+		<Groups>
+		{
+			(:
+			for $group in sm:id()/sm:id/sm:real/sm:groups/sm:group
+			return
+			<Group id="{$group}"/>
+			:)
+		}
+		</Groups>
+		<Activities start="{$start-date}">
+		{
+			for $activity in $activities
+			let $d := xs:date(substring($activity/@date,1,10))
+			group by $d
+			where $d > $start-date
+			order by $d
+			return
+				<Day date="{$d}" count="{count($activity)}" first="{min($activity/@date/substring(.,12))}" last="{max($activity/@date/substring(.,12))}">
+					{
+						for $act in $activity
+						return
+							<Activity time="{substring($act/@date,12)}">
+								{$act/@tenant}
+								{$act/@year}
+								{$act/@resource-type}
+								{$act/@resource-id}
+								{$act/@function}
+								{$act/@param}
+								{$act/@path}
+							</Activity>
+					}
+				</Day>
+			
+		}
+		</Activities>
 	</User>
 };
 

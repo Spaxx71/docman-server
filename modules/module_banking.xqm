@@ -48,12 +48,35 @@ declare function banking:listBankAccounts ($home-data as xs:string, $tenant as x
 				{$bank-account/BankAccountDetail/@*}
 				{$bank-account/BankAccountDetail/*[name()!='OnlineBanking']}
 				</BankAccountDetail>
+				
+				{
+					let $credits := $bank-account/Accountings/Accounting/Amount[@type="CREDIT"]
+					let $debits := $bank-account/Accountings/Accounting/Amount[@type="DEBIT"]
+					let $countAll := count($bank-account/Accountings/Accounting)
+					let $countCredits := count($credits) 
+					let $countDebits := count($debits)
+					return
+					if ($countAll != $countCredits + $countDebits) then
+						<error test="{count($bank-account/Accountings/Accounting)}">
+							{$bank-account/Accountings}
+							<values count="{count($credits)}" value="{sum($credits)}">{$credits}</values>
+							<values count="{count($debits)}" value="{sum($debits)}">{$debits}</values>
+							<values>{$bank-account/Accountings/Accounting/Amount[not(@type=('DEBIT','CREDIT'))]}</values>
+						</error>
+					else
+						<Status movements="{$countAll}" saldoInitAmount="{$bank-account/Accountings/@saldoInitAmount}" saldoClosingAmount="{$bank-account/Accountings/Accounting[last()]/@saldoAmount + $bank-account/Accountings/Accounting[last()]/Amount}">
+							<Movement type="credit" count="{$countCredits}" value="{sum($credits)}"/>
+							<Movement type="debit" count="{$countDebits}" value="{sum($debits)}"/>
+						</Status>
+				}
 			</BankAccount>
 		}
 		</BankAccounts>
 };
 
-
+(:
+	Take care of online banking data given back (: .../BankAccountDetail/[name()!='OnlineBanking'] :)
+:)
 declare function banking:getBankAccount ($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:integer) {
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
 	return
@@ -61,7 +84,7 @@ declare function banking:getBankAccount ($home-data as xs:string, $tenant as xs:
 		{
 			<BankAccountDetail>
 				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/@*}
-				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*}  (: [name()!='OnlineBanking'] :)
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*}
 			</BankAccountDetail>
 		}
 		</BankAccount>
@@ -399,7 +422,7 @@ declare function banking:importStatementCSV($home-data, $tenant as xs:string, $c
 					</Accounting>
 				let $dayCounter := count($xmlPlain/Statement/Row[not(@type='HEADER')][position() lt $pos]/ValueDate[text()=$row/ValueDate/text()])
 				let $accounting := local:updateAccountingID($bank-details/IBAN, $dayCounter, $accountingBase)
-				let $schema := doc('/db/apps/docman/Bank.xsd')
+				let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 				return
 					if (not(validation:jaxv($accounting, $schema))) then
 						error(xs:QName('docman:NotSchemaConform'),'The bank statement CSV import can not be handled, as it is not schema conform.', validation:jaxv-report($accounting, $schema))
@@ -434,7 +457,7 @@ declare function banking:importHibiscus($home-data as xs:string, $tenant as xs:s
 		</parameters>
 	let $bankingBase := transform:transform($xmlHibiscus, $xslt, $xslParam)
 	let $banking := local:updateAccountingID($bank-details/IBAN, (), $bankingBase)
-	let $schema := doc('/db/apps/docman/Bank.xsd')
+	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 
 	return 
 		if (not(validation:jaxv($banking, $schema))) then
@@ -460,7 +483,7 @@ declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank
 		else
 			let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
 			
-			let $bank-statement-init := hbci4java:initialize($bank/BankAccountDetail/CustomerID, "DE", $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, "geheim", $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader)
+			let $bank-statement-init := hbci4java:initialize($bank/BankAccountDetail/CustomerID, "DE", $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, "geheim", $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader)
 			let $bank-statement-text := hbci4java:getTransactions($bank/BankAccountDetail/CustomerID, $start, $end)
 			let $bank-statement-close := hbci4java:close($bank/BankAccountDetail/CustomerID)
 			
@@ -471,7 +494,7 @@ declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank
 				if (starts-with($bank-statement-text,"<BankAccount")) then
 					let $bank-statement-fints := parse-xml($bank-statement-text)
 					let $bank-statement := local:updateAccountingID($bank/BankAccountDetail/IBAN, (), $bank-statement-fints)
-					let $schema := doc('/db/apps/docman/Bank.xsd')
+					let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 					return
 					(
 						(: if (not(validation:jaxv($bank-statement, $schema))) then
@@ -500,7 +523,7 @@ declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank
 
 
 declare function banking:storeBankAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $bank-account) {
-	let $schema := doc('/db/apps/docman/Bank.xsd')
+	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 	return
 		if (not(validation:jaxv($bank-account, $schema))) then
 			error(xs:QName('docman:NotSchemaConform'),'The bank account can not be saved, as it is not schema conform.', validation:jaxv-report($bank-account, $schema))
@@ -517,7 +540,7 @@ declare function banking:storeBankAccount ($home-data as xs:string, $tenant as x
 
 
 declare function banking:storeAccountings ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $accountings) {
-	let $schema := doc('/db/apps/docman/Bank.xsd')
+	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 	return
 		if (not(validation:jaxv($accountings, $schema))) then
 			error(xs:QName('docman:NotSchemaConform'),'The bank accountings can not be saved, as it is not schema conform.', validation:jaxv-report($accountings, $schema))
@@ -603,6 +626,19 @@ declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as
 			</Process>
 };
 
+declare function banking:updateViaFinTS ($RecipientCountry as xs:string, $RecipientBic as xs:string, $RecipientIban as xs:string, $RecipientName as xs:string, $Date as xs:date, $CurrencyAmount as xs:double, $CurrencyUnit as xs:string, $UsageText as xs:string) {
+	let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
+
+	let $bank-statement-init := hbci4java:initialize($bank/BankAccountDetail/CustomerID, "DE", $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, "geheim", $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader)
+	let $bank-statement-bankTransfer := hbci4java:arangeBankTransfer($bank/BankAccountDetail/CustomerID, $RecipientCountry, RecipientBic, $RecipientIban, $RecipientName, null, $CurrencyAmount, $CurrencyUnit, $UsageText)
+	let $bank-statement-close := hbci4java:close($bank/BankAccountDetail/CustomerID)
+	return
+		<result>
+			<init>{$bank-statement-init}</init>
+			<transfer>{$bank-statement-bankTransfer}</transfer>
+			<close>{$close}</close>
+		</result>
+};
 
 declare function banking:createPeriodicPayments ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
@@ -629,7 +665,7 @@ declare function banking:createPeriodicPayments ($home-data as xs:string, $tenan
 							if (not($document-data)) then
 								<EmptyMatch/>
 							else
-								let $schema := doc('/db/apps/docman/Process.xsd')
+								let $schema := doc('/db/apps/docman/resources/Process.xsd')
 								return
 								(
 									<BankActivity a="{$Movement/PaymentDetails/PaymentDetail}" b="{$PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail}">

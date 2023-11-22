@@ -60,9 +60,9 @@
 					</xsl:choose>
 				</xsl:attribute>			
 				<td colspan="5">
-					<xsl:text>Konto </xsl:text>
+					<xsl:text>[</xsl:text>
 					<xsl:value-of select="@kto"/>
-					<xsl:text> – "</xsl:text>
+					<xsl:text>] "</xsl:text>
 					<xsl:value-of select="@name"/>
 					<xsl:text>"</xsl:text>
 				</td>
@@ -81,7 +81,16 @@
 				<xsl:variable name="debit" select="$current/Debits/Booking[$pos]/@credit"/>
 				<tr>
 					<!-- Credits -->
-					<td><xsl:value-of select="$current/Credits/Booking[$pos]/@description"/></td>
+					<td>
+						<xsl:if test="$current/Credits/Booking[$pos]">
+							<xsl:value-of select="$current/Credits/Booking[$pos]/@description"/>
+							<a href="{$home-web-gui}/{$tenant}/{$year}/bookings/accounts.html#{$current/Credits/Booking[$pos]/@credit}" style="color:#bbb" target="_blank">
+								<xsl:text>  [</xsl:text>
+								<xsl:value-of select="$current/Credits/Booking[$pos]/@credit"/>
+								<xsl:text>]</xsl:text>
+							</a>
+						</xsl:if>
+					</td>
 					<td style="text-align:right;" class="{if ($current/Credits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',$current/Credits/Booking[$pos]/@pro,'/search.html')}" title="{$current/Credits/Booking[$pos]/@description}">
 							<xsl:value-of select="replace(format-number($current/Credits/Booking[$pos]/@amountValue,'#.##0,00','EU'),'NaN','')"/>
@@ -89,7 +98,16 @@
 					</td>
 
 					<!-- Debits -->
-					<td><xsl:value-of select="$current/Debits/Booking[$pos]/@description"/></td>
+					<td>
+						<xsl:if test="$current/Debits/Booking[$pos]">
+							<xsl:value-of select="$current/Debits/Booking[$pos]/@description"/>
+							<a href="{$home-web-gui}/{$tenant}/{$year}/bookings/accounts.html#{$current/Debits/Booking[$pos]/@debit}" style="color:#bbb" target="_blank">
+								<xsl:text>  [</xsl:text>
+								<xsl:value-of select="$current/Debits/Booking[$pos]/@debit"/>
+								<xsl:text>]</xsl:text>
+							</a>
+						</xsl:if>
+					</td>
 					<td style="text-align:right" class="{if ($current/Debits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',$current/Debits/Booking[$pos]/@pro,'/search.html')}" title="{$current/Debits/Booking[$pos]/@description}">
 							<xsl:value-of select="replace(format-number($current/Debits/Booking[$pos]/@amountValue,'#.##0,00','EU'),'NaN','')"/>

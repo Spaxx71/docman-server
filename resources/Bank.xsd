@@ -36,8 +36,8 @@
                   </xs:restriction>
                 </xs:simpleType>
               </xs:element>
+              <xs:element name="BankUserID" type="xs:string"/>
               <xs:element name="CustomerID" type="xs:string"/>
-              <xs:element name="CustomerName" type="xs:string"/>
               <xs:element name="CurrencyUnit" type="xs:NCName"/>
               <xs:element name="OnlineBanking" minOccurs="0">
                 <xs:complexType>

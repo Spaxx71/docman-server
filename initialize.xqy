@@ -3,7 +3,7 @@ xquery version "3.1";
 (:
 This script might be tested at:
 https://localhost:8443/exist/rest/db/apps/docman/initialize.xqy
-/exist-backend/rest/db/apps/docman/initialize.xqy
+
 
 Needs to have C:\tmp\
 :)
@@ -184,9 +184,8 @@ let $login := xmldb:login ($CurrentRoot, 'admin', 'xxxxxx')
 (: note, that new users need to be added to Nginx proxy.
 printf "extern.vorname.nachname:$(openssl passwd -apr1 Geheim)\n" >>  /etc/nginx/sites-available/.htpasswd ; systemctl restart nginx
 :)
-
 (:
-let $create := sm:create-account('extern.vorname.nachname', 'Geheim','docman',('bintellix','intersecurity','test'), 'Vorname Nachname', 'Notes / Email')
+let $create := sm:create-account('extern.vorname.nachname', 'Geheim','docman',('bintellix','intersecurity','test'))
 let $remove := sm:remove-account($username)
 let $passwd := sm:passwd('admin', 'Geheim')
 :)
@@ -195,6 +194,7 @@ let $newGroup := if (sm:group-exists('docman')) then () else sm:create-group ('d
 
 let $newuser := if (sm:list-users() = 'bix-accounting') then () else sm:create-account('bix-accounting','bix-acc','docman',())
 (: let $newuser := if (sm:list-users() = 'extern.steuerberater') then () else sm:create-account('extern.steuerberater','abc-123','docman',()) :)
+(: let $deleteuser := sm:remove-account('username') :)
 
 let $repair := repair:repair($CurrentRoot)
 
@@ -220,7 +220,12 @@ let $tenants :=
 			{	(: remove all current given members :)
 				for $group-member in sm:get-group-members($Access/Group/@id)
 				return
-					sm:remove-group-member($Access/Group/@id, $group-member)
+					try {
+						sm:remove-group-member($Access/Group/@id, $group-member)
+					}
+					catch * {
+						()
+					}
 			}
 			<Name>{$Access/../Name}</Name>
 			<Access>
@@ -282,7 +287,6 @@ let $cleanupFilesLogDocker := for $file in file:directory-list('/', 'hs_err_*.lo
 					</file>
 :)
 
-let $repro-name := "http://exist-db.org/library/hbci4java"
 
 return
 <result>
@@ -306,11 +310,6 @@ return
 		{exrest:invalid-modules()}
 		<MissingDependencies>{exrest:missing-dependencies()}</MissingDependencies>
 	</RestXq>
-	<Modules>
-			<!-- <undeploy>{repo:undeploy($repro-name)}</undeploy> -->
-			<!-- <remove>{repo:remove($repro-name)}</remove> -->
-			<install>{repo:install-and-deploy-from-db('/db/apps/docman/resources/hbci4java-0.5.xar')}</install>
-	</Modules>
 	<CleanupFiles>
 
 	</CleanupFiles>

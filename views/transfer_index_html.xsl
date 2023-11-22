@@ -503,8 +503,12 @@
 				</a>
 			</td>
 			<td>
-				<a href="{$home-web-api}/{$tenant}/{$year}/transfer/{@name}">
+				<a href="{$home-web-gui}/{$tenant}/{$year}/binders/enter/index.html?ref=/{$tenant}/{$year}/transfer/{@name}">
 					<xsl:value-of select="@name"/>
+				</a>
+				 
+				<a href="{$home-web-api}/{$tenant}/{$year}/transfer/{@name}">
+					<img alt="Dokument download" src="/app/resources/download.svg" height="20px"/>
 				</a>
 			</td>
 			<td>

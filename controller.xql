@@ -19,11 +19,7 @@ All rights reserved by bintellix GmbH, Germany
 :)
 
 xquery version "3.1";
-declare namespace soap="http://schemas.xmlsoap.org/soap/envelope/";
-declare namespace rest="http://exquery.org/ns/restxq";
-declare namespace cs="http://checker.bintellix.de/checkset/";
-declare namespace ct="http://compare.bintellix.de";
-declare namespace bc="http://checker.bintellix.de/";
+
 
 (: 
 	Home of DocMan:   http://localhost:8080/exist/apps/docman/
@@ -67,23 +63,6 @@ declare function local:processSettingsSite($tenant as xs:string, $year as xs:str
 
 
 (: internal function only :)
-(:
-	1) $tenant: the tenant name 
-	2) $year: the year of activity or () if not relevant
-	3) $format: the format of the resource (mainly XML or HTML)
-	4) $package-prefix: either '' or 'settings/'
-	5) $resource-type: the prefix of the resource at /modules/function (like tenant_*)
-	6) $resource-id: if there is one dedicated resource of an collection (like 'abc.pdf')
-	7) $function: the suffix of the resource (like *_index)
-	8) $param:
-	9) $path: the path which is been used for sitemap (at /db/apps/docman/views/sitempap.xml)
-
-	The relevant xquery modul to be called is located here
-	concat('/docman/modules/functions/',$package-prefix,$resource-type,'_',$function,'.xqy')
-
-	and the relevant xslt transformation is taken from here
-	concat('/docman/views/',$package-prefix,$resource-type,'_',$function,'.xsl')
-:)
 declare function local:processSite($tenant as xs:string, $year as xs:string?, $format as xs:string, $package-prefix as xs:string, $resource-type as xs:string, $resource-id as xs:string?, $function as xs:string, $param as node()?, $path as xs:string) {
 
 	let $username := sm:id()/sm:id/sm:real/sm:username
@@ -254,6 +233,14 @@ declare function local:processSite($tenant as xs:string, $year as xs:string?, $f
 	</dispatch>
 };
 
+(:
+	http://localhost:8080/exist/apps/docman/
+:)
+
+(: 
+	https://docman.bintellix.com/app/ 
+:)
+
 let $username := sm:id()/sm:id/sm:real/sm:username
 let $groups := sm:id()/sm:id/sm:real/sm:groups/sm:group
 let $parameterOwner := request:get-parameter('owner','')
@@ -322,7 +309,7 @@ else if (request:get-header('Authorization')=() or lower-case($username)='guest'
 	,
 		response:set-header("meta http-equiv='pragma'", "content='no-cache'") 
 	,
-		response:set-header("WWW-Authenticate", 'basic realm="Docman"')
+		response:set-header("WWW-Authenticate:", 'basic realm="Docman"')
 	,
 		<html>
 			<head>
@@ -341,8 +328,7 @@ window.location = window.location.href.replace(p, p + 'logout:password@')
 			</body>
 		</html>
 	)
-
-
+	
 else if (equals($exist:path,'/robots.txt')) then
 	<dispatch xmlns="http://exist.sourceforge.net/NS/exist">
 		<forward url="/docman/robots.txt"/>
@@ -984,10 +970,12 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/bankin
 else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/settings/users/(index)\.(html|xml)')) then
 	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/settings/users/(index)\.(html|xml)')//fn:group, 1)
 	let $tenant := $params[1]
-	let $function := $params[2]
-	let $format := $params[3]
+	let $result := user:listUsers($main:home-data, $tenant)
+	let $query := "xquery version '3.1';" || serialize($result)
 	let $resource-type := 'users'
 	let $resource-id := ()
+	let $function := $params[2]
+	let $format := $params[3]
 	return
 		local:processSettingsSite($tenant, (), $format, $resource-type, $resource-id, $function, (), '/$tenant/settings/users/')
 

@@ -64,7 +64,7 @@
 				<th colspan="10">
 					<ul class="Nav">
 						<li>
-							<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/New/edit.html" class="Button">Neuen Debitor / Kreditor hinzufügen</a>
+							<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/New/edit.html" class="Button" target="_blank">Neuen Debitor / Kreditor hinzufügen</a>
 						</li>
 					</ul>
 				</th>

@@ -105,7 +105,7 @@ Body: </xf:label>
 			<body>
 
 				<xsl:if test="not(BankAccountActivity//Document)">
-					<xhtml:h3 xmlns:xhtml="http://www.w3.org/1999/xhtml">Bankkonto-Beleg-Ableich</xhtml:h3>
+					<h3>Bankkonto-Beleg-Ableich</h3>
 					<div>Es wurden <xsl:value-of select="count(BankAccountActivity)"/> Bankbewegungen getestet.</div>
 					<div>Hierzu wurden <xsl:value-of select="count(BankAccountActivity/Groups/Group)"/> Gruppen getestet.</div>
 					<div>Doch es gibt keine Auto-Match Elemente mehr.</div>

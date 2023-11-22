@@ -23,10 +23,31 @@
 					.AccountChart .storno a {
 						color: #f0f;
 					}
+
+					.left {
+						background-color: ddd;
+					}
+
+					.right {
+						background-color: ccc;
+					}
 				</style>
 			</head>
 			<body>
 				<h1>Übersicht aller Buchungen</h1>
+				<div style="display:none">
+					<ol>
+						<xsl:for-each select="result/Accounting/Account"> <!-- [@credit != 0 or @debit != 0] -->
+							<li>
+								<a href="#{@kto}">
+									<xsl:value-of select="@kto"/>
+									<xsl:text> </xsl:text>
+									<xsl:value-of select="@name"/>
+								</a>
+							</li>
+						</xsl:for-each>
+					</ol>
+				</div>
 				<xsl:apply-templates/>
 			</body>
 		</html>
@@ -74,6 +95,7 @@
 	<xsl:template match="Account">
 		<xsl:variable name="current" select="."/>
 		<xsl:variable name="Accounts" select="/result/Accounting/Account"/>
+		<a id="{@kto}"/>
 		<table class="AccountChart">
 			<tr>
 				<xsl:attribute name="style">
@@ -89,12 +111,23 @@
 						</xsl:otherwise>
 					</xsl:choose>
 				</xsl:attribute>			
-				<td colspan="7">
-					<xsl:text>Konto </xsl:text>
+				<td>
+					<xsl:text>[</xsl:text>
 					<xsl:value-of select="@kto"/>
-					<xsl:text> – "</xsl:text>
+					<xsl:text>]</xsl:text>
+				</td>
+				<td colspan="7">
+					<xsl:text>"</xsl:text>
 					<xsl:value-of select="@name"/>
 					<xsl:text>"</xsl:text>
+				</td>
+				<td>
+					<xsl:if test="contains-token(@classes,'creditor')">Kreditor </xsl:if>
+					<xsl:if test="contains-token(@classes,'debitor')">Debitor </xsl:if>
+					<xsl:if test="contains-token(@classes,'essets')">Aktiva </xsl:if>
+					<xsl:if test="contains-token(@classes,'liabilities')">Passiva </xsl:if>
+					<xsl:if test="contains-token(@classes,'expenses')">Aufwandskonto </xsl:if>
+					<xsl:if test="contains-token(@classes,'revenues')">Erfolgskonto </xsl:if>
 				</td>
 			</tr>
 			<tr>
@@ -104,7 +137,7 @@
 			</tr>
 			<tr>
 				<th style="width:10%">#</th>
-				<th style="width:45%" colspan="3">
+				<th style="width:45%" colspan="4">
 					<xsl:choose>
 						<xsl:when test="contains-token(@classes,'essets') or contains-token(@classes,'expenses') or contains-token(@classes,'creditor')">
 							<xsl:text>[+] </xsl:text>
@@ -115,7 +148,7 @@
 					</xsl:choose>
 					<xsl:text>Soll</xsl:text>
 				</th>
-				<th style="width:45%; text-align:right" colspan="3">
+				<th style="width:45%; text-align:right" colspan="4">
 					<xsl:text>Haben</xsl:text>
 					<xsl:choose>
 						<xsl:when test="contains-token(@classes,'essets') or contains-token(@classes,'expenses') or contains-token(@classes,'creditor')">
@@ -134,26 +167,28 @@
 				<tr>
 					<td><xsl:value-of select="number(.)"/></td>
 					<!-- Credits -->
-					<td><xsl:value-of select="$current/Credits/Booking[$pos]/@description"/></td>
-					<td style="text-align:right;" class="{if ($current/Credits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
+					<td class="left"><xsl:value-of select="format-date($current/Credits/Booking[$pos]/@date,'[D01].[M01].[Y0001]')"/></td>
+					<td class="left"><xsl:value-of select="$current/Credits/Booking[$pos]/@description"/></td>
+					<td style="text-align:right;" class="left {if ($current/Credits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',$current/Credits/Booking[$pos]/@pro,'/search.html')}" title="{$current/Credits/Booking[$pos]/@description}">
 							<xsl:value-of select="replace(format-number($current/Credits/Booking[$pos]/@amountValue,'#.##0,00','EU'),'NaN','')"/>
 						</a>
 					</td>
-					<td class="{if ($current/Credits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
+					<td class="left {if ($current/Credits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/accounts/',$current/Credits/Booking[$pos]/@credit,'/details.html')}" title="{$Accounts[@kto=$credit]/@name}">
 							<xsl:value-of select="$current/Credits/Booking[$pos]/@debit"/>
 						</a>
 					</td>
 
 					<!-- Debits -->
-					<td><xsl:value-of select="$current/Debits/Booking[$pos]/@description"/></td>
-					<td style="text-align:right" class="{if ($current/Debits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
+					<td class="right"><xsl:value-of select="format-date($current/Credits/Booking[$pos]/@date,'[D01].[M01].[Y0001]')"/></td>
+					<td class="right"><xsl:value-of select="$current/Debits/Booking[$pos]/@description"/></td>
+					<td style="text-align:right" class="right {if ($current/Debits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',$current/Debits/Booking[$pos]/@pro,'/search.html')}" title="{$current/Debits/Booking[$pos]/@description}">
 							<xsl:value-of select="replace(format-number($current/Debits/Booking[$pos]/@amountValue,'#.##0,00','EU'),'NaN','')"/>
 						</a>
 					</td>
-					<td class="{if ($current/Debits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
+					<td class="right {if ($current/Debits/Booking[$pos]/@isStorno='true') then 'storno' else ()}">
 						<a href="{concat($home-web-gui,'/',$tenant,'/accounts/',$current/Debits/Booking[$pos]/@debit,'/details.html')}" title="{$Accounts[@kto=$debit]/@name}">
 							<xsl:value-of select="$current/Debits/Booking[$pos]/@credit"/>
 						</a>
@@ -162,7 +197,7 @@
 			</xsl:for-each>
 			<tr style="font-weight:bold">
 				<td>Saldo</td>
-				<td colspan="3">
+				<td colspan="4">
 					<xsl:value-of select="format-number(@credit,'#.##0,00','EU')"/>
 					<xsl:text> EUR</xsl:text>
 
@@ -174,7 +209,7 @@
 						</span>
 					</xsl:if>
 				</td>
-				<td colspan="3">
+				<td colspan="4">
 					<xsl:value-of select="format-number(@debit,'#.##0,00','EU')"/>
 					<xsl:text> EUR</xsl:text>
 					

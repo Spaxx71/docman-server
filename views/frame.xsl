@@ -93,9 +93,22 @@ Copyright:
                                 <xsl:if test="position() != 1">
                                     <xsl:text> &gt; </xsl:text>
                                 </xsl:if>
-                                <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
-                                    <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
-                                </a>
+                                <xsl:choose>
+                                    <xsl:when test="breadcrumb = '$year'">
+                                        <div style="display:inline-block; padding: 0px 3px; border:2px solid #F93;">
+                                            <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
+                                                <xsl:attribute name="alt" select="Buchungsjahr"/>
+                                                <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
+                                            </a>
+                                        </div>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
+                                            <xsl:attribute name="alt" select="breadcrumb"/>
+                                            <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
+                                        </a>
+                                    </xsl:otherwise>
+                                </xsl:choose>
                             </xsl:for-each>
                             <xsl:text>  </xsl:text>
                         </div>

@@ -419,9 +419,16 @@ Body: </xf:label>
 							<td class="Money" style="background-color:#ccc">
 								<xf:input ref="@saldoAmount"/>
 								<xf:trigger>
-									<xf:label>calc</xf:label>
+									<xf:label>Berechnen</xf:label>
 									<xf:action ev:event="DOMActivate">
-										<xf:setvalue ref="@saldoAmount" value="if( instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/ExternalCosts != 0,  number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')-1]/@saldoAmount) + number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/Amount) + number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/ExternalCosts),  number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')-1]/@saldoAmount) + number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/Amount))"/>
+										<!--
+										<xf:message ev:event="DOMActivate">
+											Debug: @saldoAmount = 
+												<xf:output value="isNaN(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/ExternalCosts)"/>,
+												<xf:output value="if( true, 1, 0)"/>
+										</xf:message>
+										-->
+										<xf:setvalue ref="@saldoAmount" value="             number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')-1]/@saldoAmount)              + number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/Amount)             + number(              if(               not(isNaN(number(instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/ExternalCosts)))              ,                instance('accounting')/BankAccount/Accountings/Accounting[index('accounting-repeat')]/ExternalCosts              ,                0              )             )"/>
 									</xf:action>
 								</xf:trigger>
 							</td>

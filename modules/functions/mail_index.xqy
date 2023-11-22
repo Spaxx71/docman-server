@@ -27,9 +27,9 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/mail/mail_in
 
 :)
 
-declare namespace mail = "http://exist-db.org/xquery/mail";
+import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
 
-(: module namespace bixmail="http://www.bintellix.com/mail"; :)
+declare namespace mail = "http://exist-db.org/xquery/mail";
 
 declare function local:get-attachement($lMailFolderHandle as xs:long, $number as xs:integer) as item() {
 	let $Messages := mail:get-messages($lMailFolderHandle, ($number))
@@ -44,72 +44,8 @@ declare function local:get-attachement($lMailFolderHandle as xs:long, $number as
 		:)
 };	
 
-declare function local:read-emails($tenant as xs:string) as item() {
 
-	(: Crypto :)
-	let $CryptoValue := "NmloODM2c2tqYjM5emk5"
-
-	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
-	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
-
-	let $MailProperties :=
-  		if ($tenant = 'bintellix') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.bintellix.com"/>
-				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
-				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-
-		<!--
-		<property name="mail.imap.port" value="993"/>
-		<property name="mail.imap.ssl.enable" value="true"/>
-		<property name="mail.imap.ssl.checkserveridentity" value="true"/>
-		<property name="mail.imap.socketFactory.class" value="javax.net.ssl.SSLSocketFactory"/>
-		<property name="mail.imap.socketFactory.fallback" value="993"/>
-		<property name="mail.imap.socketFactory.port" value="false"/>
-		<property name="mail.imaps.ssl.enable" value="true"/>
-		<property name="mail.imaps.ssl.checkserveridentity" value="true"/>
-		props.setProperty("mail.imap.connectiontimeout", "5000");
-		props.setProperty("mail.imap.timeout", "5000");
-		-->
-	   		</properties>
-		else if ($tenant = 'intersecurity') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.intersecurity.net"/>
-				<property name="mail.imaps.user" value="accounting@intersecurity.net"/>
-				<property name="mail.imaps.password" value="{util:base64-decode('NmloODM2c2tqYjM5emk5bDllNw==')}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-	   		</properties>
-		else 
-			()
-        
-	let $lMailSessionHandle := mail:get-mail-session($MailProperties)
-
-	let $lMailStoreHandle := mail:get-mail-store($lMailSessionHandle)
-
-	let $lMailFolderHandle := mail:get-mail-folder($lMailStoreHandle, 'INBOX') 
-
-	let $lMessageListHandle := mail:get-message-list($lMailFolderHandle)
-
-	let $MessageList := mail:get-message-list-as-xml($lMessageListHandle, false())
-
-	return 
-	(: 
-		mail:search-message-list()
-	:)
-		<result>	
-			{$MessageList}
-
-			{mail:close-message-list($lMessageListHandle)}
-			{mail:close-mail-folder($lMailFolderHandle, false())}
-			{mail:close-mail-store($lMailStoreHandle)}
-		</result>	
-};
 
 let $tenant := request:get-attribute('tenant')
 return
-local:read-emails($tenant)
+email:read-emails($tenant)

@@ -19,8 +19,8 @@
 				<xf:instance xmlns="" id="account">
 					<xsl:choose>
 						<xsl:when test="lower-case($resource-id) = 'new'">
-							<Account id="New" kto="0000" iban="" type="nominal_account" classes="creditor" debtee="">
-								<Name>New</Name>
+							<Account id="NewId" kto="0000" iban="" type="ledger_account" classes="creditor" debtee="">
+								<Name/>
 								<Notes/>
 								<Service>Service Beschreibung / Art der Produkte</Service>
 								<Company>
@@ -102,6 +102,129 @@
 					</data>
 				</xf:instance>
 
+				<xf:instance xmlns="" id="accountMapping">
+					<data>
+						<mapping>
+							<accountName>A</accountName>
+							<accountRange>70001 - 70099</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>B</accountName>
+							<accountRange>70101 - 70199</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>C</accountName>
+							<accountRange>70201 - 70299</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>D</accountName>
+							<accountRange>70301 - 70399</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>E</accountName>
+							<accountRange>70401 - 70499</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>F</accountName>
+							<accountRange>70501 - 70599</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>G</accountName>
+							<accountRange>70601 - 70699</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>H</accountName>
+							<accountRange>70701 - 70799</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>I</accountName>
+							<accountRange>70801 - 70899</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>J</accountName>
+							<accountRange>70901 - 70999</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>K</accountName>
+							<accountRange>71001 - 71099</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>L</accountName>
+							<accountRange>71101 - 71199</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>M</accountName>
+							<accountRange>71201 - 71299</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>N</accountName>
+							<accountRange>71301 - 71399</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>O</accountName>
+							<accountRange>71401 - 71499</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>P</accountName>
+							<accountRange>71501 - 71599</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>Q</accountName>
+							<accountRange>71601 - 71699</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>R</accountName>
+							<accountRange>71701 - 71799</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>S</accountName>
+							<accountRange>71801 - 71899</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>T</accountName>
+							<accountRange>71901 - 71999</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>U</accountName>
+							<accountRange>72001 - 72099</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>V</accountName>
+							<accountRange>72101 - 72199</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>W</accountName>
+							<accountRange>72201 - 72299</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>X</accountName>
+							<accountRange>72301 - 72399</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>Y</accountName>
+							<accountRange>72401 - 72499</accountRange>
+						</mapping>
+						<mapping>
+							<accountName>Z</accountName>
+							<accountRange>72501 - 72599</accountRange>
+						</mapping>
+					</data>
+				</xf:instance>
+
+				<xf:instance xmlns="" id="validation">
+					<data>
+						<accountExists/>
+						<accountFirstChar/>
+						<accountRange/>
+						<nextFreeNumber/>
+					</data>
+				</xf:instance>
+				
+				<xf:bind nodeset="instance('validation')/accountExists" calculate="boolean(instance('accounts')//Account[@kto = instance('account')/@kto])"/>
+				<xf:bind nodeset="instance('validation')/accountFirstChar" calculate="upper-case(substring(instance('account')/Name,1,1))" constraint="string-length(instance('account')/Name) != 0"/>
+				<xf:bind nodeset="instance('validation')/accountRange" calculate="instance('accountMapping')/mapping[accountName = instance('validation')/accountFirstChar]/accountRange" constraint="string-length(instance('account')/Name) != 0"/>
+				<xf:bind nodeset="instance('validation')/nextFreeNumber" calculate="max(instance('accounts')/Account/@kto[. &gt; substring-before(instance('validation')/accountRange,'-') and . &lt; substring-after(instance('validation')/accountRange,'-')]) +1" constraint="string-length(instance('account')/Name) != 0"/>
+
 				<!-- needs to be in sync with enter_invoice-in -->
 				<xf:instance xmlns="" id="taxes">
 					<data>
@@ -129,7 +252,7 @@
 				 </xf:instance>				
 
 				<xf:bind ref="instance('account')">
-					<xf:bind ref="@id" type="xs:ID" constraint="lower-case(.) != 'new'" readonly="lower-case(.)!='new'"/>
+					<xf:bind ref="@id" type="xs:ID" constraint="lower-case(.) != 'newid'" readonly="lower-case(.)!='newid'"/>
 					<xf:bind ref="@kto" type="xs:string" required="true()" constraint="number(.) &gt; 0 and ((../@type='nominal_account' and string-length(.)=4) or (../@type='ledger_account') and string-length(.)=5)"/> 
 					<xf:bind ref="@type" type="xs:string" required="true()"/>
 					<xf:bind ref="@classes" type="xs:string" required="true()"/>
@@ -244,6 +367,8 @@ Body: </xf:label>
 					<th>ID</th>
 					<td>
 						<xf:input ref="instance('account')/@id"/>
+						<br/>
+						Zulässige Zeichen sind: A-Z,a-z,0-9 und der _
 					</td>
 				</tr>
 				<tr>
@@ -342,9 +467,28 @@ Body: </xf:label>
 							<xf:hint>Buchungskonto</xf:hint>
 						</xf:input>
 						<br/>
-						<a href="https://www.datev.de/dnlexom/v2/content/files/st2111766667.pdf" target="_blank">Datev SKR04 Kontorahmen 2020</a>
+						<xf:group ref="instance('account')/Name[string-length(.) != 0]">
+							<xf:output ref="instance('accounts')//Account[@kto = instance('account')/@kto]/Name">
+								<xf:label>Account Exists!</xf:label>
+							</xf:output>
+							<br/>
+							<xf:output value="instance('validation')/accountFirstChar">
+								<xf:label>Gemäß Anfangsbuchstabe </xf:label> 
+							</xf:output>
+							<xsl:text> </xsl:text>
+							<xf:output ref="instance('accountMapping')/mapping[accountName = upper-case(substring(instance('account')/Name,1,1))]/accountRange">
+								<xf:label> zulässige Nummern: </xf:label>
+							</xf:output>
+							<br/>
+							<xf:output value="instance('validation')/nextFreeNumber">
+								<xf:label>Nächste freie Nummer: </xf:label> 
+							</xf:output>
+							<br/>
+						</xf:group>
+
+						<a href="https://www.datev.de/dnlexom/api/content/v01/entity/st26301494027_de.pdf?save=False&amp;docId=0907814" target="_blank">Datev SKR04 Kontorahmen 2023</a>
 						<br/>
-						<a href="https://www.buchungssatz.de/rahmen/skr04/6.html" target="_blank">Buchhungssatz.de</a>
+						<a href="https://www.buchungssatz.de/de/kontenrahmen/skr04.html" target="_blank">Buchhungssatz.de SKR04</a>
 					</td>
 				</tr>
 				<tr>
@@ -365,39 +509,10 @@ Body: </xf:label>
 				<tr>
 					<th>Konto Klassen</th>
 					<td>
-<!--
-						<xf:select1 ref="instance('account')/@classes[../@type='nominal_account']">
-							<xf:item>
-								<xf:label>Aktivkonto</xf:label>
-								<xf:value>aktivkonto</xf:value> 
-							</xf:item>
-							<xf:item>
-								<xf:label>Passivkonto</xf:label>
-								<xf:value>passivkonto</xf:value> 
-							</xf:item>
-							<xf:item>
-								<xf:label>Ertragskonto</xf:label>
-								<xf:value>ertragskonto</xf:value> 
-							</xf:item>
-							<xf:item>
-								<xf:label>Auswandskonto</xf:label>
-								<xf:value>aufwandskonto</xf:value> 
-							</xf:item>
-							<xf:item>
-								<xf:label>Weitere Erträge und Aufwendungen</xf:label>
-								<xf:value>weitere</xf:value> 
-							</xf:item>
-							<xf:item>
-								<xf:label>Statistikkonto</xf:label>
-								<xf:value>statatistikkonto</xf:value> 
-							</xf:item>
-						</xf:select1>
--->
-
-						<xf:select1 ref="instance('account')/@classes[../@type='nominal_account']" selection="closed" appearance="full" incremental="true">
+						<xf:select1 ref="instance('account')/@classes[../@type='nominal_account']" selection="closed" appearance="full" incremental="true" multiple="true">
 							<xf:item>
 								<xf:label>Halter</xf:label>
-								<xf:value>Owner</xf:value> 
+								<xf:value>owner</xf:value> 
 							</xf:item>
 							<xf:item>
 								<xf:label>Bank</xf:label>
@@ -419,6 +534,13 @@ Body: </xf:label>
 								<xf:label>Aufwands-Konto</xf:label>
 								<xf:value>expenses</xf:value> 
 							</xf:item>
+							<xf:item>
+								<xf:label>Die eigene Firma</xf:label>
+								<xf:value>self</xf:value> 
+							</xf:item>
+							<xf:action ev:event="xforms-select">
+								<xf:setvalue ref="instance('account')/@classes" value="tokenize(., ' ')"/>
+							  </xf:action>
 						</xf:select1>
 
 						<xf:select1 ref="instance('account')/@classes[../@type='ledger_account']">
@@ -619,11 +741,13 @@ Body: </xf:label>
 										<xf:value>monthly</xf:value>
 									</xf:item>
 								</xf:select1>
+								<br/>
+								<xf:label>Zulässige Anzahl Zahlungen pro Intervall</xf:label>
 								<xf:input ref="Period/@min">
-									<xf:label>Min:</xf:label>
+									<xf:label>min:</xf:label>
 								</xf:input>
 								<xf:input ref="Period/@max">
-									<xf:label>Max:</xf:label>
+									<xf:label>max:</xf:label>
 								</xf:input>
 								<br/>
 

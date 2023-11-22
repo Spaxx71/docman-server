@@ -318,7 +318,7 @@ declare function document:updateDocument($home-data as xs:string, $tenant as xs:
 	let $collection := concat($home-data,'/',$tenant,'/',$year,'/',$binder)
 	let $resource-uri := concat('/',$tenant,'/',$year,'/binders/',$binder)
 	let $filename := xs:string(collection($collection)/Process[@id=$document-id]/@name)
-	let $schema := doc('/db/apps/docman/Process.xsd')
+	let $schema := doc('/db/apps/docman/resources/Process.xsd')
 	let $currentBinder := if (collection($collection)/Process[@id=$document-id]/@binder) then collection($collection)/Process[@id=$document-id]/@binder else format-date(collection($collection)/Process[@id=$document-id]/@date,'[M00]')
 	return
 

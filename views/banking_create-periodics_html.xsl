@@ -22,10 +22,12 @@
 	</xsl:template>
 
 	<xsl:template match="PeriodicPayments">
+		<h3>Liste der wiederkehrenden Zahlungen wird gegen passende Kontobewegungen abgeglichen</h3>
 		<xsl:apply-templates/>
 	</xsl:template>
 
 	<xsl:template match="PeriodicPayment">
+		<hr/>
 		Name: <xsl:value-of select="@name"/><br/>
 		ID: <xsl:value-of select="@id"/><br/>
 		Buchungskonto: <xsl:value-of select="@kto"/><br/>
@@ -36,6 +38,32 @@
 		<br/>
 	</xsl:template>
 
+	<xsl:template match="BankActivity">
+		<div>Folgende Bankbewegungen konnten diesem Dauerauftrag zugeordnet werden:</div>
+		<ul>
+			<xsl:apply-templates/>
+		</ul>
+	</xsl:template>
+
+
+	<xsl:template match="Accounting">
+		<li>Datum: <xsl:value-of select="BookingDate"/><br/>
+			Betrag: <xsl:value-of select="Amount"/><br/>
+			Emfänger: <xsl:value-of select="Recipient"/><br/>
+			Art: <xsl:value-of select="SalesType"/><br/>
+			Text: <xsl:value-of select="PaymentDetails/PaymentDetail"/>
+		</li>
+	</xsl:template>
+
+	<xsl:template match="NoMatch">
+		<div><xsl:text>Kein Treffer</xsl:text>
+			<xsl:if test="@reason">
+				<xsl:text>, da </xsl:text>
+				<xsl:value-of select="@reason"/>
+			</xsl:if>
+		</div>
+		<xsl:apply-templates/>
+	</xsl:template>
 
 	<xsl:template match="Process">
 		<subtitle>Wiederkehrende Kosten (per Bankeinzug)</subtitle>

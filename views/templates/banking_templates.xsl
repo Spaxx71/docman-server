@@ -138,7 +138,52 @@
 				<td>
 					<xsl:value-of select="$BankAccountDetail/CustomerName"/>
 				</td>
-			</tr>				
+			</tr>
+		</table>
+	</xsl:template>
+
+	<xsl:template match="BankAccount/Status">
+		<table>
+			<tr>
+				<th>Startsaldo</th>
+				<td>
+					<xsl:if test="@saldoInitAmount castable as xs:double">
+						<xsl:value-of select="format-number(@saldoInitAmount, '#.##0,00', 'EU')"/>
+						<xsl:text> EUR</xsl:text>
+					</xsl:if>
+				</td>
+			</tr>
+			<tr>
+				<th>Endsaldo</th>
+				<td>
+					<xsl:if test="@saldoClosingAmount castable as xs:double">
+						<xsl:value-of select="format-number(@saldoClosingAmount, '#.##0,00', 'EU')"/>
+						<xsl:text> EUR</xsl:text>
+					</xsl:if>
+				</td>
+			</tr>
+			<tr>
+				<th>Zahlunseingänge</th>
+				<td>
+					<xsl:if test="Movement[@type='credit']/@value/data() castable as xs:double">
+						<xsl:value-of select="Movement[@type='credit']/@count/data()"/>
+						<xsl:text> Buchungen über insgesammt </xsl:text>
+						<xsl:value-of select="format-number(Movement[@type='credit']/@value/data(), '#.##0,00', 'EU')"/>
+						<xsl:text> EUR</xsl:text>
+					</xsl:if>
+				</td>
+			</tr>
+			<tr>
+				<th>Anzahl Zahlunsausgänge</th>
+				<td>
+					<xsl:if test="Movement[@type='debit']/@value/data() castable as xs:double">
+						<xsl:value-of select="Movement[@type='debit']/@count/data()"/>
+						<xsl:text> Buchungen über insgesammt </xsl:text>
+						<xsl:value-of select="format-number(Movement[@type='debit']/@value/data(), '#.##0,00', 'EU')"/>
+						<xsl:text> EUR</xsl:text>
+					</xsl:if>
+				</td>
+			</tr>
 		</table>
 	</xsl:template>
 
