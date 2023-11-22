@@ -58,13 +58,13 @@
 			</li>
 		</ul>
 		<xsl:apply-templates/>
+		<br/>
 	</xsl:template>
 
 	<xsl:template match="BankAccountDetail">
 		<xsl:call-template name="BankAccountDetail">
 			<xsl:with-param name="BankAccountDetail" select="."/>
 		</xsl:call-template>
-		<br/>
 	</xsl:template>
 
 </xsl:stylesheet>

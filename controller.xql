@@ -822,8 +822,8 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/bankin
 
 
 (: /$tenant/banking/$bank-account/$year $operation :)
-else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|attach|create-periodics)\.(html|xml)')) then
-	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|attach|create-periodics)\.(html|xml)')//fn:group, 1)
+else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|attach|create-periodics)\.(html|xml)')) then
+	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|attach|create-periodics)\.(html|xml)')//fn:group, 1)
 	let $tenant := $params[1]
 	let $year := $params[2]
 	let $function := $params[4]

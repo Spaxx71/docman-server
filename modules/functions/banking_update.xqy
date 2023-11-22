@@ -41,8 +41,6 @@ let $till := request:get-parameter("till",format-date(current-dateTime()-xs:dayT
 
 let $bank := banking:getBankAccount($home-data, $tenant, $bank-account, $year)
 
-let $bank-statement := banking:updateViaFinTS($home-data, $tenant, $bank-account, $year, $from, $till, $import!='no')
-
 return
 	<result src="banking_update.xqy">
 		<Parameter>
@@ -52,7 +50,4 @@ return
 			{banking:listAccountingIDs($home-data, $tenant, $bank-account, $year)}
 		</Parameter>
 		{$bank}
-		<FinTS>{$bank-statement}</FinTS>
-		
-
 	</result>

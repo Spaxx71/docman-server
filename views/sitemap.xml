@@ -255,8 +255,12 @@ Copyright:
 						<title>Bankkonto $bank-account</title>
 						<breadcrumb>$bank-account</breadcrumb>
 						<page url="/$tenant/$year/banking/$bank-account/update.html">
-							<title>Kontobewegungen per Fin-TS aktualisieren</title>
+							<title>Kontobewegungen per HBCI+/FinTS aktualisieren</title>
 							<breadcrumb>aktualisieren</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$bank-account/update-process.html">
+							<title>Kontobewegungen per HBCI+/FinTS UI verarbeiten</title>
+							<breadcrumb>prozessieren</breadcrumb>
 						</page>
 						<page url="/$tenant/$year/banking/$bank-account/$resource-id/details.html">
 							<title>Kontobewegung Detailanzeige</title>

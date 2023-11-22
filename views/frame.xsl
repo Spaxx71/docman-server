@@ -85,79 +85,82 @@ Copyright:
             <body>
 <!-- [url="<xsl:value-of select="$url"/>" path="<xsl:value-of select="$path"/>" filename="<xsl:value-of select="$filename"/>"] -->
                 <div id="header">
-                    <div id="menu" class="breadcrump">
-                        <div style="float:left;">
-                            <!-- [Debug: <xsl:value-of select="$url"/>] -->
-                            <span>You are here: </span>
-                            <xsl:for-each select="$sitemap//page[descendant-or-self::*/replace(@url,'\?.*','')=$url]">
-                                <xsl:if test="position() != 1">
-                                    <xsl:text> &gt; </xsl:text>
-                                </xsl:if>
-                                <xsl:choose>
-                                    <xsl:when test="breadcrumb = '$year'">
-                                        <div style="display:inline-block; padding: 0px 3px; border:2px solid #F93;">
+                    <!-- quick hack to disable menue for online-banking hbci/fints banking_update-process.xqy and banking_update-process_html.xsl -->
+                    <xsl:if test="$filename != 'update-process.html'">
+                        <div id="menu" class="breadcrump">
+                            <div style="float:left;">
+                                <!-- [Debug: <xsl:value-of select="$url"/>] -->
+                                <span>You are here: </span>
+                                <xsl:for-each select="$sitemap//page[descendant-or-self::*/replace(@url,'\?.*','')=$url]">
+                                    <xsl:if test="position() != 1">
+                                        <xsl:text> &gt; </xsl:text>
+                                    </xsl:if>
+                                    <xsl:choose>
+                                        <xsl:when test="breadcrumb = '$year'">
+                                            <div style="display:inline-block; padding: 0px 3px; background-color:#F93;">
+                                                <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
+                                                    <xsl:attribute name="alt" select="Buchungsjahr"/>
+                                                    <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
+                                                </a>
+                                            </div>
+                                        </xsl:when>
+                                        <xsl:otherwise>
                                             <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
-                                                <xsl:attribute name="alt" select="Buchungsjahr"/>
+                                                <xsl:attribute name="alt" select="breadcrumb"/>
                                                 <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
                                             </a>
-                                        </div>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:for-each>
+                                <xsl:text>  </xsl:text>
+                            </div>
+                            <xsl:for-each select="//menu/crosslinks/crosslink">
+                                <xsl:text>  </xsl:text>
+                                <xsl:variable name="url" select="replace(concat($home-web-gui,local:replaceVariables($path),@url),'//','/')"/>
+                                <xsl:choose>
+                                    <xsl:when test="contains($url,'?')">
+                                        <a href="{substring-before($url,'?')}?{substring-after($url,'?')}" class="buttonComp">
+                                            <xsl:if test="@external='yes'">
+                                                <xsl:attribute name="target" select="'_blank'"/>
+                                            </xsl:if>
+                                            <xsl:value-of select="@title"/>
+                                            <xsl:if test="@external='yes'">
+                                                <image src="{$home-web-gui}/base/images/action_extlink.png" title="open in new window" height="10px" width="10px"/>
+                                            </xsl:if>
+                                        </a>
                                     </xsl:when>
                                     <xsl:otherwise>
-                                        <a href="{replace(concat($home-web-gui, local:replaceVariables(@url)),'//','/')}">
-                                            <xsl:attribute name="alt" select="breadcrumb"/>
-                                            <xsl:value-of select="local:replaceVariables(breadcrumb)"/>
+                                        <a href="{$url}" class="buttonComp">
+                                            <xsl:if test="@external='yes'">
+                                                <xsl:attribute name="target" select="'_blank'"/>
+                                            </xsl:if>
+                                            <xsl:value-of select="@title"/>
+                                            <xsl:if test="@external='yes'">
+                                                <image src="{$home-web-gui}/base/images/action_extlink.png" title="open in new window" height="10px" width="10px"/>
+                                            </xsl:if>
                                         </a>
                                     </xsl:otherwise>
                                 </xsl:choose>
                             </xsl:for-each>
-                            <xsl:text>  </xsl:text>
-                        </div>
-                        <xsl:for-each select="//menu/crosslinks/crosslink">
-                            <xsl:text>  </xsl:text>
-                            <xsl:variable name="url" select="replace(concat($home-web-gui,local:replaceVariables($path),@url),'//','/')"/>
-                            <xsl:choose>
-                                <xsl:when test="contains($url,'?')">
-                                    <a href="{substring-before($url,'?')}?{substring-after($url,'?')}" class="buttonComp">
-                                        <xsl:if test="@external='yes'">
-                                            <xsl:attribute name="target" select="'_blank'"/>
-                                        </xsl:if>
-                                        <xsl:value-of select="@title"/>
-                                        <xsl:if test="@external='yes'">
-                                            <image src="{$home-web-gui}/base/images/action_extlink.png" title="open in new window" height="10px" width="10px"/>
-                                        </xsl:if>
-                                    </a>
-                                </xsl:when>
-                                <xsl:otherwise>
-                                    <a href="{$url}" class="buttonComp">
-                                        <xsl:if test="@external='yes'">
-                                            <xsl:attribute name="target" select="'_blank'"/>
-                                        </xsl:if>
-                                        <xsl:value-of select="@title"/>
-                                        <xsl:if test="@external='yes'">
-                                            <image src="{$home-web-gui}/base/images/action_extlink.png" title="open in new window" height="10px" width="10px"/>
-                                        </xsl:if>
-                                    </a>
-                                </xsl:otherwise>
-                            </xsl:choose>
-                        </xsl:for-each>
 
 
-                        <div style="float:right">
-                            <span> '</span>
-                            <a href="{$home-web-gui}/{$tenant}/user/index.html"><xsl:value-of select="$username"/></a>
-                            <span>' </span>
-                            <a href="{$home-web-gui}/logout.html">abmelden</a>
-                        </div>
+                            <div style="float:right">
+                                <span> '</span>
+                                <a href="{$home-web-gui}/{$tenant}/user/index.html"><xsl:value-of select="$username"/></a>
+                                <span>' </span>
+                                <a href="{$home-web-gui}/logout.html">abmelden</a>
+                            </div>
 
-                        <div style="float:right">
-                            <xsl:text> </xsl:text>
-                            <xsl:value-of select="format-date(current-date(),'[D00].[M00].[Y0000]')"/>
-                            <xsl:text> </xsl:text>
+                            <div style="float:right">
+                                <xsl:text> </xsl:text>
+                                <xsl:value-of select="format-date(current-date(),'[D00].[M00].[Y0000]')"/>
+                                <xsl:text> </xsl:text>
+                            </div>
                         </div>
-                    </div>
-                    <div id="headline">
-                        <xsl:value-of select="$title"/>
-                    </div>
+                        <div id="headline">
+                            <xsl:value-of select="$title"/>
+                        </div>
+                    </xsl:if>
                 </div>
                 <div id="content">
                     <xsl:apply-templates/>
