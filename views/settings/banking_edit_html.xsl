@@ -9,7 +9,7 @@
 	<xsl:param name="year" required="yes"/> 
 
 	<xsl:template match="/">
-	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xf="http://www.w3.org/2002/xforms">
+	<xhtml:html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 		<head>
 			<title>Edit document</title>
 			<xf:model schema="" id="M">
@@ -51,6 +51,58 @@
 					</data>
 				</xf:instance>
 
+				<xf:instance xmlns="" id="sales-type">
+					<data>
+						<salesType key="0">
+							<Name lang="de">Unknown</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="008">
+							<Name lang="de">Dauerauftrag Belastung</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="082">
+							<Name lang="de">Einzahlungen</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="105">
+							<Name lang="de">Einzelbuchung Soll, SEPA Core</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="106">
+							<Name lang="de">SEPA Cards Clearing (Einzelbuchung-Soll)</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="107">
+							<Name lang="de">SEPA Direct Debit (Einzelbuchung-Soll, mit Karte am PoS)</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="116">
+							<Name lang="de">Einzelbuchung Soll</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="118">
+							<Name lang="de">Einzelbuchung Soll</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="166">
+							<Name lang="de">Einzelbuchung Haben</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="168">
+							<Name lang="de">Einzelbuchung Haben</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="181">
+							<Name lang="de">Wiedergutschrift Haben, SEPA Core</Name>
+							<Name lang="en"/>
+						</salesType>
+						<salesType key="835">
+							<Name lang="de">sonstige nicht definierte GV-Arten</Name>
+							<Name lang="en"/>
+						</salesType>
+					</data>
+				</xf:instance>
 
 				<xf:bind ref="instance('bank-account')/BankAccount/@kto" type="xs:string" constraint="string-length(.) &gt; 3"/> 
 
@@ -138,9 +190,23 @@ Body: </xf:label>
 					width: inherit !important;
 				}
 ]]>
-
-
 			</style>
+
+			<!-- Definition of Javascript functions which are used by xsltforms -->
+			<!-- <xf:setvalue ref="instance('accounting-new')/currentDate" value="getCurrentDate()" /> -->
+			<script>
+<![CDATA[
+				function getCurrentDate(){
+					var d = new Date();
+					return d.toISOString().substring(0,10);
+				}
+				function getUuid(){
+					return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+					(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+				  );
+				}
+]]>
+			</script>
 		</head>
 		<body>
 			<xf:group ref="instance('accounting')/BankAccount/BankAccountDetail">
@@ -222,7 +288,7 @@ Body: </xf:label>
 					</tr>
 
 					<tr>
-						<th colspan="2">Online Banking (HBCI / FinTS 3.0)</th>
+						<th colspan="2">Online Banking (HBCI+ / FinTS 3.0)</th>
 					</tr>				
 					<tr>
 						<th>Bank Kunde ID</th>
@@ -320,15 +386,14 @@ Body: </xf:label>
 						<th>#</th>
 						<th>Aktivität</th>
 						<th>ID</th>						
-						<th>Value Date</th>
-						<th>Booking Date</th>
-						<th>Betrag</th>						
-						<th>Betrag Art</th>
-						<th>External Costs</th>						
+						<th>Wertstellung</th> <!-- Value Date -->
+						<th>Buchungsdatum</th> <!-- Booking Date -->
+						<th>Zahlbetrag</th>						
+						<th>Zahlungsart</th>
+						<th>Externe Kosten</th>	<!-- External Costs -->					
 						<th>Orig.-Betrag</th>						
 						<th>@saldoAmount</th> <!-- Kontostand nach Buchung dieser Position-->
-						<th>Umsatzart Key</th>
-						<th>Umsatzart Descr.</th>						
+						<th colspan="2">Umsatzart (Name und Key)</th>						
 						<th>Begünstigter / Auftraggeber</th>
 						<th>Verwendungszweck</th>
 						<th>IBAN</th>
@@ -401,11 +466,11 @@ Body: </xf:label>
 							<td>
 								<xf:select1 ref="Amount/@type">
 									<xf:item>
-                						<xf:label>CREDIT</xf:label>
+                						<xf:label>Ausgang</xf:label>
                 						<xf:value>CREDIT</xf:value> 
             						</xf:item>
 									<xf:item>
-                						<xf:label>DEBIT</xf:label>
+                						<xf:label>Eingang</xf:label>
                 						<xf:value>DEBIT</xf:value> 
             						</xf:item>
 								</xf:select1>
@@ -433,10 +498,36 @@ Body: </xf:label>
 								</xf:trigger>
 							</td>
 							<td>
-								<xf:input ref="SalesType/@key"/>
+								<xf:group>
+									<xf:select1 ref="SalesType" selection="open">
+										<xf:itemset nodeset="instance('sales-type')/salesType">
+											<xf:label ref="Name[@lang='de']"/>
+											<xf:value ref="Name[@lang='de']"/>
+										</xf:itemset>
+										<xf:action ev:event="xforms-value-changed">
+											<!-- Set SalesType/@key based on the selected value -->
+											<xf:setvalue ref="../SalesType/@key" value="instance('sales-type')/salesType[Name = current()]/@key"/>
+											<!-- Additional action to set key to 0 if the value is not predefined -->
+											<xf:action if="not(instance('sales-type')/salesType[Name = current()])">
+												<xf:setvalue ref="../SalesType/@key" value="0"/>
+											</xf:action>
+										</xf:action>
+									</xf:select1>
+								</xf:group>
 							</td>
 							<td>
-								<xf:input ref="SalesType"/>
+								<xf:group>
+									<xf:select1 ref="SalesType/@key" selection="open">
+										<xf:itemset nodeset="instance('sales-type')/salesType">
+											<xf:label ref="@key"/>
+											<xf:value ref="@key"/>
+										</xf:itemset>
+										<xf:action ev:event="xforms-value-changed">
+											<!-- Set the value of the second dropdown based on the selected key -->
+											<xf:setvalue ref=".." value="instance('sales-type')/salesType[@key = current()]/Name[@lang='de']"/>
+										</xf:action>
+									</xf:select1>
+								</xf:group>
 							</td>
 							<td>
 								<xf:input ref="Recipient"/>
@@ -469,11 +560,16 @@ Body: </xf:label>
 				</tbody>
 				<tfoot>
 					<tr>
-						<td>
+						<td colspan="20">
 							<xf:trigger>
 								<xf:label>Kontobewegung hinzufügen</xf:label>
-							
-								<xf:insert context="instance('accounting')/BankAccount/Accountings" origin="instance('accounting-new')/Accounting" nodeset="Accounting" at="last()" position="after" ev:event="DOMActivate"/> <!-- index('accounting-repeat') -->
+									<xf:action ev:event="DOMActivate">
+										<xf:setvalue ref="instance('accounting-new')/Accounting/@id" value="concat('PAY',getUuid())"/>
+										<xf:setvalue ref="instance('accounting-new')/Accounting/BookingDate" value="getCurrentDate()"/>
+										<xf:setvalue ref="instance('accounting-new')/Accounting/ValueDate" value="getCurrentDate()"/>
+
+										<xf:insert context="instance('accounting')/BankAccount/Accountings" origin="instance('accounting-new')/Accounting" nodeset="Accounting" at="last()" position="after"/> <!-- index('accounting-repeat') -->
+									</xf:action>
 							</xf:trigger>
 						</td>
 					</tr>
@@ -484,7 +580,7 @@ Body: </xf:label>
 				<xf:label>Speichern</xf:label>
 			</xf:submit>
 		</body>
-	</html>
+	</xhtml:html>
 	</xsl:template>
 
 	<xsl:template match="result"/>
