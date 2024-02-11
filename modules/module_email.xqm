@@ -71,17 +71,19 @@ declare function local:cleanupNamespace($n as node()) as node() {
 		$n
 	)
 };
+
+declare function email:read-emails($tenant as xs:string) as item() {
+
+	(: Crypto - created by util:base64-encode("abc"):)
+	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
 	
-
-declare function email:read-message($tenant as xs:string, $id as xs:integer) as item() {
-
-	(: Crypto :)
-	let $CryptoValue := "NmloODM2c2tqYjM5emk5"
 
 	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
 	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
+
+
 	let $MailProperties :=
-  		if ($tenant = 'bintellix') then
+  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
 	   		<properties>
 				<property name="mail.debug" value="false"/>
 				<property name="mail.imaps.host" value="imap.bintellix.com"/>
@@ -89,13 +91,60 @@ declare function email:read-message($tenant as xs:string, $id as xs:integer) as 
 				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
 				<property name="mail.store.protocol" value="imaps"/>
 				<property name="mail.imaps.ssl.enable" value="true"/>
+
+		<!--
+		<property name="mail.imap.port" value="993"/>
+		<property name="mail.imap.ssl.enable" value="true"/>
+		<property name="mail.imap.ssl.checkserveridentity" value="true"/>
+		<property name="mail.imap.socketFactory.class" value="javax.net.ssl.SSLSocketFactory"/>
+		<property name="mail.imap.socketFactory.fallback" value="993"/>
+		<property name="mail.imap.socketFactory.port" value="false"/>
+		<property name="mail.imaps.ssl.enable" value="true"/>
+		<property name="mail.imaps.ssl.checkserveridentity" value="true"/>
+		props.setProperty("mail.imap.connectiontimeout", "5000");
+		props.setProperty("mail.imap.timeout", "5000");
+		-->
 	   		</properties>
-		else if ($tenant = 'intersecurity') then
+		else 
+			()
+        
+	let $lMailSessionHandle := mail:get-mail-session($MailProperties)
+
+	let $lMailStoreHandle := mail:get-mail-store($lMailSessionHandle)
+
+	let $lMailFolderHandle := mail:get-mail-folder($lMailStoreHandle, 'INBOX') 
+
+	let $lMessageListHandle := mail:get-message-list($lMailFolderHandle)
+
+	let $MessageList := mail:get-message-list-as-xml($lMessageListHandle, false())
+
+	return 
+	(: 
+		mail:search-message-list()
+	:)
+		<result>	
+			{$MessageList}
+
+			{mail:close-message-list($lMessageListHandle)}
+			{mail:close-mail-folder($lMailFolderHandle, false())}
+			{mail:close-mail-store($lMailStoreHandle)}
+		</result>	
+};
+
+declare function email:read-message($tenant as xs:string, $id as xs:integer) as item() {
+
+	(: Crypto - created by util:base64-encode("abc"):)
+	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
+
+	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
+	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
+	let $MailProperties :=
+  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
 	   		<properties>
 				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.intersecurity.net"/>
-				<property name="mail.imaps.user" value="accounting@intersecurity.net"/>
-				<property name="mail.imaps.password" value="{util:base64-decode('NmloODM2c2tqYjM5emk5bDllNw==')}"/>
+				<property name="mail.imaps.host" value="imap.bintellix.com"/>
+				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
+				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
 				<property name="mail.store.protocol" value="imaps"/>
 				<property name="mail.imaps.ssl.enable" value="true"/>
 	   		</properties>
@@ -124,27 +173,18 @@ declare function email:read-message($tenant as xs:string, $id as xs:integer) as 
 
 declare function email:read-attachment($tenant as xs:string, $mail-id as xs:integer, $att-number as xs:integer) as item() {
 
-	(: Crypto :)
-	let $CryptoValue := "NmloODM2c2tqYjM5emk5"
+	(: Crypto - created by util:base64-encode("abc"):)
+	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
 
 	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
 	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
 	let $MailProperties :=
-  		if ($tenant = 'bintellix') then
+  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
 	   		<properties>
 				<property name="mail.debug" value="false"/>
 				<property name="mail.imaps.host" value="imap.bintellix.com"/>
 				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
 				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-	   		</properties>
-		else if ($tenant = 'intersecurity') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.intersecurity.net"/>
-				<property name="mail.imaps.user" value="accounting@intersecurity.net"/>
-				<property name="mail.imaps.password" value="{util:base64-decode('NmloODM2c2tqYjM5emk5bDllNw==')}"/>
 				<property name="mail.store.protocol" value="imaps"/>
 				<property name="mail.imaps.ssl.enable" value="true"/>
 	   		</properties>

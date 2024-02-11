@@ -38,7 +38,7 @@
 
 				<h3>Stammdaten Verwaltung</h3>
 				<ul>
-					<xsl:if test="$username=lower-case('eduard.huber') or $username=lower-case('extern.friederike.pfaffinger')">
+					<xsl:if test="$username=lower-case('admin') or $username=lower-case('eduard.huber') or $username=lower-case('christine.lankes')">
 						<li>
 							<a href="{$home-web-gui||'/'||$tenant||'/settings/users/index.html'}">Benutzer</a>
 						</li>

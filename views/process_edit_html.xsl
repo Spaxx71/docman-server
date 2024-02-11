@@ -41,7 +41,7 @@
 	</xsl:template>
 
 	<xsl:template match="result">
-		<html>
+		<xhtml:html xmlns:xhtml="http://www.w3.org/1999/xhtml">
 			<head>
 				<style>
 .xforms-alert .xforms-alert-value {
@@ -542,7 +542,7 @@
 					</div>
 				</div>
 			</body>
-		</html>
+		</xhtml:html>
 	</xsl:template>
 
 

@@ -13,7 +13,7 @@
 	</xsl:template>
 
 	<xsl:template match="result">
-		<html>
+		<xhtml:html xmlns:xhtml="http://www.w3.org/1999/xhtml">
 			<head>
 				<xf:model schema="">
 					<xf:instance xmlns="" id="documents">
@@ -105,7 +105,7 @@ Body: </xf:label>
 			<body>
 
 				<xsl:if test="not(BankAccountActivity//Document)">
-					<h3>Bankkonto-Beleg-Ableich</h3>
+					<xhtml:h3>Bankkonto-Beleg-Ableich</xhtml:h3>
 					<div>Es wurden <xsl:value-of select="count(BankAccountActivity)"/> Bankbewegungen getestet.</div>
 					<div>Hierzu wurden <xsl:value-of select="count(BankAccountActivity/Groups/Group)"/> Gruppen getestet.</div>
 					<div>Doch es gibt keine Auto-Match Elemente mehr.</div>
@@ -237,7 +237,7 @@ Body: </xf:label>
 					 </div>
 				</xf:repeat>
 			</body>	
-		</html>
+		</xhtml:html>
 	</xsl:template>
 
 	<xsl:template match="Document">

@@ -9,7 +9,7 @@
 
 
 	<xsl:template match="/">
-		<html xmlns="http://www.w3.org/1999/xhtml">
+		<xhtml:html xmlns="http://www.w3.org/1999/xhtml" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 			<head>
 				<title>Delete account</title>
 				<meta http-equiv="refresh" content="10; URL={$home-web-gui}/{$tenant}/accounts/index.html"/>
@@ -23,7 +23,7 @@
 					</li>
 				</ul>
 			</body>
-		</html>
+		</xhtml:html>
 	</xsl:template>
 
 </xsl:stylesheet>

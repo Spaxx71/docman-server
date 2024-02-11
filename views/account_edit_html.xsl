@@ -12,7 +12,7 @@
 
 
 	<xsl:template match="/">
-	<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xf="http://www.w3.org/2002/xforms">
+	<xhtml:html xmlns="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 		<head>
 			<title>Edit document</title>
 			<xf:model schema="" id="M">
@@ -913,7 +913,7 @@ Body: </xf:label>
 				</tr>
 			</table>
 		</body>
-	</html>
+	</xhtml:html>
 	</xsl:template>
 
 	<xsl:template match="Accounts"/>
