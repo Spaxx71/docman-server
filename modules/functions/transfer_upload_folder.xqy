@@ -35,7 +35,7 @@ return
         <form action="{$home-web}/{$tenant}/{$year}/transfer/upload_folder_response.html" method="post" enctype="multipart/form-data">
             <fieldset>
 				<legend>Verzeichnis hochladen:</legend>
-                <input type="file" name="document[]" size="40" maxlength="1000" multiple="multiple" accept=".pdf,.tif,.tiff,.png,.gif,.txt,.csv,.xml"/>
+                <input type="file" name="files[]" size="40" maxlength="1000" multiple="multiple" accept=".pdf,.tif,.tiff,.png,.gif,.txt,.csv,.xml"/>
             <!-- webkitdirectory="" directory="" mozdirectory="" -->
                 <input type="submit" value="Upload"/>
             </fieldset>

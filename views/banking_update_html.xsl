@@ -23,8 +23,6 @@
 				</ul>
 
 				<h3>Bankverbindung per HBCI+/FinTS aktualisieren</h3>
-
-				<xsl:apply-templates/>
 				
 				<!--
 				<form action="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/update-process.html')}">
@@ -42,7 +40,7 @@
 				-->
 	
 				<div xmlns="http://www.w3.org/1999/xhtml" id="post-section" style="background-color: #eee;">
-					<h3>HBCI+/FinTS Meldungen:</h3><a href="{concat($home-web-api,'/',$tenant,'/hbci/',$resource-id,'/get-messages-from-hbci.json')}" target="_blank">Liste aller Meldugen</a>
+					<h3>HBCI+/FinTS Meldungen:</h3><a href="{concat($home-web-api,'/tenants/',$tenant,'/messages/',$resource-id,'/get-messages-from-hbci.json')}" target="_blank">Liste aller Meldugen</a>
 					<div id="hbci-message-container" style="height:10rem; overflow-y: scroll; border: 1px solid #444; padding: 5px;"/>
 					
 					<!-- <script>
@@ -64,20 +62,28 @@
 						<xsl:text> window.setInterval(function() {</xsl:text>
 						<xsl:text>listMessages('</xsl:text>
 						<xsl:value-of select="$home-web-api"/>
-						<xsl:text>/</xsl:text>
+						<xsl:text>/tenants/</xsl:text>
 						<xsl:value-of select="$tenant"/>
-						<xsl:text>/hbci/</xsl:text>
+						<xsl:text>/messages/</xsl:text>
 						<xsl:value-of select="$resource-id"/>
 						<xsl:text>/get-messages-from-hbci.json', 'hbci-message-container');</xsl:text>
 						<xsl:text>}, 1000);</xsl:text>
 					</script>
-
-					<form action="{concat($home-web-api,'/',$tenant,'/hbci/',/result/Parameter/BankAccount,'/send-message-to-hbci.json')}" method="post" target="_blank">
+					<!--
+					<form action="{concat($home-web-api,'/tenants/',$tenant,'/messages/',/result/Parameter/BankAccount,'/send-message-to-hbci.json')}" method="post" target="_blank">
+						<label>Benutzereingabe</label>
+						<input type="text" name="input"/>
+						<input type="submit" name="send" value="Senden"/>
+					</form>
+					-->
+					<form action="{concat($home-web-api,'/../text/tenants/',$tenant,'/messages/',/result/Parameter/BankAccount,'/receive')}" method="post" target="_blank">
 						<label>Benutzereingabe</label>
 						<input type="text" name="input"/>
 						<input type="submit" name="send" value="Senden"/>
 					</form>
 				</div>
+				
+				<xsl:apply-templates/>
 
 				<xsl:choose>
 					<xsl:when test="$from != ''">
@@ -113,6 +119,10 @@
 			<xsl:with-param name="BankAccountDetail" select="."/>
 		</xsl:call-template>
 		<br/>
+	</xsl:template>
+
+	<xsl:template match="BankAccount/Accountings">
+		<!-- are handled by iframe -->
 	</xsl:template>
 
 	<xsl:template match="Parameter"/>

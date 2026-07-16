@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-binder.xqy :)
+xquery version "3.1";
 
 module namespace dmbinder="http://exist-db.org/apps/restxq/docman-binder";
 
@@ -32,16 +33,29 @@ declare namespace rerr= "http://exquery.org/ns/restxq/error";
 
 
 (:
-GET http://localhost:8080/exist/restxq/docman/bix/binders/2020
+    GET http://localhost:8080/exist/restxq/docman/tenant/test/years/2020/binders
+    GET /restxq/docman/tenants/test/years/2020/binders
+    GET /api/(xml|json)/docman/test/2020/binders
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/binders")
-    %output:media-type("text/xml")
-
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders")
     %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")    
 
-function dmbinder:listBinders($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+function dmbinder:listBindersXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	binder:listBinders($main:home-data,$tenant,$year)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+
+function dmbinder:listBindersJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
 	binder:listBinders($main:home-data,$tenant,$year)
 };
 

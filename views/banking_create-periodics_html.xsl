@@ -31,7 +31,9 @@
 		Name: <xsl:value-of select="@name"/><br/>
 		ID: <xsl:value-of select="@id"/><br/>
 		Buchungskonto: <xsl:value-of select="@kto"/><br/>
-		IBAN: <xsl:value-of select="@iban"/><br/>
+		IBANs: <xsl:for-each select="BankAccouts/BankAccount">
+			<xsl:value-of select="@iban"/><br/>
+		</xsl:for-each>
 		<br/>
 		<xsl:apply-templates/>
 		<br/>
@@ -39,7 +41,15 @@
 	</xsl:template>
 
 	<xsl:template match="BankActivity">
-		<div>Folgende Bankbewegungen konnten diesem Dauerauftrag zugeordnet werden:</div>
+		<xsl:choose>
+			<xsl:when test="not(../error)">
+				<div>Folgende Bankbewegungen konnten diesem Dauerauftrag zugeordnet werden:</div>
+			</xsl:when>
+			<xsl:otherwise>
+				<div>Folgende Bankbewegungen wurden (als potentiell zugehörig) ermittelt, konnten jedoch (auf Grund der nachfolgenden Regel-Verletzungen) nicht zugeordnet werden:</div>
+			</xsl:otherwise>
+		</xsl:choose>
+		
 		<ul>
 			<xsl:apply-templates/>
 		</ul>

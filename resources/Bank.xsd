@@ -36,8 +36,8 @@
                   </xs:restriction>
                 </xs:simpleType>
               </xs:element>
-              <xs:element name="BankUserID" type="xs:string"/>
-              <xs:element name="CustomerID" type="xs:string"/>
+              <xs:element name="BankUserID" type="xs:string" minOccurs="0"/>
+              <xs:element name="CustomerID" type="xs:string" minOccurs="0"/>
               <xs:element name="CurrencyUnit" type="xs:NCName"/>
               <xs:element name="OnlineBanking" minOccurs="0">
                 <xs:complexType>
@@ -122,119 +122,28 @@
                 <xs:complexType>
                   <xs:simpleContent>
                     <xs:extension base="xs:string">
-                      <xs:attribute name="key" type="xs:integer"/>
+                      <xs:attribute name="key" type="xs:string"/>
                     </xs:extension>
                   </xs:simpleContent>
                 </xs:complexType>
               </xs:element>
               <xs:element name="BookingDate" type="xs:date"/>
               <xs:element name="ValueDate" type="xs:date"/>
-              <xs:element minOccurs="0" name="Recipient" type="xs:string" maxOccurs="1"/>
+              <xs:element name="Recipient" type="xs:string" minOccurs="0" maxOccurs="1"/>
               <xs:element name="DivergentRecepient" minOccurs="0" maxOccurs="1">
                 <xs:complexType mixed="true">
                   <xs:attribute name="type" use="required" type="xs:NCName"/>
                 </xs:complexType>
               </xs:element>
-              <xs:element name="PaymentDetails">
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element name="PaymentDetail" maxOccurs="unbounded" minOccurs="0">
-                      <xs:complexType>
-                        <xs:complexContent>
-                          <xs:extension base="NonEmptyString">
-                            <xs:attribute name="row" type="xs:nonNegativeInteger"/>
-                          </xs:extension>
-                        </xs:complexContent>
-                      </xs:complexType>
-                    </xs:element>
-                  </xs:sequence>
-                  <xs:attribute name="type">
-                    <xs:simpleType>
-                      <xs:restriction base="xs:string">
-                        <xs:enumeration value="SVWZ"/>
-                      </xs:restriction>
-                    </xs:simpleType>
-                  </xs:attribute>
-                </xs:complexType>
-              </xs:element>
-              <xs:element name="Usages" minOccurs="0">
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element name="Usage" maxOccurs="unbounded" minOccurs="0">
-                      <xs:complexType>
-                        <xs:simpleContent>
-                          <xs:extension base="NonEmptyString">
-                            <xs:attribute name="row" type="xs:nonNegativeInteger"/>
-                          </xs:extension>
-                        </xs:simpleContent>
-                      </xs:complexType>
-                    </xs:element>
-                  </xs:sequence>
-                </xs:complexType>
-              </xs:element>
-              <xs:element minOccurs="0" name="IBAN" type="xs:string" maxOccurs="1"/>
-              <xs:element minOccurs="0" name="BIC" type="xs:string" maxOccurs="1"/>
-              <xs:element name="MandantRef" minOccurs="0" maxOccurs="1">
-                <xs:complexType>
-                  <xs:simpleContent>
-                    <xs:extension base="xs:string">
-                      <xs:attribute name="type">
-                        <xs:simpleType>
-                          <xs:restriction base="xs:string">
-                            <xs:enumeration value="MREF"/>
-                          </xs:restriction>
-                        </xs:simpleType>
-                      </xs:attribute>
-                    </xs:extension>
-                  </xs:simpleContent>
-                </xs:complexType>
-              </xs:element>
-              <xs:element name="CustomerRef" type="xs:string"/>
-              <xs:element minOccurs="0" name="EndToEndRef" maxOccurs="1">
-                <xs:complexType>
-                  <xs:simpleContent>
-                    <xs:extension base="xs:string">
-                      <xs:attribute name="type">
-                        <xs:simpleType>
-                          <xs:restriction base="xs:string">
-                            <xs:enumeration value="EREF"/>
-                          </xs:restriction>
-                        </xs:simpleType>
-                      </xs:attribute>
-                    </xs:extension>
-                  </xs:simpleContent>
-                </xs:complexType>
-              </xs:element>
-              <xs:element name="CreditorID" minOccurs="0" maxOccurs="1">
-                <xs:complexType>
-                  <xs:simpleContent>
-                    <xs:extension base="xs:string">
-                      <xs:attribute name="type">
-                        <xs:simpleType>
-                          <xs:restriction base="xs:string">
-                            <xs:enumeration value="CRED"/>
-                          </xs:restriction>
-                        </xs:simpleType>
-                      </xs:attribute>
-                    </xs:extension>
-                  </xs:simpleContent>
-                </xs:complexType>
-              </xs:element>
-              <xs:element name="Primanota" minOccurs="0" maxOccurs="1">
-                <xs:complexType>
-                  <xs:simpleContent>
-                    <xs:extension base="xs:string">
-                      <xs:attribute name="type">
-                        <xs:simpleType>
-                          <xs:restriction base="xs:string">
-                            <xs:enumeration value="CRED"/>
-                          </xs:restriction>
-                        </xs:simpleType>
-                      </xs:attribute>
-                    </xs:extension>
-                  </xs:simpleContent>
-                </xs:complexType>
-              </xs:element>
+              <xs:element name="PaymentDetail" type="xs:string" minOccurs="0"/>
+              <xs:element name="Usage" type="xs:string" minOccurs="0"/>
+              <xs:element name="IBAN" type="xs:string" minOccurs="0" maxOccurs="1"/>
+              <xs:element name="BIC" type="xs:string" minOccurs="0" maxOccurs="1"/>
+              <xs:element name="MandantRef" minOccurs="0" maxOccurs="1"/>
+              <xs:element name="CustomerRef" type="xs:string" maxOccurs="1"/>
+              <xs:element name="EndToEndRef" type="xs:string" maxOccurs="1"/>
+              <xs:element name="CreditorID" type="xs:string" minOccurs="0" maxOccurs="1"/>
+              <xs:element name="Primanota" type="xs:string" minOccurs="0" maxOccurs="1"/>
               <xs:element name="AddKey" minOccurs="0" maxOccurs="1">
                 <xs:complexType>
                   <xs:simpleContent>
@@ -258,21 +167,7 @@
                   </xs:simpleContent>
                 </xs:complexType>
               </xs:element>
-              <xs:element name="OriginalAmount" minOccurs="0" maxOccurs="1">
-                <xs:complexType>
-                  <xs:simpleContent>
-                    <xs:extension base="xs:string">
-                      <xs:attribute name="type">
-                        <xs:simpleType>
-                          <xs:restriction base="xs:string">
-                            <xs:enumeration value="OAMT"/>
-                          </xs:restriction>
-                        </xs:simpleType>
-                      </xs:attribute>
-                    </xs:extension>
-                  </xs:simpleContent>
-                </xs:complexType>
-              </xs:element>
+              <xs:element name="OriginalAmount" type="xs:string" minOccurs="0" maxOccurs="1"/>
               <xs:element name="CurrencyUnit" type="xs:NCName"/>
               <xs:element name="ExternalCosts" minOccurs="0" type="xs:string" maxOccurs="1"/>
             </xs:all>
@@ -298,7 +193,12 @@
             </xs:attribute>
             <xs:attribute name="isSepa" type="xs:boolean"/>
             <xs:attribute name="isCamt" type="xs:boolean"/>
+            <xs:attribute name="budgetCategory" use="required" type="xs:token"/>
           </xs:complexType>
+          <xs:key name="AccountingIDKey">
+            <xs:selector xpath="Accounting"/>
+            <xs:field xpath="@id"/>
+          </xs:key>
         </xs:element>
       </xs:sequence>
       <xs:attribute name="saldoInitAmount" use="required" type="xs:decimal"/>

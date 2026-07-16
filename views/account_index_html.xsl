@@ -3,7 +3,7 @@
 	<xsl:param name="home-web-gui" required="yes"/>
 	<xsl:param name="home-web-api" required="yes"/>
 	<xsl:param name="tenant" required="yes"/>
-	<xsl:param name="type" required="yes"/>
+	<xsl:param name="type" required="no" select="'*'"/>
 	<xsl:param name="year" required="yes"/>
 
 	<xsl:variable name="accountings" select="result/Accountings"/>
@@ -18,13 +18,25 @@
 			<body>
 				<ul class="Nav">
 					<li>
-						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/bookings/refresh.html')}">Buchungskonten aktualisieren</a>
+						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/categories/index.html')}">Budget-Kategorien</a>
 					</li>
 					<li>
 						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/accounts/datev-export.csv')}">DATEV Export</a>
 					</li>
 				</ul>
-				<span>Jahr <xsl:value-of select="$year"/></span>
+				<h1>Übersicht der Buchungskonten</h1>
+				<xsl:choose>
+					<xsl:when test="$type='ledger_account'">
+						<h2>nur Kreditoren/Debitoren</h2>
+					</xsl:when>
+					<xsl:when test="$type='nominal_account'">
+						<h2>nur Sachkonten</h2>
+					</xsl:when>
+					<xsl:otherwise>
+						<h2>Gesammtübersicht</h2>
+					</xsl:otherwise>
+				</xsl:choose>
+
 				<xsl:choose>
 					<xsl:when test="$type!='*'">
 						<div class="Filter">Anzeige gefiltert: <xsl:value-of select="$type"/></div>
@@ -55,7 +67,9 @@
 				<th>Bank</th>
 				<th>Buchungen</th>
 				-->
-				<th>Buchungskonto</th>
+				<th>Buchungskonto<br/>
+					<a class="buttonComp" href="{concat($home-web-gui,'/',$tenant,'/',$year,'/bookings/refresh.html')}">aktualisieren</a>
+				</th>
 				<th>Funktion</th>
 			</tr>
 			<xsl:apply-templates/>
@@ -94,7 +108,7 @@
 						<xsl:value-of select="count(preceding-sibling::Account)+1"/>
 					</td>
 					<td>
-						<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/{@id}/details.html">
+						<a href="{$home-web-gui}/tenants/{$tenant}/years/{$year}/accounts/{@id}/details.html">
 							<xsl:value-of select="Name"/>
 						</a>
 					</td>
@@ -119,7 +133,7 @@
 						<xsl:value-of select="Notes"/>
 					</td>
 					<td>
-						<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/{@id}/details.html">
+						<a href="{$home-web-gui}/tenants/{$tenant}/years/{$year}/accounts/{@id}/details.html">
 							<xsl:value-of select="@kto"/>
 						</a>
 					</td>
@@ -132,34 +146,48 @@
 					</td>
 					<td>
 						<xsl:for-each select="tokenize(@classes)">
-						
 							<xsl:choose>
-								<xsl:when test=".='debitor'">Debitor</xsl:when>
-								<xsl:when test=".='creditor'">Kreditor</xsl:when>
-								<xsl:when test=".='bank'">Bankkonto</xsl:when>
-								<xsl:when test=".='expense'">Aufwandskonto</xsl:when>
+								<xsl:when test=".='debitor'">Debitor</xsl:when> <!-- Teil der Forderungen --> <!-- Aktiva -->
+								<xsl:when test=".='creditor'">Kreditor</xsl:when> <!-- Teil der Verbindlichkeiten -->
+
+								<xsl:when test=".='assets'">Vermögenswerte</xsl:when> <!-- Aktiva -->
+								<xsl:when test=".='liabilities'">Verbindlichkeiten</xsl:when> <!-- Passiva -->
+
+								<xsl:when test=".='bank'">Bankkonto</xsl:when> <!-- Aktiva -->
+								<!-- GUV -->
+								<xsl:when test=".='expenses'">Aufwandskonto</xsl:when> <!-- Erfolgskonto -->
+								<xsl:when test=".='revenues'">Umsatzkonto</xsl:when> <!-- Erfolgskonto -->
 								<xsl:otherwise>ERROR invalid class '<xsl:value-of select="."/>'</xsl:otherwise>
 							</xsl:choose>
+							<xsl:if test="position() != last()">
+								<br/>
+							</xsl:if>
 						</xsl:for-each>
 					</td>
 					<!--
 					<td>
-						<xsl:if test="@iban or @debtee">
-							<ul>
-								<xsl:for-each select="tokenize(@iban)">
-									<li>
-										<xsl:text>IBAN: </xsl:text>
-										<xsl:value-of select="."/>
-									</li>
-								</xsl:for-each>
-								<xsl:for-each select="tokenize(@debtee)">
-									<li>
-										<xsl:text>Gläubiger ID: </xsl:text>
-										<xsl:value-of select="."/>
-									</li>
-								</xsl:for-each>
-							</ul>
-						</xsl:if>
+						<xsl:choose>
+							<xsl:when test="BankAcconts/BankAccount">
+								<ul>
+									<xsl:for-each select="BankAcconts/BankAccount">
+										<li>
+											<xsl:text>IBAN: </xsl:text>
+											<xsl:value-of select="data(@iban)"/>
+											<br/>
+											<xsl:text>Name der Bank: </xsl:text>
+											<xsl:value-of select="data(@name)"/>
+											<br/>
+											<xsl:text>Notizen: </xsl:text>
+											<xsl:value-of select="data(@notes)"/>
+											<br/>
+										</li>
+									</xsl:for-each>
+								</ul>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:text>Keine Bankdaten hinterlegt.</xsl:text>
+							</xsl:otherwise>
+						</xsl:choose>
 					</td>
 					-->
 					<!--
@@ -190,20 +218,36 @@
 					</td>
 					-->
 					<td>
-						<div>AB: <xsl:value-of select="format-number(Accounting/@openingBalance,'#.##0,00','EU')"/> EUR EB: <xsl:value-of select="format-number(Accounting/@closingBalance,'#.##0,00','EU')"/> EUR</div>
-						<div>Soll: <xsl:value-of select="format-number(Accounting/@creditSum,'#.##0,00','EU')"/> EUR Haben: <xsl:value-of select="format-number(Accounting/@debitSum,'#.##0,00','EU')"/> EUR</div>
+						<div style="display: flex; flex-direction: column;">
+							<div style="display: flex; justify-content: space-between;">
+								<span>AB:</span>
+								<span><xsl:value-of select="format-number(Accounting/@openingBalance, '#.##0,00', 'EU')"/> EUR</span>
+							</div>
+							<div style="display: flex; justify-content: space-between;">
+								<span>EB:</span>
+								<span><xsl:value-of select="format-number(Accounting/@closingBalance, '#.##0,00', 'EU')"/> EUR</span>
+							</div>
+							<div style="display: flex; justify-content: space-between;">
+								<span>Soll:</span>
+								<span><xsl:value-of select="format-number(Accounting/@creditSum, '#.##0,00', 'EU')"/> EUR</span>
+							</div>
+							<div style="display: flex; justify-content: space-between;">
+								<span>Haben:</span>
+								<span><xsl:value-of select="format-number(Accounting/@debitSum, '#.##0,00', 'EU')"/> EUR</span>
+							</div>
+						</div>
 					</td>
 					<td>
 						<br/>
 						<ul class="nav">
 							<li>
-								<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/{@id}/details.html">Anzeigen</a>
+								<a href="{$home-web-gui}/tenants/{$tenant}/years/{$year}/accounts/{@id}/details.html">Anzeigen</a>
 							</li>
 							<li>
-								<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/{@id}/edit.html">Bearbeiten</a>
+								<a href="{$home-web-gui}/tenants/{$tenant}/years/{$year}/accounts/{@id}/edit.html">Bearbeiten</a>
 							</li>
 							<li>
-								<a href="{$home-web-gui}/{$tenant}/{$year}/accounts/{@id}/delete.html">Löschen</a>
+								<a href="{$home-web-gui}/tenants/{$tenant}/years/{$year}/accounts/{@id}/delete.html">Löschen</a>
 							</li>
 						</ul>
 						<br/>

@@ -27,7 +27,6 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/account/acco
 :)
 
 import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
-import module namespace years="http://bintellix.com/docman/years" at "/db/apps/docman/modules/module_years.xqm";
 
 let $home-web-gui := request:get-attribute('home-web-gui')
 let $home-data := request:get-attribute('home-data')

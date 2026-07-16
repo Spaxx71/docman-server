@@ -27,6 +27,7 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/account/acco
 :)
 
 import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
+import module namespace categories="http://bintellix.com/docman/categories" at "/db/apps/docman/modules/module_categories.xqm";
 
 
 let $home-web-gui := request:get-attribute('home-web-gui')
@@ -39,4 +40,5 @@ let $resource-id := request:get-attribute('resource-id')
 return
 	<result resource-type="{$resource-type}" resource-id="{$resource-id}" tenant="{$tenant}">
 		{account:getAccount ($home-data, $tenant, $year, $resource-id)}
+		{categories:listCategories($home-data, $tenant, $year)}
 	</result>

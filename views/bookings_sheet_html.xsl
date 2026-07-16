@@ -23,7 +23,12 @@
 				</style>
 			</head>
 			<body>
-				<h1>Billanz für das Geschäftsjahr <xsl:value-of select="$year"/> (TEST)</h1>
+				<ul class="nav">
+					<li>
+						<a href="{$home-web-gui}/{$tenant}/{$year}/bookings/refresh.html">Summen &amp; Salden aktualisieren</a>
+					</li>
+				</ul>
+				<h1>Bilanz für das Geschäftsjahr <xsl:value-of select="$year"/> (TEST)</h1>
 				<xsl:apply-templates/>
 			</body>
 		</html>
@@ -31,12 +36,12 @@
 
 	<xsl:template match="AccountingSheet">
 		<div class="Account-Chart">
-			<h3>Einnahmen- Überschuss</h3>
+			<h2>Einnahmen-Überschuss</h2>
 			<xsl:apply-templates select="Account[@name='Aktiva/Passiva']"/>
 		</div>
 
 		<div class="Account-Chart">
-			<h3>GuV</h3>
+			<h2>Gewinn- und Verlust (GuV)</h2>
 			<xsl:apply-templates select="Account[@name='Gewinn- und Verlustkonto']"/>
 		</div>
 	</xsl:template>

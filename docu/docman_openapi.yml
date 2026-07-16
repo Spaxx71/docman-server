@@ -1,0 +1,1160 @@
+openapi: '3.0.3'
+info:
+  title: Docman RESTful API
+  version: '1.0'
+servers:
+  - url: https://docman.io/api
+    description: Standard URL
+  - url: https://docman.bintellix.com/api
+    description: bintellix URL
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  schemas:
+    TenantsResponse:
+      type: object
+      properties:
+        Tenants:
+          type: object
+          properties:
+            version:
+              type: string
+            Tenant:
+              type: array
+              items:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  id:
+                    type: string
+                  priority:
+                    type: string
+                  Name:
+                    type: string
+      example: |
+        <Tenants version="1.0">
+            <Tenant version="1.0" id="test" priority="5">
+                <Name>MyCompany</Name>
+            </Tenant>
+        </Tenants>
+    TransferResponse:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "1.0"
+        tenantId:
+          type: string
+          example: "bintellix"
+        Files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+      example: |
+        <Transfer version="1.0" tenantId="test">
+          <Files>
+            <File name="2021-01-31_ShopXY_Rechnung_123456.pdf" size="114595" created="2024-09-02T20:06:24.573+02:00"/>
+          </Files>
+        </Transfer>
+
+    File:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "2021-01-31_Amazon_Lama_Rechnung_DE-028-2034509-1350706.pdf"
+        size:
+          type: integer
+          example: 114595
+        created:
+          type: string
+          format: date-time
+        example: "2024-09-02T20:06:24.573+02:00"        
+security:
+  - basicAuth: []    
+paths:
+  /access/login:
+    get:
+      summary: do a login
+      tags: 
+       - Access
+      responses:
+        '200':
+          description: Successful operation
+    post:
+      summary: do a login
+      tags: 
+       - Access
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/TenantsResponse'                
+  /access/logout:
+    post:
+      summary: do a logout
+      tags: 
+       - Access
+      responses:
+        '200':
+          description: Successful operation
+           
+  /tenants:
+    get:
+      summary: Get a list of tenants
+      tags: 
+       - Tenant
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/TenantsResponse'
+  /tenants/{tenant}:
+    get:
+      summary: Get information about a specific tenant
+      tags: 
+       - Tenant
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  tenantId:
+                    type: string
+                  name:
+                    type: string
+                  contact:
+                    type: string
+
+  /tenants/{tenant}/years:
+    get:
+      summary: List of years
+      tags: 
+       - Year
+      operationId: listYears
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+
+  /tenants/{tenant}/years/{year}:
+    get:
+      summary: Get details of year
+      tags: 
+       - Year
+      operationId: getYear
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+
+
+  /tenants/{tenant}/years/{year}/accounts:
+    get:
+      summary: Get list of accounts
+      tags: 
+       - Account
+      operationId: listAccounts
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+  /tenants/{tenant}/years/{year}/accounts/{account}:
+    get:
+      summary: Get account details
+      tags: 
+       - Account
+      operationId: getAccount
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: account
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    put:
+      summary: Store an account
+      tags: 
+       - Account
+      operationId: putAccount
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: account
+          in: path
+          required: true
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    delete:
+      summary: Delete an account
+      tags: 
+       - Account
+      operationId: deleteAccount
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: account
+          in: path
+          required: true
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string                                        
+
+
+  /tenants/{tenant}/years/{year}/banks:
+    get:
+      summary: Get list of banks for a specific year
+      tags: 
+       - Bank
+      operationId: listBankAccounts
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bankId:
+                      type: string
+                    name:
+                      type: string
+  /tenants/{tenant}/years/{year}/banks/{bankId}:
+    get:
+      summary: Get bank information by ID for a specific year
+      tags: 
+       - Bank
+      operationId: listBankDetail
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+  /tenants/{tenant}/years/{year}/banks/{bankId}/detail:
+    get:
+      summary: Get detailed information for a specific bank in a specific year
+      tags: 
+       - Bank
+      operationId: listBankAccountDetail
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+                  details:
+                    type: object
+                    properties:
+                      establishedDate:
+                        type: string
+                        format: date
+                      branches:
+                        type: integer
+    put:
+      summary: Update detailed information for a specific bank in a specific year
+      tags: 
+       - Bank
+      operationId: putBankAccountDetail
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                details:
+                  type: object
+                  properties:
+                    establishedDate:
+                      type: string
+                      format: date
+                    branches:
+                      type: integer
+      responses:
+        '200':
+          description: Successful update
+  /tenants/{tenant}/years/{year}/banks/{bankId}/accountings:
+    get:
+      summary: Get accounting information for a specific bank in a specific year
+      tags: 
+       - Bank
+      operationId: listAccountings
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  accountingId:
+                    type: string
+                  balance:
+                    type: number
+    put:
+      summary: Update accounting information for a specific bank in a specific year
+      tags: 
+       - Bank
+      operationId: putAccountings
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: object
+              properties:
+                balance:
+                  type: number
+      responses:
+        '200':
+          description: Successful update
+  /tenants/{tenant}/years/{year}/banks/{bankId}/balancelist:
+    get:
+      summary: Get a list of balances for a bank account
+      tags: 
+       - Bank
+      operationId: getBalances
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  accountingId:
+                    type: string
+                  balance:
+                    type: number
+  /tenants/{tenant}/years/{year}/messages/{messageId}/receive:
+    get:
+      summary: Receive a message (from HBCI/FinTS module)
+      tags: 
+       - Bank
+       - Message
+      operationId: getMessage
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+  /tenants/{tenant}/years/{year}/messages/{messageId}/send:
+    put:
+      summary: Send a message (to HBCI/FinTS module)
+      tags: 
+       - Bank
+       - Message
+      operationId: putMessage
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+  /tenants/{tenant}/years/{year}/messages/{messageId}/get-messages-from-hbci.json:
+    get:
+      summary: Get read message from the inbox (/receive)
+      tags: 
+       - Bank
+       - Message
+      operationId: getMessageFromHbci
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+  /tenants/{tenant}/years/{year}/messages/{messageId}/send-message-to-hbci.json:
+    put:
+      summary: Send a message to the outbox (/send)
+      tags: 
+       - Bank
+       - Message
+      operationId: putMessageFromHbci
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+                  name:
+                    type: string
+                  address:
+                    type: string
+
+  /tenants/{tenant}/years/{year}/binders:
+    get:
+      summary: Get list of binders
+      tags: 
+       - Binder
+      operationId: listBinders
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+
+  /tenants/{tenant}/years/{year}/binders/{binder}/documents:
+    get:
+      summary: Get list of documents
+      tags: 
+       - Document
+      operationId: listDocuments
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+  /tenants/{tenant}/years/{year}/binders/{binder}/documents/{document}:
+    get:
+      summary: Get a document
+      tags: 
+       - Document
+      operationId: getDocument
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    post:
+      summary: Post a document
+      tags: 
+       - Document
+      operationId: postDocument
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    put:
+      summary: Put a document
+      tags: 
+       - Document
+      operationId: putDocument
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    delete:
+      summary: Delete a document
+      tags: 
+       - Document
+      operationId: deleteDocument
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+
+  /tenants/{tenant}/years/{year}/categories:
+    get:
+      summary: Get list of categories
+      tags: 
+       - Category
+      operationId: listCategories
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    put:
+      summary: Store a list of categories
+      tags: 
+       - Category
+      operationId: putCategories
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+
+  /tenants/{tenant}/years/{year}/transfer:
+    get:
+      summary: Get list of files
+      tags: 
+       - Transfer
+      operationId: listTransfer
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    post:
+      summary: Upload a foler (a list of files)
+      tags: 
+       - Transfer
+      operationId: uploadFolder
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string                    
+  /tenants/{tenant}/years/{year}/transfer/uploadSingleFile:
+    put:
+      deprecated: true
+      summary: Upload a single file
+      tags: 
+       - Transfer
+      operationId: uploadSingleFile
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+  /tenants/{tenant}/years/{year}/transfer/uploadFoler:
+    put:
+      deprecated: true
+      summary: Upload a foler (a list of files)
+      tags: 
+       - Transfer
+      operationId: uploadFolder
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+  /tenants/{tenant}/years/{year}/transfer/{filename}:
+    get:
+      summary: Upload a foler (a list of files)
+      tags: 
+       - Transfer
+      operationId: uploadFolder
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string
+    delete:
+      summary: Delete a file
+      tags: 
+       - Transfer
+      operationId: delete
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string            
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  bankId:
+                    type: string                    

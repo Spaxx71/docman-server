@@ -7,6 +7,26 @@
 
 	<xsl:decimal-format name="EU" decimal-separator="," grouping-separator="."/>
 
+	<!-- Template, to separate string into couples of four chars -->
+	<xsl:template name="split-into-blocks">
+		<xsl:param name="inputString"/>
+		<xsl:param name="blockSize" select="4"/>
+		
+		<!-- Starting with the first 4 chars -->
+		<xsl:value-of select="substring($inputString, 1, $blockSize)"/>
+		
+		<!-- check if there are more chars -->
+		<xsl:if test="string-length($inputString) &gt; $blockSize">
+			<!-- add separtor sign -->
+			<xsl:text> </xsl:text>
+			<!-- repeat with the rest of chars -->
+			<xsl:call-template name="split-into-blocks">
+				<xsl:with-param name="inputString" select="substring($inputString, $blockSize + 1)"/>
+				<xsl:with-param name="blockSize" select="$blockSize"/>
+			</xsl:call-template>
+		</xsl:if>
+	</xsl:template>
+
 	<xsl:template match="/">
 		<page>
 			<body>
@@ -23,7 +43,7 @@
 		<xsl:apply-templates/>
 	</xsl:template>
 
-	<xsl:template match="BankAccountDetail">
+	<xsl:template match="BankAccountDetail"> 
 		<headline>
 			<xsl:value-of select="BankName"/>
 		</headline>
@@ -37,13 +57,19 @@
 			<tr>
 				<th>Kontonummer:</th>
 				<td>
-					<xsl:value-of select="KTNR"/>
+					<!-- <xsl:value-of select="KTNR"/> -->
+					<xsl:call-template name="split-into-blocks">
+						<xsl:with-param name="inputString" select="KTNR"/>
+					</xsl:call-template>
 				</td>
 			</tr>
 			<tr>
 				<th>IBAN:</th>
 				<td>
-					<xsl:value-of select="IBAN"/>
+					<!-- <xsl:value-of select="IBAN"/> -->
+					<xsl:call-template name="split-into-blocks">
+						<xsl:with-param name="inputString" select="IBAN"/>
+					</xsl:call-template>
 				</td>
 			</tr>
 		</table>
@@ -109,7 +135,10 @@
 			<tr>
 				<th>IBAN:</th>
 				<td>
-					<xsl:value-of select="IBAN"/>
+					<!-- <xsl:value-of select="IBAN"/> -->
+					<xsl:call-template name="split-into-blocks">
+						<xsl:with-param name="inputString" select="IBAN"/>
+					</xsl:call-template>
 				</td>
 			</tr>
 			<xsl:if test="BIC">

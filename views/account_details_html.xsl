@@ -79,39 +79,40 @@
 			</td>
 		</tr>
 		<tr>
-			<th>Konto Nr</th>
+			<th>Buchungskonto Nr</th>
 			<td>
 				<xsl:value-of select="@kto"/>
 			</td>
 		</tr>
 		<tr>
-			<th>Konto Art</th>
+			<th>Buchungskonto Art</th>
 			<td>
 				<xsl:value-of select="@type"/>
 			</td>
 		</tr>
 		<tr>
-			<th>IBAN / Gläubiger ID</th>
+			<th>Bankverbindungen</th>
 			<td>
 				<xsl:choose>
-					<xsl:when test="@iban != '' or @debtee != ''">
+					<xsl:when test="BankAcconts/BankAccount">
 						<ul>
-							<xsl:for-each select="tokenize(@iban)">
+							<xsl:for-each select="BankAcconts/BankAccount">
 								<li>
 									<xsl:text>IBAN: </xsl:text>
-									<xsl:value-of select="data(.)"/>
-								</li>
-							</xsl:for-each>
-							<xsl:for-each select="tokenize(@debtee)">
-								<li>
-									<xsl:text>Gläubiger ID: </xsl:text>
-									<xsl:value-of select="data(.)"/>
+									<xsl:value-of select="data(@iban)"/>
+									<br/>
+									<xsl:text>Name der Bank: </xsl:text>
+									<xsl:value-of select="data(@name)"/>
+									<br/>
+									<xsl:text>Notizen: </xsl:text>
+									<xsl:value-of select="data(@notes)"/>
+									<br/>
 								</li>
 							</xsl:for-each>
 						</ul>
 					</xsl:when>
 					<xsl:otherwise>
-						<xsl:text>Keine Bankdaten (IBAN oder Gläubiger ID) hinterlegt.</xsl:text>
+						<xsl:text>Keine Bankdaten hinterlegt.</xsl:text>
 					</xsl:otherwise>
 				</xsl:choose>
 			</td>
@@ -155,8 +156,11 @@
 
 		<tr>
 			<th colspan="2">
-
-				<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/accounts/',@id,'/edit.html')}">Bearbeiten</a>
+				<ul class="nav">
+					<li>
+						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/accounts/',@id,'/edit.html')}" class="Button">Bearbeiten</a>
+					</li>
+				</ul>
 			</th>
 		</tr>
 	</xsl:template>

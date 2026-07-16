@@ -76,10 +76,10 @@
 
 					<li>
 						<!-- https://github.com/SauceCodeFr/RestfulizerJs -->
-						<!-- <button onclick="deleteData('{$home-web-api}/{$tenant}/files/{$folder}/{@name}?display=html')">X</button> -->
+						<!-- <button onclick="deleteData('{$home-web-api}/tenants/{$tenant}/files/{$folder}/{@name}?display=html')">X</button> -->
 						<!-- jquery rails -->
 						<!-- <a data-confirm="Are you sure?" data-method="delete" href="{$home-web}/{$tenant}/{@name}" rel="nofollow">Löschen</a> -->
-						<a href="{$home-web-gui}/{$tenant}/files/{$folder}/{@name}/delete.html">löschen…</a>
+						<a href="{$home-web-gui}/{$tenant}/{$folder}/{@name}/delete.html">löschen…</a>
 					</li>
 
 				</ul>

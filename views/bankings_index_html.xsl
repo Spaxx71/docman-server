@@ -12,19 +12,17 @@
 	<xsl:template match="/">
 		<page>
 			<body>
+				<h1>Übersicht aller Banken</h1>
 
-				<div>
-					<h3>Übersicht Bankbewegungen</h3>
-					<xsl:call-template name="BalanceGraph">
-						<xsl:with-param name="Analysis" select="result/Analysis"/>
-					</xsl:call-template>
-				</div>
+				<h2>Übersicht aller Bankbewegungen</h2>
+				<xsl:call-template name="BalanceGraph">
+					<xsl:with-param name="Analysis" select="result/Analysis"/>
+				</xsl:call-template>
+				<br/>
+				<br/>
+				<h2>Übersicht aller Bankverbindungen</h2>
 
-				<div>
-					<h3>Übersicht Bankverbindungen von Mandant <xsl:value-of select="$tenant"/></h3>
-
-					<xsl:apply-templates/>
-				</div>
+				<xsl:apply-templates/>
 			</body>
 		</page>
 	</xsl:template>
@@ -38,6 +36,7 @@
 	</xsl:template>
 
 	<xsl:template match="BankAccount">
+		<h3>Bankverbindung '<xsl:value-of select="@kto"/>'</h3>
 		<ul class="Nav">
 			<li>
 				<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',@kto,'/index.html')}">Kontoauszug anzeigen…</a>
@@ -56,8 +55,12 @@
 			<li>
 				<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',@kto,'/edit.html')}">Bankverbing bearbeiten</a>
 			</li>
+			<li>
+				<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',@kto,'/periodic-payments.html')}">Übersicht aller Daueraufträge<br/>(mit diesem Bankkonto)</a>
+			</li>
 		</ul>
 		<xsl:apply-templates/>
+		<br/>
 		<br/>
 	</xsl:template>
 

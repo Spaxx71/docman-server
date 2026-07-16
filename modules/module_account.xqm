@@ -53,10 +53,10 @@ declare function account:listAccountsSimplified ($home-data, $tenant, $year as x
 					{$account/@kto}
 					{$account/@type}
 					{$account/@classes}
-					{$account/@iban}
+					{$account/BankAccounts}
 					{$account/Name}
 					{$account/Service}
-					{$account/Notes}
+					{$account/Notes}					
 				</Account>
 			}
 			{for $account in $accounts/Accounts/Account[not(@type='ledger_account')]
@@ -67,7 +67,7 @@ declare function account:listAccountsSimplified ($home-data, $tenant, $year as x
 					{$account/@kto}
 					{$account/@type}
 					{$account/@classes}
-					{$account/@iban}
+					{$account/BankAccounts}
 					{$account/Name}
 					{$account/Service}
 					{$account/Notes}
@@ -90,7 +90,7 @@ declare function account:getAccount ($home-data as xs:string, $tenant as xs:stri
 
 
 declare function account:getAccountByIban ($home-data, $tenant, $year as xs:integer, $iban) {
-	let $account := doc($home-data||'/'||$tenant||'/'||$year||'/accounts.dm.xml')/Accounts/Account[@iban=$iban]
+	let $account := doc($home-data||'/'||$tenant||'/'||$year||'/accounts.dm.xml')/Accounts/Account[BankAccounts/BankAccount/@iban=$iban]
 	return
 		$account
 };

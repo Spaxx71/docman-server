@@ -20,9 +20,9 @@ All rights reserved by bintellix GmbH, Germany
 
 xquery version "3.1";
 
-let $filenames := request:get-uploaded-file-name('document[]')
-let $filesizes := request:get-uploaded-file-size('document[]')
-let $documents := request:get-uploaded-file-data('document[]')
+let $filenames := request:get-uploaded-file-name('files[]')
+let $filesizes := request:get-uploaded-file-size('files[]')
+let $documents := request:get-uploaded-file-data('files[]')
 
 let $ct-home-web := request:get-attribute('home-web-gui')
 let $ct-home-data := request:get-attribute('home-data')
@@ -40,21 +40,23 @@ return
 		Die folgenden Dateien wurden hochgeladen:
 		<ul>
 		{
+			(: isMultipart="{request:is-multipart-content()}" :)
 			for $filenameOrig at $pos in $filenames
-				let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.txt|\.csv|\.xml)$')//fn:group, 1)
+				let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.jpg|\.txt|\.csv|\.xml)$')//fn:group, 1)
 				let $fileName := replace(translate($filenameParts[1],' ','_'),'[^A-Za-z0-9+$_-]+','-')
 				let $fileExt := lower-case($filenameParts[2])
-
-				let $storename := 
-					if (doc-available($transfer-collection||'/'||$fileName||$fileExt)) then
-						for $i in 1 to 1000000 
-				  		return 
-							if (doc-available($transfer-collection||'/'||$fileName||$fileExt)) then
-								''
-							else
-								$fileName || $fileExt || $i
-				  	else
-						$fileName || $fileExt
+				let $suffix := 
+					if (doc-available($transfer-collection||'/'||$fileName||$fileExt) 
+						or util:binary-doc-available($transfer-collection||'/'||$fileName||$fileExt)) then
+						let $available-suffix := 
+							for $i in 1 to 10000
+							where not(doc-available($transfer-collection||'/'||$fileName||"-"||$i||$fileExt) 
+									or util:binary-doc-available($transfer-collection||'/'||$fileName||"-"||$i||$fileExt))
+							return "-" || $i
+						return if (exists($available-suffix)) then $available-suffix[1] else "-1"
+					else
+						""
+				let $storename := $fileName || $suffix || $fileExt
 				let $store := xmldb:store($transfer-collection, $storename, $documents[$pos])
 				return 
             			<li>

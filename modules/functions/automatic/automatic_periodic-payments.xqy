@@ -4,6 +4,9 @@ xquery version "3.1";
 This script might be tested at:
 
 /exist-backend/rest/db/apps/docman/modules/functions/automatic/automatic_periodic-payments.xqy
+
+It creates periodic payments tasks for unmapped bank movements (therefore only once).
+
 :)
 
 declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";
@@ -11,7 +14,6 @@ declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";
 import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
 
-import module namespace packages = "http://exist-db.org/apps/existdb-packages" at "/db/apps/packageservice/modules/packages.xqm";
 import module namespace functx = "http://www.functx.com";
 
 
@@ -21,14 +23,14 @@ declare option output:indent "yes";
 
 let $home-data := '/db/apps/docman/data'
 let $tenant := 'bintellix'
-let $year := '2022'
+let $year := '2000'
 let $bank-account-id := "222971400"
 
 let $createPeriodicPayments := banking:createPeriodicPayments ($home-data, $tenant, $year, $bank-account-id)
 
 return
 	<result>
-		{$createPeriodicPayments}
+		{$createPeriodicPayments/*}
 	</result>
 
 

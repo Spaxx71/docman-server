@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-transfer.xqy :)
+xquery version "3.1";
 
 module namespace dmtransfer="http://exist-db.org/apps/restxq/docman-transfer";
 
@@ -30,105 +31,73 @@ declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
 declare namespace http="http://expath.org/ns/http-client";
 declare namespace rerr= "http://exquery.org/ns/restxq/error";
 
-
 (: 
-GET https://docman.com/api/bintellix/2021/transfer/
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer?display=html
+	GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer
+	GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer?display=html
+	GET /api/(xml|json)/tenants/test/years/2020/transfer
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/transfer")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer")
     %output:media-type("text/xml")
-
+	%output:method("xml")
     %rest:query-param("user", "{$user}", "Guest")
-    %rest:query-param("display", "{$display}", "")
-function dmtransfer:index($user as xs:string*, $display, $tenant as xs:string, $year as xs:integer) {
-	if ($display="html") then
-	(
-		<rest:response xmlns:rest="http://exquery.org/ns/restxq">
-			<http:response xmlns:http="http://expath.org/ns/http-client">
-				<http:header name="Content-Language" value="en"/>
-				<http:header name="Content-Type" value="text/html; charset=utf-8"/>
-			</http:response>
-		</rest:response>,
-	
-			let $xml := transfer:index($main:home-data,$tenant,$year)
-			let $param := 	<parameters>
-							<param name="home-web-gui" value="{$main:home-web-gui}"/>
-							<param name="home-web-api" value="{$main:home-web-api}"/>
-							<param name="home-data" value="{$main:home-data}"/>
-							<param name="home-views" value="{$main:home-views}"/>
-							<param name="tenant" value="{$tenant}"/>
-							<param name="year" value="{$year}"/>
-							<param name="path" value="/$tenant/$year/transfer"/>
-						</parameters>
-			let $data := transform:transform($xml, xs:anyURI("xmldb:exist://"||$main:home-views||"/transfer_index_html.xsl"), $param)
-			let $result := transform:transform($data, xs:anyURI("xmldb:exist://"||$main:home-views||"/frame.xsl"), $param)
-			return
-				$result
-	)
-	else
-		transfer:index($main:home-data,$tenant,$year)
+function dmtransfer:listTransferXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	transfer:index($main:home-data,$tenant,$year)
 };
 
-
-(: 
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/uploadSingleFile
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/uploadSingleFile?display=html
-:)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/transfer/uploadSingleFile")
-    %output:media-type("text/xml")
-
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer")
+    %output:media-type("application/json")
+	%output:method("json")
     %rest:query-param("user", "{$user}", "Guest")
-    %rest:query-param("display", "{$display}", "")
-
-function dmtransfer:uploadSingleFile($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
-	transfer:uploadSingleFile($main:home-web, $main:home-data, $tenant, $year)
+function dmtransfer:listTransferJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	let $Transfer := transfer:index($main:home-data,$tenant,$year)
+	return
+        map {
+            "version": "1.0",
+            "tenant": $tenant,
+            "year": $year,
+            "Files": (
+				if (exists($Transfer/Files/File)) then
+					array {
+						for $File at $pos in $Transfer/Files/File
+						return
+							map {
+								"name": $File/@name/data(),
+								"size": xs:integer($File/@size/data()),
+								"created": substring($File/@created/data(),1,19)
+							}
+					}
+				else 
+					[]
+			)
+        }  
 };
 
-
 (: 
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/uploadFolder
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/uploadFolder?display=html
+GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer/xyz
+GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer/xyz?display=html
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/transfer/uploadFolder")
-    %output:media-type("text/xml")
-
-    %rest:query-param("user", "{$user}", "Guest")
-    %rest:query-param("display", "{$display}", "")
-
-function dmtransfer:uploadFolder($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
-	transfer:uploadFolder($main:home-web, $main:home-data, $tenant, $year)
-};
-
-
-(: 
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/xyz
-GET http://localhost:8080/exist/restxq/docman/bix/2021/transfer/xyz?display=html
-:)
-declare
-    %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/transfer/{$document}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}")
     %output:method("binary")
     %rest:query-param("user", "{$user}", "Guest")
     %rest:query-param("display", "{$display}", "")
-function dmtransfer:transfer($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
+function dmtransfer:transferFile($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
 	let $filename := xs:anyURI($main:home-data||'/'||$tenant||'/'||$year||'/transfer/'||$document)
 	return
 	(
-	<rest:response xmlns:rest="http://exquery.org/ns/restxq">
-		<output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-			<output:method value="binary"/>
-			<output:media-type value="xmldb:get-mime-type($filename)"/>
-		</output:serialization-parameters>
-	</rest:response>
-	,
-	util:binary-doc($filename) 
+		<rest:response xmlns:rest="http://exquery.org/ns/restxq">
+			<output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
+				<output:method value="binary"/>
+				<output:media-type value="xmldb:get-mime-type($filename)"/>
+			</output:serialization-parameters>
+		</rest:response>
+		,
+		util:binary-doc($filename) 
 	)
 	
 	(: unparsed-text($filename) :)
@@ -136,14 +105,125 @@ function dmtransfer:transfer($user as xs:string*, $display, $tenant as xs:string
 	(: util:string-to-binary(unparsed-text($filename)) :)
 };
 
+(: 
+POST http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer
+POST http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer?display=html
+:)
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer0")
+	%rest:form-param("files", "{$files}", "no files")
+	%rest:form-param("files[]", "{$filesArray}", "no files[]") 
+	%rest:consumes("multipart/form-data")
+    %output:media-type("text/xml")
+    %rest:query-param("user", "{$user}", "Guest")
+(: 
+%rest:consumes("multipart/form-data")
+%rest:form-param("files", "{$files}", "no file") 
+:)
+function dmtransfer:upload0($user, $tenant, $year, $files, $filesArray) {
+	<files>
+	{ 
+		if ($files != "no files") then
+			<yyy count="{count($files)}" keys="{map:keys($files)}">
+			{  
+				$files
+			}
+			</yyy>
+		else
+			<noFiles>{$files}</noFiles>
+	}
+	{ 
+		if ($filesArray != "no files[]") then
+			<yyy count="{count($filesArray)}" keys="{map:keys($filesArray)}">
+			{  
+				$filesArray
+			}
+			</yyy>
+		else
+			<noFilesArray>{$filesArray}</noFilesArray>
+	}
+  	</files>
+};
+
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer")
+	%rest:header-param("Content-Type","{$content-type}")
+	%rest:header-param("Content-Length","{$content-length}")
+	%rest:consumes("multipart/form-data")
+    %output:media-type("text/xml")
+    %rest:query-param("user", "{$user}", "Guest")
+(: 	
+%rest:consumes("multipart/mixed")
+%rest:consumes("multipart/form-data")
+%rest:form-param("files", "{$files}", "unknown")
+:)
+function dmtransfer:upload1($user, $tenant, $year, $content-type, $content-length, $body as item()*) {
+	let $transfer-collection := $main:home-data||"/"||$tenant||"/"||$year||"/transfer"
+	(: let $test := xmldb:store-as-binary($transfer-collection, "body.png", $body) :)
+	return
+		<files content-type="{$content-type}" content-length="{$content-length}">
+		{
+			let $boundary := replace($content-type, ".* boundary=\-+([^\\r\\n]+).*", "$1")
+			let $files := fn:tokenize($body, "\-+(" || $boundary || ")\-*(\r\n)")
+			for $file in $files
+			where $file != ""
+			return
+				let $part := tokenize($file, '(\r\n\r\n|\r\r|\n\n)')
+				let $headers := $part[1]
+				let $data := substring($file, string-length($headers) +1 +4) (: CR+NL :)
+				let $filenameOrig := fn:replace($headers, '.*filename="([^"]+)".*', '$1','s') (: Extrahiert den Dateinamen :)
+				let $contentType := fn:replace($headers, '.*Content-Type: ([^\r\n]+).*', '$1','s') (: Extrahiert den Content-Type :)
+				return
+					(:
+					<file filename="{$filenameOrig}" contentType="{$contentType}">
+						<header>{$headers}</header>
+						<body>{subsequence($part, 2)}</body>
+					</file>
+					:)
+					let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.jpg|\.txt|\.csv|\.xml)$')//fn:group, 1)
+					let $fileName := replace(translate($filenameParts[1],' ','_'),'[^A-Za-z0-9+$_-]+','-')
+					let $fileExt := lower-case($filenameParts[2][last()])
+					let $suffix := 
+						if (doc-available($transfer-collection||'/'||$fileName||$fileExt) 
+							or util:binary-doc-available($transfer-collection||'/'||$fileName||$fileExt)) then
+							let $available-suffix := 
+								for $i in 1 to 10000
+								where not(doc-available($transfer-collection||'/'||$fileName||"-"||$i||$fileExt) 
+										or util:binary-doc-available($transfer-collection||'/'||$fileName||"-"||$i||$fileExt))
+								return "-" || $i
+							return if (exists($available-suffix)) then $available-suffix[1] else "-1"
+						else
+							""
+					let $storename := $fileName || $suffix || $fileExt
+					return
+						if ($storename != '') then
+							let $store := xmldb:store($transfer-collection, $storename, $data)
+							(: let $store := xmldb:store($transfer-collection, $storename, $data, $contentType) :)
+							(: let $store := xmldb:store-as-binary($transfer-collection, $storename, $data) :)
+							return
+								<file 
+									filename="{$storename}"
+									filenameOrig="{$filenameOrig}" 
+									url="/api/tenants/{$tenant}/years/{$year}/transfer/{$storename}"
+									contentType="{$contentType}"
+									size="{string-length($data)}"
+									/>
+						else
+							<error>File with name '{$filenameOrig}' and type '{$contentType}' could not be stored.</error>
+		}
+		</files>
+};
 
 (: 
-POST http://localhost:8080/exist/restxq/docman/bix/2021/transfer
-POST http://localhost:8080/exist/restxq/docman/bix/2021/transfer?display=html
+POST http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer
+POST http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer?display=html
 :)
 declare
     %rest:POST("{$body}")
-    %rest:path("/docman/{$tenant}/{$year}/transfer")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transferXXX")
     %output:media-type("text/xml")
     %rest:query-param("user", "{$user}", "Guest")
     %rest:query-param("display", "{$display}", "")
@@ -155,27 +235,27 @@ declare
 %rest:header-param("UP-SIZE", "{$size}", "()")
 %rest:header-param("UP-TYPE", "{$type}", "()")
 
-function dmtransfer:upload($user, $display, $tenant, $year, $body, $file, $Content-Type, $filename, $size, $type) {
+function dmtransfer:uploadXXX($user, $display, $tenant, $year, $body, $file, $Content-Type, $filename, $size, $type) {
 
 	if (false()) then 
 		let $filename := request:get-uploaded-file-name('file')
 		let $transfer-collection := $main:home-data||'/'||$tenant||'/'||$year||'/transfer'
 		let $store := xmldb:store($transfer-collection, $filename, request:get-uploaded-file-data('file'))
 		return
-		if ($display="html") then
-			<html>
-				<head>
-					<title>Datei hochladen - Rückmeldung</title>
-					<meta http-equiv="refresh" content="10; URL='{$main:home-web}/{$tenant}/{$year}/transfer?display=html'"/>
-				</head>
-				<body>
-					<div>File "{$filename}" has been stored at collection={$transfer-collection}.</div>
-					<br/>
-					<a href="{$main:home-web-api}/{$tenant}/{$year}/transfer?display=html">Zurück zum Transfer-Ordner</a>
-				</body>
-			</html>
-		else
-			<result>fine</result>
+			if ($display="html") then
+				<html>
+					<head>
+						<title>Datei hochladen - Rückmeldung</title>
+						<meta http-equiv="refresh" content="10; URL='{$main:home-web-gui}/{$tenant}/{$year}/transfer?display=html'"/>
+					</head>
+					<body>
+						<div>File "{$filename}" has been stored at collection={$transfer-collection}.</div>
+						<br/>
+						<a href="{$main:home-web-api}/tenants/{$tenant}/years/{$year}/transfer?display=html">Zurück zum Transfer-Ordner</a>
+					</body>
+				</html>
+			else
+				<result>fine</result>
 	else if (false()) then
 (: read more: https://github.com/apb2006/uploadxq/tree/master/src/upload :)
 (:
@@ -207,7 +287,7 @@ function dmtransfer:upload($user, $display, $tenant, $year, $body, $file, $Conte
 					</ul>
 			
 					<br/>
-					<a href="{$main:home-web-api}/{$tenant}/{$year}/transfer/?display=html">Zurück zum Transfer-Ordner</a>
+					<a href="{$main:home-web-api}/tenants/{$tenant}/years/{$year}/transfer/?display=html">Zurück zum Transfer-Ordner</a>
 			
 				</body>
 			</html>
@@ -219,12 +299,12 @@ function dmtransfer:upload($user, $display, $tenant, $year, $body, $file, $Conte
 
 
 (: 
-DELETE http://localhost:8080/exist/restxq/docman/bix/2021/transfer/xyz
-DELETE http://localhost:8080/exist/restxq/docman/bix/2021/transfer/xyz?display=html
+DELETE http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer/xyz
+DELETE http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/transfer/xyz?display=html
 :)
 declare
     %rest:DELETE
-    %rest:path("/docman/{$tenant}/{$year}/transfer/{$document}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}")
     %rest:query-param("user", "{$user}", "Guest")
     %rest:query-param("display", "{$display}", "")
 function dmtransfer:delete($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {

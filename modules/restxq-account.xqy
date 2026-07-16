@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-account.xqy :)
+xquery version "3.1";
 
 module namespace dmaccounts="http://exist-db.org/apps/restxq/docman-accounts";
 
@@ -30,65 +31,170 @@ declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
 declare namespace http="http://expath.org/ns/http-client";
 declare namespace rerr= "http://exquery.org/ns/restxq/error";
 
+declare option exist:serialize "json-ignore-whitespace-text-nodes=yes";
+
+declare function local:accountAsJson($node as node(), $pos as xs:integer) {
+    map {
+        "id": $node/@id/data(),
+        "kto": number($node/@kto/data()),
+        "type": $node/@type/data(),
+        "classes": $node/@classes/data(),
+        "Name": $node/Name/text(),
+        "Notes": $node/Notes/text(),
+        "Service": $node/Service/text(),
+        "Company": map {
+            "Name": $node/Company/Name/text()
+        },
+        "Person": map {
+            "Vorname": $node/Person/Vorname/text(),
+            "Nachname": $node/Person/Nachname/text()
+        },
+        "Contact": map {
+            "Vorname": $node/Contact/Vorname/text(),
+            "Nachname": $node/Contact/Nachname/text(),
+            "Email": $node/Contact/Email/text(),
+            "Website": $node/Contact/Website/text(),
+            "Telefon": $node/Contact/Telefon/text()
+        },
+        "CustomerID": $node/CustomerID/text(),
+        "BankAccounts": (
+            if (exists($node/BankAccounts/BankAccount)) then
+                array {
+                    for $bankAccount in $node/BankAccounts/BankAccount
+                    return
+                        map {
+                            "name": $bankAccount/@name/data(),
+                            "iban": $bankAccount/@iban/data(),
+                            "notes": $bankAccount/@notes/data()
+                        }
+                }
+            else
+                array {}
+        ),
+        "ProcessTemplates":  [],
+        "PeriodicPayments": (
+            if (exists($node/PeriodicPayments/PeriodicPayment)) then
+                array {
+                    for $period in $node/PeriodicPayments/PeriodicPayment
+                    return
+                        map {
+                            "Name": $node/PeriodicPayments/PeriodicPayment/Name/text(),
+                            "Period": map {
+                                "interval": $period/Period/@interval/data(),
+                                "max": xs:integer($period/Period/@min),
+                                "min": xs:integer($period/Period/@max),
+                                "valid-from": $period/Period/@valid-from/data(),
+                                "valid-till": $period/Period/@valid-till/data()
+                            }
+                        }
+                }
+            else
+                array {}
+        ),
+        "BudgetCategories": [],
+        "Accounting": map {
+            "openingBalance": $node/Accounting/@openingBalance/data(),
+            "closingBalance": $node/Accounting/@closingBalance/data(),
+            "debitSum": $node/Accounting/@debitSum/data(),
+            "creditSum": $node/Accounting/@creditSum/data()
+        }
+    }
+};
+
 
 (: 
-GET     https://docman.com/api/test/accounts 
-GET 	http://localhost:8080/exist/restxq/docman/test/accounts
+    GET 	http://localhost:8080/exist/restxq/docman/test/accounts
+    GET     /exist/restxq/tenants/test/years/2020/accounts 
+    GET     /api/(xml|json)/tenants/test/years/2020/accounts 
 :)
 declare
     %rest:GET 
-    %rest:path("/docman/{$tenant}/{$year}/accounts") 
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts") 
     %output:media-type("application/xml")
     %output:method("xml")
 
     %rest:query-param("user", "{$user}", "Guest")
 
-function dmaccounts:listAccounts($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+function dmaccounts:listAccountsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
 	account:listAccounts($main:home-data, $tenant, $year)
 };
 
+declare
+    %rest:GET 
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/accounts") 
+    %output:media-type("application/json")
+    %output:method("json")
+
+    %rest:query-param("user", "{$user}", "Guest")
+
+function dmaccounts:listAccountsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	let $accounts := account:listAccounts($main:home-data, $tenant, $year)
+    return
+        map {
+            "tenant": $tenant,
+            "year": $year,
+            "Account":
+                for $account at $pos in $accounts/Account
+                return
+                    local:accountAsJson($account, $pos)
+        }
+};
+
 
 (: 
-GET 	http://localhost:8080/exist/restxq/docman/test/accounts/{$resource-id}
+    GET 	http://localhost:8080/exist/restxq/docman/test/accounts/{$accountId}
+    GET     /api/(xml|json)/tenants/test/years/2020/accounts/4711
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/accounts/{$resource-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
     %output:media-type("application/xml")
     %output:method("xml")
 
     %rest:query-param("user", "{$user}", "Guest")
 
-function dmaccounts:getAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $resource-id) {
-	account:getAccount($main:home-data, $tenant, $year, $resource-id)
+function dmaccounts:getAccountXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string) {
+	account:getAccount($main:home-data, $tenant, $year, $accountId)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
+    %output:media-type("application/json")
+    %output:method("json")
+
+    %rest:query-param("user", "{$user}", "Guest")
+
+function dmaccounts:getAccountJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string) {
+	account:getAccount($main:home-data, $tenant, $year, $accountId)
 };
 
 
 (: 
-PUT	http://localhost:8080/exist/restxq/docman/test/accounts/{$resource-id}
+PUT	http://localhost:8080/exist/restxq/docman/test/accounts/{$accountId}
 :)
 declare
     %rest:PUT("{$body}")
-    %rest:path("/docman/{$tenant}/{$year}/accounts/{$resource-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
 
     %rest:query-param("user", "{$user}", "Guest")
 
-function dmaccounts:putAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $resource-id, $body) {
-	account:storeAccount($main:home-data, $tenant, $year, $resource-id, $body)
+function dmaccounts:putAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string, $body) {
+	account:storeAccount($main:home-data, $tenant, $year, $accountId, $body)
 };
 
 
 (: 
-DELETE 	http://localhost:8080/exist/restxq/docman/test/accounts/{$resource-id}
+DELETE 	http://localhost:8080/exist/restxq/docman/test/accounts/{$accountId}
 :)
 declare
     %rest:DELETE
-    %rest:path("/docman/{$tenant}/{$year}/accounts/{$resource-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/year/{$year}/accounts/{$accountId}")
 
     %rest:query-param("user", "{$user}", "Guest")
 
-function dmaccounts:deleteAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $resource-id) {
-	account:deleteAccount($main:home-data, $tenant, $year, $resource-id)
+function dmaccounts:deleteAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string) {
+	account:deleteAccount($main:home-data, $tenant, $year, $accountId)
 
 };
 

@@ -201,10 +201,17 @@ h4 .xfControl{
 
 h1,
 h2{
-    font-size:130%;
     background-color:#E9E9E9;
     padding: 2px 1ex;
     margin: 0 -1ex 1ex -1ex;
+}
+
+h1{
+    font-size:130%;
+}
+
+h2{
+    font-size:120%;
 }
 
 .widgetContainer{

@@ -19,7 +19,7 @@
 				<xf:instance xmlns="" id="account">
 					<xsl:choose>
 						<xsl:when test="lower-case($resource-id) = 'new'">
-							<Account id="NewId" kto="0000" iban="" type="ledger_account" classes="creditor" debtee="">
+							<Account id="NewId" kto="0000" type="ledger_account" classes="creditor">
 								<Name/>
 								<Notes/>
 								<Service>Service Beschreibung / Art der Produkte</Service>
@@ -38,27 +38,33 @@
 									<Telefon/>
 								</Contact>								
 								<CustomerID/>
+								<BankAcconts/>
 								<ProcessTemplates>
 									<!-- <ProcessTemplate/> -->
 								</ProcessTemplates>
 								<PeriodicPayments/>
+								<BudgetCategories/>
 								<Accounting openingBalance="0" closingBalance="0" debitSum="0" creditSum="0"/>
 							</Account>
 						</xsl:when>
 						<xsl:otherwise>
 							<!-- 
 							<xsl:attribute name="src">
-								<xsl:value-of select="concat($home-web-api,'/',$tenant,'/',$year,'/accounts/',$resource-id)"/>
+								<xsl:value-of select="concat($home-web-api,'/tenants/',$tenant,'/years/',$year,'/accounts/',$resource-id)"/>
 							</xsl:attribute>
 							-->
 							<xsl:copy-of select="result/Account"/>
 						</xsl:otherwise>
 					</xsl:choose>
-					<!-- <xf:resource value="concat('{$home-web-api}','/','{$tenant}','/',$year,'/accounts/','{$resource-id}')"/> -->
+					<!-- <xf:resource value="concat('{$home-web-api}','/tenants/','{$tenant}','/years/',$year,'/accounts/','{$resource-id}')"/> -->
 				</xf:instance>
 
-				<xf:instance xmlns="" id="accounts" src="{concat($home-web-api,'/',$tenant,'/',$year,'/accounts')}">
-					<!-- <xf:resource value="concat('{$home-web-api}','/','{$tenant}','/',$year,'/accounts')"/> -->
+				<xf:instance xmlns="" id="accounts" src="{concat($home-web-api,'/tenants/',$tenant,'/years/',$year,'/accounts')}">
+					<!-- <xf:resource value="concat('{$home-web-api}','/tenants/','{$tenant}','/years/',$year,'/accounts')"/> -->
+				</xf:instance>
+
+				<xf:instance xmlns="" id="budget-categories">
+					<xsl:copy-of select="result/BudgetCategories"/>
 				</xf:instance>
 
 				<xf:instance xmlns="" id="processtemplate-new">
@@ -77,11 +83,17 @@
 					</data>
 				</xf:instance>
 
+				<xf:instance xmlns="" id="bankaccount-new">
+					<data>
+						<BankAccount name="" iban="" notes=""/>
+					</data>
+				</xf:instance>
+
 				<xf:instance xmlns="" id="periodicpayment-new">
 					<data>
 						<PeriodicPayment>
 							<Name>Neue monatliche Zahlung</Name>
-							<Period interval="" min="1" max="1" valid-from="" valid-till=""/>
+							<Period interval="" min="1" max="1" valid-from="{current-date()}" valid-till="{concat(year-from-date(current-date()) + 100, '-12-31')}"/>
 							<DocumentTemplate>
 								<Section/>
 								<Other kto=""/>
@@ -90,15 +102,40 @@
 								<TotalAmount value="-0.00" unit="EUR"/>
 								<Tax key="undefined" region="inland" type="GOODS"/>
 								<Description/>
-							</DocumentTemplate>				
+							</DocumentTemplate>
+							<PaymentRules>
+								<PaymentRule type=""/>
+							</PaymentRules>
+							<!--
 							<PaymentOptions>
 								<PaymentOption type="BankTransfer" kto="1234567">
 									<IBAN/>
 									<PaymentDetail>Dieser Text muss im Verwendungszweck stehen</PaymentDetail>
 								</PaymentOption> 
 							</PaymentOptions>
+							-->
+							<InitialContract/> <!-- Rahmenvertrag -->
+							<PeriodInvoice required="true()"/>
 							<Notes/>
 						</PeriodicPayment>
+					</data>
+				</xf:instance>
+
+				<xf:instance xmlns="" id="budgetcategory-new">
+					<data>
+						<BudgetCategory id="">
+							<Period valid-from="{current-date()}" valid-till="{concat(year-from-date(current-date()) + 100, '-12-31')}"/>
+							<PaymentRules>
+								<PaymentRule type=""/>
+							</PaymentRules>
+							<Notes/>
+						</BudgetCategory>
+					</data>
+				</xf:instance>
+				
+				<xf:instance xmlns="" id="paymentrule-new">
+					<data>
+						<PaymentRule type=""/>
 					</data>
 				</xf:instance>
 
@@ -263,8 +300,9 @@
 					<xf:bind ref="Person" relevance="../@type='ledger_account'"/>
 					<xf:bind ref="ProcessTemplates" relevance="../@type='ledger_account'"/>
 
-					<xf:bind ref="@iban" type="xs:string" relevance="../@type='ledger_account'"/>
-					<xf:bind ref="@debtee" type="xs:string" relevance="../@type='ledger_account'"/>
+					<xf:bind ref="BankAccounts/BankAccount/@iban" type="xs:string" required="true()" relevance="../@type='ledger_account'" constraint="string-length(.) &gt;= 15 and string-length(.) &lt;= 34" message="Die IBAN muss aus zwei Länder-Buchstaben, gefolgt von zwei Zahlen und insgeammt 15 bis 34 Zeichen bestehen."/>
+					<xf:bind ref="BankAccounts/BankAccount/@name" type="xs:string" required="false()" relevance="../@type='ledger_account'"/>
+					<xf:bind ref="BankAccounts/BankAccount/@notes" type="xs:string" required="false()" relevance="../@type='ledger_account'"/>
 				</xf:bind>
 
 				<xf:bind ref="instance('account')/Accounting">
@@ -280,25 +318,40 @@
 					<xf:bind ref="PeriodicPayment/Period/@min" type="xs:positiveInteger" required="true()"/>
 					<xf:bind ref="PeriodicPayment/Period/@max" type="xs:positiveInteger" required="true()"/>
 
-					<xf:bind ref="PeriodicPayment/Period/@valid-from" type="xs:date" required="false()"/>
+					<xf:bind ref="PeriodicPayment/Period/@valid-from" type="xs:date" required="true()"/>
 					<xf:bind ref="PeriodicPayment/Period/@valid-till" type="xs:date" required="false()"/>
 
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/RefID" type="xs:string" required="true()" relevance="../@type='ledger_account'" constraint=".='#' or string-length(.) &gt; 5"/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/CustomerID" type="xs:string" relevance="../@type='ledger_account'" constraint=".='#' or string-length(.) &gt; 5"/>
 					<xf:bind ref="PeriodicPayment/PaymentOptions/PaymentOption/@type" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
 					<xf:bind ref="PeriodicPayment/PaymentOptions/PaymentOption/@kto" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
-					<xf:bind ref="PeriodicPayment/PaymentOptions/PaymentOption/IBAN" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
+					<xf:bind ref="PeriodicPayment/PaymentOptions/PaymentOption/IBAN" type="xs:string" relevance="../@type='ledger_account'" required="true()" constraint="string-length(.) &gt;= 15 and string-length(.) &lt;= 34" message="Die IBAN muss aus zwei Länder-Buchstaben, gefolgt von zwei Zahlen und insgeammt 15 bis 34 Zeichen bestehen."/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/TotalAmount/@value" type="xs:decimal" relevance="../@type='ledger_account'" required="true()"/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/TotalAmount/@unit" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/Other/@kto" type="xs:integer" relevance="../@type='ledger_account'" required="true()"/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/Description" type="xs:string" relevance="../@type='ledger_account'" required="true()" constraint="string-length(.) &gt; 5"/>
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/Tax/@key" type="xs:string" relevance="../@type='ledger_account'" required="true()" constraint="starts-with(.,'L-') or starts-with(.,'L+') or starts-with(.,'EU-') or starts-with(.,'EU+') or starts-with(.,'I-')"/> 
 					<xf:bind ref="PeriodicPayment/DocumentTemplate/Tax/@region" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
-					<xf:bind ref="PeriodicPayment/DocumentTemplate/Tax/@goods" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
+					<xf:bind ref="PeriodicPayment/DocumentTemplate/Tax/@type" type="xs:string" relevance="../@type='ledger_account'" required="true()"/>
+					<xf:bind ref="PeriodicPayment/PaymentRules/PaymentRule/@type" type="xs:string" required="true()"/>
+					<xf:bind ref="PeriodicPayment/PaymentRules/PaymentRule" type="xs:string" required="true()"/>
+					<xf:bind ref="PeriodicPayment/PaymentRules/PaymentRule" type="xs:string" required="true()" relevance=".[@type='SEPA_DIRECT-DEBIT_IBAN' or @type='SEPA_CREDIT-TRANSFER_IBAN']" constraint="string-length(.) &gt;= 15 and string-length(.) &lt;= 34" message="Die IBAN muss aus zwei Länder-Buchstaben, gefolgt von zwei Zahlen und insgeammt 15 bis 34 Zeichen bestehen."/>
+				</xf:bind>
+
+				<!-- BudgetCategories -->
+				<xf:bind ref="instance('account')/BudgetCategories">
+					<xf:bind ref="BudgetCategory/@id" type="xs:CDATA" required="true()"/>
+					<xf:bind ref="BudgetCategory/Period/@valid-from" type="xs:date" required="true()"/>
+					<xf:bind ref="BudgetCategory/Period/@valid-till" type="xs:date" required="false()"/>
+
+					<xf:bind ref="BudgetCategory/PaymentRules/PaymentRule/@type" type="xs:string" required="true()"/>
+					<xf:bind ref="BudgetCategory/PaymentRules/PaymentRule" type="xs:string" required="true()"/>
+					<xf:bind ref="BudgetCategory/PaymentRules/PaymentRule" type="xs:string" required="true()" relevance=".[@type='SEPA_DIRECT-DEBIT_IBAN' or @type='SEPA_CREDIT-TRANSFER_IBAN']" constraint="string-length(.) &gt;= 15 and string-length(.) &lt;= 34" message="Die IBAN muss aus zwei Länder-Buchstaben, gefolgt von zwei Zahlen und insgeammt 15 bis 34 Zeichen bestehen."/>
+
 				</xf:bind>
 				
 				<xf:submission id="save" method="put" instance="account" replace="none" validate="true"> <!-- indent="true"  replace="all" --> <!-- /{$year}/{$binder}/{$document} -->
-					<xf:resource value="concat('{$home-web-api}/{$tenant}/',{$year},'/accounts/',instance('account')/@id)"/>
+					<xf:resource value="concat('{$home-web-api}/tenants/{$tenant}/years/{$year}/accounts/',instance('account')/@id)"/>
 	                		<xf:action ev:event="xforms-submit-done">
 						<xf:message>Erfolgreich gespeichert.
 							<xf:output value="event('resource-uri')">
@@ -362,6 +415,11 @@ Body: </xf:label>
 			</style>
 		</head>
 		<body>
+			<ul class="Nav">
+				<li>
+					<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/categories/index.html')}">Budget-Kategorien</a>
+				</li>
+			</ul>
 			<table>
 				<tr>
 					<th>ID</th>
@@ -457,7 +515,7 @@ Body: </xf:label>
 				<tr>
 					<th>Notizen</th>
 					<td>
-						<xf:textarea ref="instance('account')/Notes"/>
+						<xf:textarea ref="instance('account')/Notes" style="min-width:30em;min-height:5em;"/>
 					</td>
 				</tr>
 				<tr>
@@ -503,17 +561,25 @@ Body: </xf:label>
 								<xf:label>Personenkonto</xf:label>
 								<xf:value>ledger_account</xf:value> 
 							</xf:item>
+							<!--
+							<xf:item>
+								<xf:label>Info / Self</xf:label> 
+								<xf:value>info</xf:value> 
+							</xf:item>
+							-->
 						</xf:select1>
 					</td>
 				</tr>
 				<tr>
 					<th>Konto Klassen</th>
 					<td>
-						<xf:select1 ref="instance('account')/@classes[../@type='nominal_account']" selection="closed" appearance="full" incremental="true" multiple="true">
+						<xf:select ref="instance('account')/@classes[../@type='nominal_account']" selection="closed" appearance="full" incremental="true" multiple="true()">
+							<!--
 							<xf:item>
 								<xf:label>Halter</xf:label>
 								<xf:value>owner</xf:value> 
 							</xf:item>
+							-->
 							<xf:item>
 								<xf:label>Bank</xf:label>
 								<xf:value>bank</xf:value> 
@@ -541,7 +607,7 @@ Body: </xf:label>
 							<xf:action ev:event="xforms-select">
 								<xf:setvalue ref="instance('account')/@classes" value="tokenize(., ' ')"/>
 							  </xf:action>
-						</xf:select1>
+						</xf:select>
 
 						<xf:select1 ref="instance('account')/@classes[../@type='ledger_account']">
 							<xf:item>
@@ -555,9 +621,629 @@ Body: </xf:label>
 						</xf:select1>
 					</td>
 				</tr>
+				<tr>
+					<th>Buchungsvorlagen</th>
+					<td>
+						<xf:repeat id="ProcessTemplates" nodeset="instance('account')/ProcessTemplates/ProcessTemplate" appearance="full">
+							<div style="border:1px solid #999">
+								<table style="width:100%">
+									<tr>
+										<td>
+										<xf:select1 ref="Other/@kto">
+											<xf:label>Gegenkonto:</xf:label>
+											<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
+												<xf:label ref="Name"/>
+												<xf:value ref="@kto"/>
+											</xf:itemset>
+										</xf:select1>
+										<xsl:text> #</xsl:text>
+										<xf:select1 ref="Other/@kto">
+											<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
+												<xf:label ref="@kto"/>
+												<xf:value ref="@kto"/>
+											</xf:itemset>
+										</xf:select1>								
+										<br/>
+										<xf:input ref="RefID">
+											<xf:label>Belegnummer:</xf:label>
+											<xf:hint>In der Regel die Rechnungsnummer</xf:hint>
+											<xf:help>Falls keine Nummer bekannt ist, einfach # verweden</xf:help>
+										</xf:input>								
+										<br/>
+										<xf:input ref="TransactionID">
+											<xf:label>Vorgangsnummer:</xf:label>
+											<xf:hint>In der Regel die Bestellnummer</xf:hint>
+										</xf:input>								
+										<br/>								
+										<xf:input ref="TotalAmount/@value">
+											<xf:label>Gesamtbetrag:</xf:label>
+										</xf:input>
+										<xsl:text> </xsl:text>
+										<xf:select1 ref="TotalAmount/@unit">
+											<xf:item>
+												<xf:label>EUR</xf:label>
+												<xf:value>EUR</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>CHF</xf:label>
+												<xf:value>CHF</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>USD</xf:label>
+												<xf:value>USD</xf:value> 
+											</xf:item>
+										</xf:select1>
+										<br/>
+
+									
+										<xf:select1 ref="Tax/@region">
+											<xf:item>
+												<xf:label>Inlandsgeschäft</xf:label>
+												<xf:value>inland</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>EU-Geschäft</xf:label>
+												<xf:value>EU</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>International</xf:label>
+												<xf:value>international</xf:value> 
+											</xf:item>
+											<!-- reset tax code if changed -->
+											<xf:action ev:event="xforms-value-changed">
+												<xf:setvalue ref="Tax/@key" value="''"/>
+											</xf:action>
+										</xf:select1>
+
+										<xf:select1 ref="Tax/@key" selection="closed">
+											<xf:itemset nodeset="instance('taxes')/item[@region=instance('account')/ProcessTemplates/ProcessTemplate[index('ProcessTemplates')]/Tax/@region]">
+												<xf:label ref="@name"/>
+												<xf:value ref="@value"/>
+											</xf:itemset>
+
+											<xf:help>Reverse Charge ist eine Verschiebung der Steuerschuld zum Leistungsempfänger.</xf:help>
+										</xf:select1>
+
+										<xf:select1 ref="Tax/@type">
+											<xf:item>
+												<xf:label>          </xf:label>
+												<xf:value/> 
+											</xf:item>
+											<xf:item>
+												<xf:label>Warenlieferung</xf:label>
+												<xf:value>GOODS</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>Dienstleistung</xf:label>
+												<xf:value>SERVICE</xf:value> 
+											</xf:item>
+											<xf:item>
+												<xf:label>Virtuelle Güter</xf:label>
+												<xf:value>VIRTUAL</xf:value> 
+											</xf:item>
+										</xf:select1>
+
+										<br/>
+										<xf:input ref="Description">
+											<xf:label>Beleg Inhalt:</xf:label>
+										</xf:input>
+
+									</td>
+									<th>
+										<xf:trigger>
+											<xf:label>X</xf:label>
+											<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
+										</xf:trigger>
+									</th>
+								</tr>
+							</table>										
+							</div>
+						</xf:repeat>
+
+						<xf:trigger>
+							<xf:label>Vorlage hinzufügen</xf:label>
+							<xf:insert context="instance('account')/ProcessTemplates" origin="instance('processtemplate-new')/ProcessTemplate" nodeset="ProcessTemplate" ev:event="DOMActivate"/>
+						</xf:trigger>
+					</td>
+				</tr>
 
 				<tr>
-					<th>Buchhaltung</th>
+					<th>Bankverbindung(en)</th>
+					<td>
+						<xf:group ref="instance('account')/@type[.='ledger_account']">
+							<xf:repeat nodeset="instance('account')/BankAccounts/BankAccount">
+								<table>
+									<tr>
+										<td>
+											<xf:input ref="@name">
+											<xf:label>Name der Bank</xf:label>
+											</xf:input>
+											<xf:input ref="@iban">
+											<xf:label>Kontonummer (IBAN)</xf:label>
+											<xf:hint>Die IBAN Nummer der Bank des Kreditors</xf:hint>
+											</xf:input>
+											<xf:input ref="@notes">
+											<xf:label>Notizen</xf:label>
+											</xf:input>
+										</td>
+										<th>
+											<xf:trigger>
+												<xf:label>X</xf:label>
+												<xf:delete nodeset="." at="1" ev:event="DOMActivate"/>
+											</xf:trigger>
+										</th>
+									</tr>
+								</table>
+							</xf:repeat>
+							<xf:trigger>
+								<xf:label>Bankverbindung hinzufügen</xf:label>
+								<xf:action ev:event="DOMActivate">
+									<xf:insert context="instance('account')/BankAccounts" origin="instance('bankaccount-new')/BankAccount" nodeset="BankAccount"/>
+								</xf:action>
+							</xf:trigger>				
+						</xf:group>
+						<xf:group ref="instance('account')/@type[.!='ledger_account']">
+							<span>nur bei Personenkonten</span>
+						</xf:group>
+
+					</td>
+				</tr>
+				<tr>
+					<th>
+						Daueraufträge<br/>
+						<span style="font-size:80%">Wiederkehrende Posten / Regelmäßige Position</span>
+					</th>
+					<td>
+						<xf:repeat id="PeriodicPayments" nodeset="instance('account')/PeriodicPayments/PeriodicPayment" appearance="full">
+							<div style="border:1px solid #999">
+								<table style="width:100%">
+									<tr>
+										<th>Gültigkeit</th>
+										<td>
+											<xf:input ref="Period/@valid-from">
+												<xf:label>Gültig von:</xf:label>
+											</xf:input>
+
+											<xf:input ref="Period/@valid-till">
+												<xf:label>bis:</xf:label>
+											</xf:input>
+										</td>
+										<th rowspan="5">
+											<xf:trigger>
+												<xf:label>X</xf:label>
+												<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
+											</xf:trigger>
+										</th>										
+									</tr>
+									<tr>
+										<th>
+											Bezeichnung
+										</th>
+										<td>
+											<xf:input ref="Name">
+												<xf:label>Name:</xf:label>
+												<xf:hint>Eine kurze Bezeichnung für diese Postition</xf:hint>
+											</xf:input>
+											<br/>
+											<xf:textarea ref="Notes" style="min-width:30em;min-height:5em;">
+												<xf:label>Notizen:</xf:label>
+												<xf:hint>Hinweise und Notizen</xf:hint>
+											</xf:textarea>
+										</td>
+									</tr>									
+									<tr>
+										<th>Zahlungsintervall</th>
+										<td>
+											<xf:select1 ref="Period/@interval">
+												<xf:label>Zahlungs-Interval:</xf:label>
+												<xf:item>
+													<xf:label>jährlich</xf:label>
+													<xf:value>annually</xf:value>
+												</xf:item>
+												<xf:item>
+													<xf:label>quartalsweise</xf:label>
+													<xf:value>quarterly</xf:value>
+												</xf:item>
+												<xf:item>
+													<xf:label>monatlich</xf:label>
+													<xf:value>monthly</xf:value>
+												</xf:item>
+											</xf:select1>
+											<br/>
+											<xf:label>Zulässige Anzahl von Zahlungen pro Intervall:</xf:label>
+											<br/>
+											<xf:input ref="Period/@min">
+												<xf:label>min:</xf:label>
+											</xf:input>
+											<xf:input ref="Period/@max">
+												<xf:label>max:</xf:label>
+											</xf:input>
+											<xf:input ref="Period/@max">
+												<xf:label>max:</xf:label>
+											</xf:input>
+										</td>
+									</tr>									
+									<tr>
+										<th>
+											Regelset<br/>
+											<span style="font-size:80%">(die erfüllt sein müssen, um die Dauerposition zu verbuchen)</span>
+										</th>
+										<td>
+											<xf:repeat id="PaymentRulesTemplates" nodeset="PaymentRules/PaymentRule" appearance="full">
+												<div style="border:1px solid #999">
+													<table style="width:100%">
+														<tr>
+															<td>
+																<!-- <xf:label value="concat('Regel #', position())" /> -->
+																<xf:label>
+																	<xf:output value="concat('Regel #', position(), ':')"/>
+																</xf:label>
+																
+																<!-- Selection for Payment Type (@type) -->
+																<xf:select1 ref="@type">
+																	<xf:item>
+																		<xf:label>SEPA Einzugsverfahren - IBAN</xf:label>
+																		<xf:value>SEPA_DIRECT-DEBIT_IBAN</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Einzugsverfahren - Gläubiger ID</xf:label>
+																		<xf:value>SEPA_DIRECT-DEBIT_CREDITOR-ID</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Überweisung - IBAN</xf:label>
+																		<xf:value>SEPA_CREDIT-TRANSFER_IBAN</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Zahlungsdetails - Textsuche</xf:label>
+																		<xf:value>SEPA_PAYMENT-DETAILS_ASCII</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Zahlungsdetails - RegEx-Suche</xf:label>
+																		<xf:value>SEPA_PAYMENT-DETAILS_REGEX</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>Eigenes Bankkonto (von dem die Zahlung erfolgt)</xf:label>
+																		<xf:value>PAYER_BANK-ACCOUNT_CONCERNED</xf:value>
+																	</xf:item>																	
+																	<xf:action ev:event="xforms-value-changed" ref=".">
+																		<!-- Wert zurücksetzen '' -->
+																		<xf:setvalue ref="../text()" value="''"/>
+																	</xf:action>
+																</xf:select1>
+															</td>
+															<td>
+																<!-- Case for PaymentType Direct Debit - IBAN -->
+																<xf:group ref=".[@type = 'SEPA_DIRECT-DEBIT_IBAN']">
+																	<xf:input ref=".">
+																		<xf:label>IBAN des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for IBAN -->
+																<xf:group ref=".[@type = 'SEPA_DIRECT-DEBIT_CREDITOR-ID']">
+																	<xf:input ref=".">
+																		<xf:label>Gläubiger-ID des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for IBAN -->
+																<xf:group ref=".[@type = 'SEPA_CREDIT-TRANSFER_IBAN']">
+																	<xf:input ref=".">
+																		<xf:label>IBAN des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for PaymentDetailTexxt -->
+																<xf:group ref=".[@type = 'SEPA_PAYMENT-DETAILS_ASCII']">	
+																	<xf:textarea ref=".">
+																		<xf:label>Suche Verwendungszweck:</xf:label>
+																		<xf:hint>Dieser Text / RegEx muss im Verwendungszweck enthalten sein / matchen.</xf:hint>
+																	</xf:textarea>
+																</xf:group>
+																<!-- Case for PaymentDetailRegex -->
+																<xf:group ref=".[@type = 'SEPA_PAYMENT-DETAILS_REGEX']">
+																	<xf:textarea ref=".">
+																		<xf:label>Suche Verwendungszweck:</xf:label>
+																		<xf:hint>Dieser Text / RegEx muss im Verwendungszweck enthalten sein / matchen.</xf:hint>
+																	</xf:textarea>
+																</xf:group>
+																<!-- Case for Own BankID -->
+																<xf:group ref=".[@type = 'PAYER_BANK-ACCOUNT_CONCERNED']">
+																	<xf:select1 ref=".">
+																		<xf:label>Bankverbindung:</xf:label>
+																		<xf:itemset nodeset="instance('accounts')//Account[contains(@classes, 'bank')]">
+																			<xf:label ref="Name"/>
+																			<xf:value ref="@id"/>
+																		</xf:itemset>
+																	</xf:select1>
+																</xf:group>																
+															</td>
+															<th>
+																<th rowspan="5">
+																	<xf:trigger>
+																		<xf:label>X</xf:label>
+																		<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
+																	</xf:trigger>
+																</th>
+															</th>
+														</tr>
+													</table>
+												</div>
+											</xf:repeat>
+											<xf:trigger>
+												<xf:label>Regel/Bedingung hinzufügen</xf:label>
+												<xf:insert context="instance('account')/PeriodicPayments/PeriodicPayment/PaymentRules" origin="instance('paymentrule-new')/PaymentRule" nodeset="PaymentRule" ev:event="DOMActivate" position="after"/>
+												<xf:setvalue ref="instance('account')/PeriodicPayments/PeriodicPayment/PaymentRules/PaymentRule[last()]/text()" value="''" ev:event="DOMActivate"/>
+												<xf:setvalue ref="PaymentRules/PaymentRule[last()]/text()" value="''" ev:event="DOMActivate"/>
+											</xf:trigger>
+										</td>
+									</tr>									
+									<tr>
+										<th>
+											Buchungsvorlage<br/>
+											<span style="font-size:80%">(für die automatische Verbuchung)</span>
+										</th>
+										<td>
+											<xf:select1 ref="DocumentTemplate/Other/@kto">
+												<xf:label>Gegenkonto:</xf:label>
+												<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
+													<xf:label ref="Name"/>
+													<xf:value ref="@kto"/>
+												</xf:itemset>
+											</xf:select1>
+											<xsl:text> #</xsl:text>
+											<xf:select1 ref="DocumentTemplate/Other/@kto">
+												<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
+													<xf:label ref="@kto"/>
+													<xf:value ref="@kto"/>
+												</xf:itemset>
+											</xf:select1>
+											<br/>
+											<xf:input ref="DocumentTemplate/RefID">
+												<xf:label>Belegnummer:</xf:label>
+												<xf:hint>In der Regel die Rechnungsnummer</xf:hint>
+											</xf:input>								
+											<br/>
+											<xf:input ref="DocumentTemplate/TransactionID">
+												<xf:label>Vorgangsnummer:</xf:label>
+												<xf:hint>In der Regel die Bestellnummer</xf:hint>
+											</xf:input>								
+											<br/>								
+											<xf:input ref="DocumentTemplate/TotalAmount/@value">
+												<xf:label>Gesamtbetrag:</xf:label>
+											</xf:input>
+											<xsl:text> </xsl:text>
+											<xf:select1 ref="DocumentTemplate/TotalAmount/@unit">
+												<xf:item>
+													<xf:label>EUR</xf:label>
+													<xf:value>EUR</xf:value> 
+												</xf:item>
+												<xf:item>
+													<xf:label>CHF</xf:label>
+													<xf:value>CHF</xf:value> 
+												</xf:item>
+												<xf:item>
+													<xf:label>USD</xf:label>
+													<xf:value>USD</xf:value> 
+												</xf:item>
+											</xf:select1>
+											<br/>
+
+											<xf:select1 ref="DocumentTemplate/Tax/@region">
+												<xf:item>
+													<xf:label>Inlandsgeschäft</xf:label>
+													<xf:value>inland</xf:value> 
+												</xf:item>
+												<xf:hint>Derzeit werden nur Inlandsgeschäfte für die automatische Belegerstellung unterstützt</xf:hint>
+											</xf:select1>
+
+											<xf:select1 ref="DocumentTemplate/Tax/@key" selection="closed">
+												<xf:itemset nodeset="instance('taxes')/item[@region='inland']">
+													<xf:label ref="@name"/>
+													<xf:value ref="@value"/>
+												</xf:itemset>
+
+												<xf:help>Reverse Charge ist eine Verschiebung der Steuerschuld zum Leistungsempfänger.</xf:help>
+											</xf:select1>					
+
+											<xf:select1 ref="DocumentTemplate/Tax/@type">
+												<xf:item>
+													<xf:label>Warenlieferung</xf:label>
+													<xf:value>GOODS</xf:value> 
+												</xf:item>
+												<xf:item>
+													<xf:label>Dienstleistung</xf:label>
+													<xf:value>SERVICE</xf:value> 
+												</xf:item>
+												<xf:item>
+													<xf:label>Virtuelle Güter</xf:label>
+													<xf:value>VIRTUAL</xf:value> 
+												</xf:item>
+											</xf:select1>
+											<br/>
+											<xf:input ref="DocumentTemplate/Description">
+												<xf:label>Beleg Inhalt:</xf:label>
+											</xf:input>
+										</td>
+									</tr>
+								</table>
+							</div>
+						</xf:repeat>
+
+						<xf:trigger>
+							<xf:label>Regelmäßige Zahlung hinzufügen</xf:label>
+							<xf:insert context="instance('account')/PeriodicPayments" origin="instance('periodicpayment-new')/PeriodicPayment" nodeset="PeriodicPayment" ev:event="DOMActivate"/>
+						</xf:trigger>
+					</td>
+				</tr>
+				<tr>
+					<th>
+						Budget-Kategorien<br/>
+						<span style="font-size:80%">Zuordnen von Zahlungen zu Budget Kategorien</span>
+					</th>
+					<td>
+						<xf:repeat id="BudgetCategories" nodeset="instance('account')/BudgetCategories/BudgetCategory" appearance="full">
+							<div style="border:1px solid #999">
+								<table style="width:100%">
+									<tr>
+										<th>Gültigkeit</th>
+										<td>
+											<xf:input ref="Period/@valid-from">
+												<xf:label>Gültig von:</xf:label>
+											</xf:input>
+
+											<xf:input ref="Period/@valid-till">
+												<xf:label>bis:</xf:label>
+											</xf:input>
+										</td>
+										<th rowspan="5">
+											<xf:trigger>
+												<xf:label>X</xf:label>
+												<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
+											</xf:trigger>
+										</th>
+									</tr>
+									<tr>
+										<th>
+											Budget-Kategorie
+										</th>
+										<td>
+											<xf:select1 ref="@id" style="min-width: 15em">
+												<xf:label>Zugeordnete Kategorie:</xf:label>
+												<xf:itemset nodeset="instance('budget-categories')/BudgetCategory">
+													<xf:label ref="@name"/>
+													<xf:value ref="@id"/>
+												</xf:itemset>
+												<xf:hint>Der Identifier dieser Kategorie aus der Kategoriebaum</xf:hint>
+											</xf:select1>
+											<br/>
+											<xf:textarea ref="Notes" style="min-width:30em;min-height:5em;">
+												<xf:label>Notizen:</xf:label>
+												<xf:hint>Hinweise und Notizen</xf:hint>
+											</xf:textarea>
+										</td>
+									</tr>									
+									<tr>
+										<th>
+											Regelset<br/>
+											<span style="font-size:80%">(die erfüllt sein müssen, um die Dauerposition zu verbuchen)</span>
+										</th>
+										<td>
+											<xf:repeat id="BudgetCategoriesTemplates" nodeset="PaymentRules/PaymentRule" appearance="full">
+												<div style="border:1px solid #999">
+													<table style="width:100%">
+														<tr>
+															<td>
+																<!-- <xf:label value="concat('Regel #', position())" /> -->
+																<xf:label>
+																	<xf:output value="concat('Regel #', position(), ':')"/>
+																</xf:label>
+
+																<!-- Selection for Payment Type (@type) -->
+																<xf:select1 ref="@type">
+																	<xf:item>
+																		<xf:label>SEPA Einzugsverfahren - IBAN</xf:label>
+																		<xf:value>SEPA_DIRECT-DEBIT_IBAN</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Einzugsverfahren - Gläubiger ID</xf:label>
+																		<xf:value>SEPA_DIRECT-DEBIT_CREDITOR-ID</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Überweisung - IBAN</xf:label>
+																		<xf:value>SEPA_CREDIT-TRANSFER_IBAN</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Zahlungsdetails - Textsuche</xf:label>
+																		<xf:value>SEPA_PAYMENT-DETAILS_ASCII</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>SEPA Zahlungsdetails - RegEx-Suche</xf:label>
+																		<xf:value>SEPA_PAYMENT-DETAILS_REGEX</xf:value>
+																	</xf:item>
+																	<xf:item>
+																		<xf:label>Eigenes Bankkonto (von dem die Zahlung erfolgt)</xf:label>
+																		<xf:value>PAYER_BANK-ACCOUNT_CONCERNED</xf:value>
+																	</xf:item>																	
+																	<xf:action ev:event="xforms-value-changed" ref=".">
+																		<!-- Wert zurücksetzen '' -->
+																		<xf:setvalue ref="../text()" value="''"/>
+																	</xf:action>
+																</xf:select1>
+															</td>
+															<td>
+																<!-- Case for PaymentType Direct Debit - IBAN -->
+																<xf:group ref=".[@type = 'SEPA_DIRECT-DEBIT_IBAN']">
+																	<xf:input ref=".">
+																		<xf:label>IBAN des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for IBAN -->
+																<xf:group ref=".[@type = 'SEPA_DIRECT-DEBIT_CREDITOR-ID']">
+																	<xf:input ref=".">
+																		<xf:label>Gläubiger-ID des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for IBAN -->
+																<xf:group ref=".[@type = 'SEPA_CREDIT-TRANSFER_IBAN']">
+																	<xf:input ref=".">
+																		<xf:label>IBAN des Empfänger:</xf:label>
+																	</xf:input>
+																</xf:group>
+																<!-- Case for PaymentDetailTexxt -->
+																<xf:group ref=".[@type = 'SEPA_PAYMENT-DETAILS_ASCII']">	
+																	<xf:textarea ref=".">
+																		<xf:label>Suche Verwendungszweck:</xf:label>
+																		<xf:hint>Dieser Text / RegEx muss im Verwendungszweck enthalten sein / matchen.</xf:hint>
+																	</xf:textarea>
+																</xf:group>
+																<!-- Case for PaymentDetailRegex -->
+																<xf:group ref=".[@type = 'SEPA_PAYMENT-DETAILS_REGEX']">
+																	<xf:textarea ref=".">
+																		<xf:label>Suche Verwendungszweck:</xf:label>
+																		<xf:hint>Dieser Text / RegEx muss im Verwendungszweck enthalten sein / matchen.</xf:hint>
+																	</xf:textarea>
+																</xf:group>
+																<!-- Case for Own BankID -->
+																<xf:group ref=".[@type = 'PAYER_BANK-ACCOUNT_CONCERNED']">
+																	<xf:select1 ref=".">
+																		<xf:label>Bankverbindung:</xf:label>
+																		<xf:itemset nodeset="instance('accounts')//Account[contains(@classes, 'bank')]">
+																			<xf:label ref="Name"/>
+																			<xf:value ref="@id"/>
+																		</xf:itemset>
+																	</xf:select1>
+																</xf:group>																
+															</td>
+															<th>
+																<th rowspan="5">
+																	<xf:trigger>
+																		<xf:label>X</xf:label>
+																		<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
+																	</xf:trigger>
+																</th>
+															</th>
+														</tr>
+													</table>
+												</div>
+											</xf:repeat>
+											<xf:trigger>
+												<xf:label>Regel/Bedingung hinzufügen</xf:label>
+												<xf:insert context="instance('account')/BudgetCategories/BudgetCategory/PaymentRules" origin="instance('paymentrule-new')/PaymentRule" nodeset="PaymentRule" ev:event="DOMActivate" position="after"/>
+												<xf:setvalue ref="instance('account')/BudgetCategories/BudgetCategory/PaymentRules/PaymentRule[last()]/text()" value="''"/>
+												<xf:setvalue ref="PaymentRules/PaymentRule[last()]/text()" value="''"/>
+											</xf:trigger>
+										</td>
+									</tr>									
+								</table>
+							</div>
+						</xf:repeat>
+
+						<xf:trigger>
+							<xf:label>Budget Kategorie hinzufügen</xf:label>
+							<xf:insert context="instance('account')/BudgetCategories" origin="instance('budgetcategory-new')/BudgetCategory" nodeset="BudgetCategory" ev:event="DOMActivate"/>
+						</xf:trigger>
+					</td>
+				</tr>				
+				<tr>
+					<th>Billanzkonto</th>
 					<td>
 						<xf:input ref="Accounting/@openingBalance">
 							<xf:label>Anfangsbestand:</xf:label>
@@ -574,334 +1260,6 @@ Body: </xf:label>
 						<xf:input ref="Accounting/@debitSum">
 							<xf:label>HABEN Stand:</xf:label>
 						</xf:input>
-					</td>
-				</tr>
-
-				<tr>
-					<th>Buchungsvorlagen</th>
-					<td>
-						<xf:repeat id="ProcessTemplates" nodeset="instance('account')/ProcessTemplates/ProcessTemplate" appearance="full">
-							<div style="border:1px solid #999">
-								<xf:select1 ref="Other/@kto">
-									<xf:label>Gegenkonto:</xf:label>
-									<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
-										<xf:label ref="Name"/>
-										<xf:value ref="@kto"/>
-									</xf:itemset>
-								</xf:select1>
-								<xsl:text> #</xsl:text>
-								<xf:select1 ref="Other/@kto">
-									<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
-										<xf:label ref="@kto"/>
-										<xf:value ref="@kto"/>
-									</xf:itemset>
-								</xf:select1>								
-								<br/>
-								<xf:input ref="RefID">
-									<xf:label>Belegnummer:</xf:label>
-									<xf:hint>In der Regel die Rechnungsnummer</xf:hint>
-									<xf:help>Falls keine Nummer bekannt ist, einfach # verweden</xf:help>
-								</xf:input>								
-								<br/>
-								<xf:input ref="TransactionID">
-									<xf:label>Vorgangsnummer:</xf:label>
-									<xf:hint>In der Regel die Bestellnummer</xf:hint>
-								</xf:input>								
-								<br/>								
-								<xf:input ref="TotalAmount/@value">
-									<xf:label>Gesamtbetrag:</xf:label>
-								</xf:input>
-								<xsl:text> </xsl:text>
-								<xf:select1 ref="TotalAmount/@unit">
-									<xf:item>
-										<xf:label>EUR</xf:label>
-										<xf:value>EUR</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>CHF</xf:label>
-										<xf:value>CHF</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>USD</xf:label>
-										<xf:value>USD</xf:value> 
-									</xf:item>
-								</xf:select1>
-								<br/>
-
-							
-								<xf:select1 ref="Tax/@region">
-									<xf:item>
-										<xf:label>Inlandsgeschäft</xf:label>
-										<xf:value>inland</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>EU-Geschäft</xf:label>
-										<xf:value>EU</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>International</xf:label>
-										<xf:value>international</xf:value> 
-									</xf:item>
-									<!-- reset tax code if changed -->
-									<xf:action ev:event="xforms-value-changed">
-										<xf:setvalue ref="Tax/@key" value="''"/>
-									 </xf:action>
-								</xf:select1>
-
-								<xf:select1 ref="Tax/@key" selection="closed">
-									<xf:itemset nodeset="instance('taxes')/item[@region=instance('account')/ProcessTemplates/ProcessTemplate[index('ProcessTemplates')]/Tax/@region]">
-										<xf:label ref="@name"/>
-										<xf:value ref="@value"/>
-									</xf:itemset>
-
-									<xf:help>Reverse Charge ist eine Verschiebung der Steuerschuld zum Leistungsempfänger.</xf:help>
-								</xf:select1>
-
-								<xf:select1 ref="Tax/@type">
-									<xf:item>
-										<xf:label>          </xf:label>
-										<xf:value/> 
-									</xf:item>
-									<xf:item>
-										<xf:label>Warenlieferung</xf:label>
-										<xf:value>GOODS</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>Dienstleistung</xf:label>
-										<xf:value>SERVICE</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>Virtuelle Güter</xf:label>
-										<xf:value>VIRTUAL</xf:value> 
-									</xf:item>
-								</xf:select1>
-
-								<br/>
-								<xf:input ref="Description">
-									<xf:label>Beleg Inhalt:</xf:label>
-								</xf:input>
-
-								<xf:trigger>
-									<xf:label>X</xf:label>
-									<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
-								</xf:trigger>
-							</div>
-						</xf:repeat>
-
-						<xf:trigger>
-							<xf:label>Vorlage hinzufügen</xf:label>
-						
-							<xf:insert context="instance('account')/ProcessTemplates" origin="instance('processtemplate-new')/ProcessTemplate" nodeset="ProcessTemplate" ev:event="DOMActivate"/>
-						</xf:trigger>
-					</td>
-				</tr>
-
-				<tr>
-					<th>Bankverbindung(en)</th>
-					<td>
-						<xf:group ref="instance('account')/@type[.='ledger_account']">
-							<xf:input ref="instance('account')/@iban">
-								<xf:label>Kontonummer (IBAN)</xf:label>
-								<xf:hint>Es können mehr als eine IBAN aufgelistet werden, dann sind diese mit einem Leerzeichen zu separieren.</xf:hint>
-							</xf:input>
-							<br/>
-							<xf:input ref="instance('account')/@debtee">
-								<xf:label>SEPA Einzug – Gläubiger ID</xf:label>
-							</xf:input>
-						</xf:group>
-						<xf:group ref="instance('account')/@type[.!='ledger_account']">
-							<span>nur bei Personenkonten</span>
-						</xf:group>
-
-					</td>
-				</tr>
-				<tr>
-					<th>Regelmäßige Zahlungen / Wiederkehrende Posten</th>
-					<td>
-						<xf:repeat id="PeriodicPayments" nodeset="instance('account')/PeriodicPayments/PeriodicPayment" appearance="full">
-							<div style="border:1px solid #999">
-								<xf:input ref="Name">
-									<xf:label>Name</xf:label>
-									<xf:hint>Eine kurze Bezeichnung für diese Postition</xf:hint>
-								</xf:input>
-								<br/>
-
-								<xf:select1 ref="Period/@interval">
-									<xf:label>Zahlungs-Interval:</xf:label>
-									<xf:item>
-										<xf:label>jährlich</xf:label>
-										<xf:value>annually</xf:value>
-									</xf:item>
-									<xf:item>
-										<xf:label>quartalsweise</xf:label>
-										<xf:value>quarterly</xf:value>
-									</xf:item>
-									<xf:item>
-										<xf:label>monatlich</xf:label>
-										<xf:value>monthly</xf:value>
-									</xf:item>
-								</xf:select1>
-								<br/>
-								<xf:label>Zulässige Anzahl Zahlungen pro Intervall</xf:label>
-								<xf:input ref="Period/@min">
-									<xf:label>min:</xf:label>
-								</xf:input>
-								<xf:input ref="Period/@max">
-									<xf:label>max:</xf:label>
-								</xf:input>
-								<br/>
-
-								<xf:input ref="Period/@valid-from">
-									<xf:label>Gültig von:</xf:label>
-								</xf:input>
-
-								<xf:input ref="Period/@valid-till">
-									<xf:label>bis:</xf:label>
-								</xf:input>
-								<br/>
-
-								<xf:select1 ref="PaymentOptions/PaymentOption/@type">
-									<xf:label>Art der Zahlung:</xf:label>
-									<xf:item>
-										<xf:label>Überweisung</xf:label>
-										<xf:value>BankTransfer</xf:value>
-									</xf:item>
-									<xf:item>
-										<xf:label>Bankeinzug</xf:label>
-										<xf:value>DirectDebit</xf:value>
-									</xf:item>
-								</xf:select1>
-								<br/>
-
-								<xf:select1 ref="PaymentOptions/PaymentOption/@kto">
-									<xf:label>Bankverbindung:</xf:label>
-									<xf:item>
-										<xf:label>Deuba 00</xf:label>
-										<xf:value>222971400</xf:value>
-									</xf:item>
-									<xf:item>
-										<xf:label>Deuba 01</xf:label>
-										<xf:value>222971401</xf:value>
-									</xf:item>
-								</xf:select1>
-								<br/>
-
-								<xf:input ref="PaymentOptions/PaymentOption/IBAN">
-									<xf:label>IBAN des Empfänger:</xf:label>
-								</xf:input>
-								<br/>
-
-								<xf:textarea ref="PaymentOptions/PaymentOption/PaymentDetail">
-									<xf:label>Suche Verwendungszweck:</xf:label>
-									<xf:hint>Dieser Text / RegEx muss im Verwendungszweck enthalten sein / matchen.</xf:hint>
-								</xf:textarea>
-								<xf:select1 ref="PaymentOptions/PaymentOption/PaymentDetail/@type">
-									<xf:label>Suchart:</xf:label>
-									<xf:item>
-										<xf:label>Textsuche</xf:label>
-										<xf:value>TEXT</xf:value>
-									</xf:item>
-									<xf:item>
-										<xf:label>RegEx</xf:label>
-										<xf:value>REGEX</xf:value>
-									</xf:item>
-								</xf:select1>
-								<br/>
-
-								<xf:select1 ref="DocumentTemplate/Other/@kto">
-									<xf:label>Gegenkonto:</xf:label>
-									<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
-										<xf:label ref="Name"/>
-										<xf:value ref="@kto"/>
-									</xf:itemset>
-								</xf:select1>
-								<xsl:text> #</xsl:text>
-								<xf:select1 ref="DocumentTemplate/Other/@kto">
-									<xf:itemset nodeset="instance('accounts')/Account[@type != instance('account')/@type]"> <!-- [@classes='creditor'] -->
-										<xf:label ref="@kto"/>
-										<xf:value ref="@kto"/>
-									</xf:itemset>
-								</xf:select1>
-								<br/>
-								<xf:input ref="DocumentTemplate/RefID">
-									<xf:label>Belegnummer:</xf:label>
-									<xf:hint>In der Regel die Rechnungsnummer</xf:hint>
-								</xf:input>								
-								<br/>
-								<xf:input ref="DocumentTemplate/TransactionID">
-									<xf:label>Vorgangsnummer:</xf:label>
-									<xf:hint>In der Regel die Bestellnummer</xf:hint>
-								</xf:input>								
-								<br/>								
-								<xf:input ref="DocumentTemplate/TotalAmount/@value">
-									<xf:label>Gesamtbetrag:</xf:label>
-								</xf:input>
-								<xsl:text> </xsl:text>
-								<xf:select1 ref="DocumentTemplate/TotalAmount/@unit">
-									<xf:item>
-										<xf:label>EUR</xf:label>
-										<xf:value>EUR</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>CHF</xf:label>
-										<xf:value>CHF</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>USD</xf:label>
-										<xf:value>USD</xf:value> 
-									</xf:item>
-								</xf:select1>
-								<br/>
-
-								<xf:select1 ref="DocumentTemplate/Tax/@region">
-									<xf:item>
-										<xf:label>Inlandsgeschäft</xf:label>
-										<xf:value>inland</xf:value> 
-									</xf:item>
-									<xf:hint>Derzeit werden nur Inlandsgeschäfte für die automatische Belegerstellung unterstützt</xf:hint>
-								</xf:select1>
-
-								<xf:select1 ref="DocumentTemplate/Tax/@key" selection="closed">
-									<xf:itemset nodeset="instance('taxes')/item[@region='inland']">
-										<xf:label ref="@name"/>
-										<xf:value ref="@value"/>
-									</xf:itemset>
-
-									<xf:help>Reverse Charge ist eine Verschiebung der Steuerschuld zum Leistungsempfänger.</xf:help>
-								</xf:select1>					
-
-								<xf:select1 ref="DocumentTemplate/Tax/@type">
-									<xf:item>
-										<xf:label>Warenlieferung</xf:label>
-										<xf:value>GOODS</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>Dienstleistung</xf:label>
-										<xf:value>SERVICE</xf:value> 
-									</xf:item>
-									<xf:item>
-										<xf:label>Virtuelle Güter</xf:label>
-										<xf:value>VIRTUAL</xf:value> 
-									</xf:item>
-								</xf:select1>
-
-								<br/>
-								<xf:input ref="DocumentTemplate/Description">
-									<xf:label>Beleg Inhalt:</xf:label>
-								</xf:input>
-
-								<xf:trigger>
-									<xf:label>X</xf:label>
-									<xf:delete nodeset="." at="1" if="count(//.) &gt; 1" ev:event="DOMActivate"/>
-								</xf:trigger>
-							</div>
-						</xf:repeat>
-
-						<xf:trigger>
-							<xf:label>Regelmäßige Zahlung hinzufügen</xf:label>
-						
-							<xf:insert context="instance('account')/PeriodicPayments" origin="instance('periodicpayment-new')/PeriodicPayment" nodeset="PeriodicPayment" ev:event="DOMActivate"/>
-						</xf:trigger>
 					</td>
 				</tr>
 				<tr>

@@ -26,12 +26,14 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/account/tena
 
 :)
 
-import module namespace years="http://bintellix.com/docman/years" at "/db/apps/docman/modules/module_years.xqm";
+import module namespace year="http://bintellix.com/docman/year" at "/db/apps/docman/modules/module_year.xqm";
+import module namespace tenant="http://bintellix.com/docman/tenant" at "/db/apps/docman/modules/module_tenant.xqm";
 
 let $home-web-gui := request:get-attribute('home-web-gui')
 let $home-data := request:get-attribute('home-data')
-let $tenant := request:get-attribute('tenant')
+let $tenant-id := request:get-attribute('tenant')
 return
 	<result>
-		{years:listYears($home-data, $tenant)} 
+		{tenant:getTenant($home-data, $tenant-id)}
+		{year:listYears($home-data, $tenant-id)}
 	</result>

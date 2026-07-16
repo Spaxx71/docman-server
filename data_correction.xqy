@@ -1,7 +1,8 @@
 xquery version "3.1";
 
 (:
-This script might be tested at:
+
+This script fixes a common created problem where the @credit account equals the debit account
 
 /rest/db/apps/docman/data_correction.xqy
 
@@ -19,11 +20,13 @@ return
 <results>
 {
 	for $process in collection($data-collection)/Process
-	where $process/Tasks/CommodityTask/Bookings/Booking/@credit/data() = $process/Tasks/CommodityTask/Bookings/Booking/@debit/data()
 	return 
-		<results>
-			<record>updating '{string($process/@name)}' account #{string($process/Tasks/CommodityTask/Bookings/Booking/@debit)} &#160;with&#160; #{string($process/Tasks/InvoiceInTask/Owner/data())}</record>
-			<update>{update value $process/Tasks/CommodityTask/Bookings/Booking/@debit with $process/Tasks/InvoiceInTask/Owner/data()}</update>
-		</results>
+		for $booking at $pos in $process/Tasks/CommodityTask/Bookings/Booking
+		where $booking/@credit/data() = $booking/@debit/data()
+		return
+			<results>
+				<record>updating '{string($process/@name)}' booking #{$pos} account #{string($booking/@debit)} &#160;with&#160; #{string($process/Tasks/InvoiceInTask/Owner/data())}</record>
+				<update>{update value $booking/@debit with $process/Tasks/InvoiceInTask/Owner/data()}</update>
+			</results>
 }
 </results>

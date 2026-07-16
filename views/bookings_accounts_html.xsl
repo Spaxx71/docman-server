@@ -34,7 +34,13 @@
 				</style>
 			</head>
 			<body>
-				<h1>Übersicht aller Buchungen</h1>
+				<ul class="nav">
+					<li>
+						<a href="{$home-web-gui}/{$tenant}/{$year}/bookings/refresh.html">Summen &amp; Salden aktualisieren</a>
+					</li>
+				</ul>				
+				<h1>Hauptbuch</h1>
+				<h2>Übersicht aller Buchungen</h2>
 				<div style="display:none">
 					<ol>
 						<xsl:for-each select="result/Accounting/Account"> <!-- [@credit != 0 or @debit != 0] -->

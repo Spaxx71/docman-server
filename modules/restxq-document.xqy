@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-document.xqy :)
+xquery version "3.1";
 
 module namespace dmdocument="http://exist-db.org/apps/restxq/docman-document";
 
@@ -34,11 +35,12 @@ declare namespace docman = "http://docman.bintellix.com";
 (: https://docman.com/exist-backend/rest/db/apps/docman/modules/module_document.xqm :)
 
 (:
-GET http://localhost:8080/exist/restxq/docman/bix/2020/binder/01
+	GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/binders/01/documents
+	GET /api/tenants/test/years/2020/binders/01/documents
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/binders/{$binder}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents")
     %output:media-type("text/xml")
 
     %rest:query-param("user", "{$user}", "Guest")
@@ -49,11 +51,12 @@ function dmdocument:listDocuments($user as xs:string*, $tenant as xs:string, $ye
 
 
 (: 
-GET http://localhost:8080/exist/restxq/docman/bix/2020/binder/01/xyz
+	GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/binders/01/documents/xyz
+	GET /api/tenants/test/years/2020/binders/01/documents/xyz
 :)
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
     %output:media-type("application/xml")
 
     %rest:query-param("user", "{$user}", "Guest")
@@ -64,11 +67,12 @@ function dmdocument:getDocument($user as xs:string*, $tenant as xs:string, $year
 
 
 (: 
-PUT	http://localhost:8080/exist/restxq/docman/bix/2020/binders/{$resource-id}
+	PUT	http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/binders/01/documents/xyz
+	PUT /api/tenants/test/years/2020/binders/01/documents/xyz	
 :)
 declare
     %rest:PUT("{$body}")
-    %rest:path("/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
 
     %rest:query-param("user", "{$user}", "Guest")
     %output:media-type("application/xml")
@@ -80,8 +84,29 @@ function dmdocument:putDocument($user as xs:string*, $tenant as xs:string, $year
 			else
 				document:createDocument($main:home-data,$tenant,$year,$binder,$document-id,$body)
 		return 
-		if ($result/name()='error') then
-			(
+			if ($result/name()='error') then
+				(
+					<rest:response>
+						<http:response status="501" message="An unexpected error occured at putDocument">
+							<http:header name="Content-Language" value="en"/>
+							<http:header name="Content-Type" value="text/html; charset=utf-8"/>
+						</http:response>
+					</rest:response>
+					,
+					<error>{$result}</error>
+				)
+			else
+				<div>
+					<ul class="Nav">
+						<li><a href="/app/{$tenant}/{$year}/binders/{$binder}/{$document-id}/edit/{replace(name($body/Process/Tasks/*[1]),'Task$','')}.html">Dokument ansehen</a></li>
+						<li><a href="/app/{$tenant}/{$year}/mail/index.html">Zurück zum Email Posteingang</a></li>
+						<li><a href="/app/{$tenant}/{$year}/transfer/index.html">Zurück zum Transfer Ordner</a></li>
+					</ul>
+					<result>{$result}</result>
+				</div>
+	}
+	catch * { 
+		(
 			<rest:response>
 				<http:response status="501" message="An unexpected error occured at putDocument">
 					<http:header name="Content-Language" value="en"/>
@@ -89,73 +114,53 @@ function dmdocument:putDocument($user as xs:string*, $tenant as xs:string, $year
 				</http:response>
 			</rest:response>
 			,
-			<error>{$result}</error>
-			)
-		else
-			<div>
-				<ul class="Nav">
-					<li><a href="/app/{$tenant}/{$year}/binders/{$binder}/{$document-id}/edit/{replace(name($body/Process/Tasks/*[1]),'Task$','')}.html">Dokument ansehen</a></li>
-					<li><a href="/app/{$tenant}/{$year}/mail/index.html">Zurück zum Email Posteingang</a></li>
-					<li><a href="/app/{$tenant}/{$year}/transfer/index.html">Zurück zum Transfer Ordner</a></li>
-				</ul>
-				<result>{$result}</result>
-			</div>
-	}
-	catch * { 
-		(
-		<rest:response>
-			<http:response status="501" message="An unexpected error occured at putDocument">
-				<http:header name="Content-Language" value="en"/>
-				<http:header name="Content-Type" value="text/html; charset=utf-8"/>
-			</http:response>
-		</rest:response>
-		,
-		<error>{$err:code, $err:value, $err:description, " module: ", $err:module, "(", $err:line-number, ",", $err:column-number, ")"}</error>
+			<error>{$err:code, $err:value, $err:description, " module: ", $err:module, "(", $err:line-number, ",", $err:column-number, ")"}</error>
 		)
 	}
 };
 
 
 (: 
-PATCH	http://localhost:8080/exist/restxq/docman/bix/2020/binders/{$resource-id}
+	POST	http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/binders/documents/xyz
+	POST /api/tenants/test/years/2020/binders/01/documents/xyz
 :)
 declare
     %rest:POST("{$body}")
-    %rest:path("/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
 
     %rest:query-param("user", "{$user}", "Guest")
     %output:media-type("application/xml")
-function dmdocument:patchDocument($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $body) {
+function dmdocument:postDocument($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $body) {
 	try {
 		if ($body/Task/@type) then
 			let $result := document:insertTask($main:home-data, $tenant, $year, $binder, $document-id, $body)
 			return 
-			if ($result/name()='error') then
-				(
+				if ($result/name()='error') then
+					(
+					<rest:response>
+						<http:response status="501" message="An unexpected error occured at patchDocument">
+							<http:header name="Content-Language" value="en"/>
+							<http:header name="Content-Type" value="text/html; charset=utf-8"/>
+						</http:response>
+					</rest:response>
+					,
+					<error>{$result}</error>
+					)
+				else
+					<ul class="Nav">
+						<li><a href="/app/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}/search.html">Dokument bearbeiten</a></li>
+						<li><a href="/app/{$tenant}/{$year}/transfer/index.html">Zurück zum Transfer Ordner</a></li>
+					</ul>
+		else
+			(
 				<rest:response>
-					<http:response status="501" message="An unexpected error occured at patchDocument">
+					<http:response status="400" message="Invalid syntax for data">
 						<http:header name="Content-Language" value="en"/>
 						<http:header name="Content-Type" value="text/html; charset=utf-8"/>
 					</http:response>
 				</rest:response>
 				,
-				<error>{$result}</error>
-				)
-			else
-				<ul class="Nav">
-					<li><a href="/app/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}/search.html">Dokument bearbeiten</a></li>
-					<li><a href="/app/{$tenant}/{$year}/transfer/index.html">Zurück zum Transfer Ordner</a></li>
-				</ul>
-		else
-			(
-			<rest:response>
-				<http:response status="400" message="Invalid syntax for data">
-					<http:header name="Content-Language" value="en"/>
-					<http:header name="Content-Type" value="text/html; charset=utf-8"/>
-				</http:response>
-			</rest:response>
-			,
-			<error>No valid body data for task. {$body//text()} document:insertTask({$main:home-data}, {$tenant}, {$year}, {$document-id}, {$body})</error>
+				<error>No valid body data for task. {$body//text()} document:insertTask({$main:home-data}, {$tenant}, {$year}, {$document-id}, {$body})</error>
 			)
 	}
 	catch * {
@@ -172,11 +177,12 @@ function dmdocument:patchDocument($user as xs:string*, $tenant as xs:string, $ye
 
 
 (: 
-DELETE http://localhost:8080/exist/restxq/docman/bix/2020/binders/01/xyz
+	DELETE http://localhost:8080/exist/restxq/docman/tenants/test/years/2020/binders/01/documents/xyz
+	DELETE /api/tenants/test/years/2020/binders/01/documents/xyz	
 :)
 declare
     %rest:DELETE
-    %rest:path("/docman/{$tenant}/{$year}/binders/{$binder}/{$document-id}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
 
     %rest:query-param("user", "{$user}", "Guest")
 

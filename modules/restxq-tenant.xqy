@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-tenant.xqy - needs to send accept :) 
+xquery version "3.1";
 
 module namespace dmtenant="http://exist-db.org/apps/restxq/docman-tenant";
 
@@ -32,41 +33,89 @@ declare namespace rerr= "http://exquery.org/ns/restxq/error";
 
 
 (: 
-https://docman.com/api
-http://localhost:8080/exist/restxq/docman
+    GET http://localhost:8080/exist/restxq/docman/tenants
+    GET /api/(xml|json)/tenants
 :) 
 declare
     %rest:GET
-    %rest:path("/docman")
-    %output:media-type("text/xml")
+    %rest:path("/docman/xml/tenants")
     %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
 
-function dmtenant:listTenants($user as xs:string*) {
+function dmtenant:listTenantsXML($user as xs:string*) {
+	tenant:listTenants($main:home-data)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+
+function dmtenant:listTenantsJSON($user as xs:string*) {
 	tenant:listTenants($main:home-data)
 };
 
 
 (: 
-https://docman.com/api/test
-http://localhost:8080/exist/restxq/docman/test
+    GET http://localhost:8080/exist/restxq/docman/tenants/test
+    GET /api/tenants/test
 :) 
 declare
     %rest:GET
-    %rest:path("/docman/{$tenant}")
-    %output:media-type("text/xml")
+    %rest:path("/docman/xml/tenants/{$tenant-id}")
     %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
 
-function dmtenant:getTenant($user as xs:string*, $tenant as xs:string) {
-	tenant:getTenant($main:home-data, $tenant)
+function dmtenant:getTenantXML($user as xs:string*, $tenant-id as xs:string) {
+	if (not(tenant:existsTenant($main:home-data, $tenant-id))) then
+		(
+            <rest:response>
+                <http:response status="404" message="Invalid data - tenant ID"/>
+            </rest:response>
+            ,
+            <error>Invalid tenant id '{$tenant-id}'</error>
+        )
+    else
+    	tenant:getTenant($main:home-data, $tenant-id)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant-id}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+
+function dmtenant:getTenantJSON($user as xs:string*, $tenant-id as xs:string) {
+	if (not(tenant:existsTenant($main:home-data, $tenant-id))) then
+		(
+            <rest:response>
+                <http:response status="404" message="Invalid data - tenant ID"/>
+            </rest:response>
+            ,
+            <error>Invalid tenant id '{$tenant-id}'</error>
+        )
+    else
+    	tenant:getTenant($main:home-data, $tenant-id)
 };
 
 
+(: 
+    DELETE http://localhost:8080/exist/restxq/docman/tenants/test
+    DELETE /api/tenants/test
+:) 
 declare
     %rest:DELETE
-    %rest:path("/docman/{$tenant}")
-    %rest:query-param("user", "{$user}", "Guest")
+    %rest:path("/docman/json/tenants/{$tenant-id}")
+    %rest:query-param("user", "{$user}", "Guest") 
+    %output:media-type("text/xml")
+    %output:method("xml")
 
-function dmtenant:deleteTenant($user as xs:string*, $display, $tenant as xs:string) {
+function dmtenant:deleteTenant($user as xs:string*, $display, $tenant-id as xs:string) {
 	()
 	(: delete node fn:collection("/db/widgets")//widget[@id = $id] :)
 };

@@ -31,7 +31,7 @@ declare variable $main:home-web-api := '/exist/restxq/docman';
 (: external URL when using Docman with the given http proxy excample :)
 
 declare variable $main:home-web-gui := '/app';
-declare variable $main:home-web-api := '/api';
+declare variable $main:home-web-api := '/api/xml';
 
 declare variable $main:home-data := '/db/apps/docman/data';
 declare variable $main:home-views := '/db/apps/docman/views';

@@ -1,180 +1,261 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
   <xs:element name="Accounts">
     <xs:complexType>
       <xs:sequence>
-        <xs:element maxOccurs="unbounded" name="Account">
+        <xs:element name="Account" type="AccountType" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+    <xs:key name="AccountIdKey">
+      <xs:selector xpath="Account"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="AccountKtoKey">
+      <xs:selector xpath="Account"/>
+      <xs:field xpath="@kto"/>
+    </xs:key>
+  </xs:element>
+
+  <xs:element name="Account" type="AccountType">
+  </xs:element>
+
+  <xs:complexType name="AccountType">
+    <xs:sequence>
+      <xs:element name="Name">
+        <xs:simpleType>
+          <xs:restriction base="xs:normalizedString">
+            <xs:minLength value="1"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="Notes" type="xs:string"/>
+      <xs:sequence minOccurs="0">
+        <xs:element name="Service" type="xs:string"/>
+        <xs:element name="Company">
           <xs:complexType>
             <xs:sequence>
-              <xs:element name="Name">
-                <xs:simpleType>
-                  <xs:restriction base="xs:normalizedString">
-                    <xs:minLength value="1"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="Notes" type="xs:string"/>
-              <xs:sequence minOccurs="0">
-                <xs:element name="Service" type="xs:string"/>
-                <xs:element name="Company">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element name="Name"/>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="Person">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element name="Vorname" type="xs:string"/>
-                      <xs:element name="Nachname" type="xs:string"/>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="Contact">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element name="Vorname" type="xs:string"/>
-                      <xs:element name="Nachname" type="xs:string"/>
-                      <xs:element name="Email" type="xs:string"/>
-                      <xs:element name="Website" default="" type="xs:anyURI"> </xs:element>
-                      <xs:element name="Telefon" type="xs:string"/>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="CustomerID" type="xs:string"/>
-                <xs:element name="ProcessTemplates">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element maxOccurs="unbounded" minOccurs="0" name="ProcessTemplate">
-                        <xs:complexType>
-                          <xs:sequence>
-                            <xs:element name="Section" type="xs:string"/>
-                            <xs:element name="Other">
-                              <xs:complexType>
-                                <xs:attribute name="kto" type="xs:string"/>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="RefID" type="xs:string"/>
-                            <xs:element name="TransactionID" type="xs:string"/>
-                            <xs:element name="Description" type="xs:string"/>
-                            <xs:element name="Tax">
-                              <xs:complexType>
-                                <xs:attribute name="key" type="xs:string"/>
-                                <xs:attribute name="region" type="xs:string"/>
-                                <xs:attribute name="type" type="xs:string"/>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="TotalAmount">
-                              <xs:complexType>
-                                <xs:attribute name="unit" type="xs:string"/>
-                                <xs:attribute name="value" type="xs:string"/>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="Appointment">
-                              <xs:complexType>
-                                <xs:attribute name="date" type="xs:string"/>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="Notes" type="xs:string"/>
-                          </xs:sequence>
-                        </xs:complexType>
-                      </xs:element>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
-                <xs:element name="PeriodicPayments">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element name="PeriodicPayment" maxOccurs="unbounded" minOccurs="0">
-                        <xs:complexType>
-                          <xs:sequence>
-                            <xs:element name="Name" type="xs:string"/>
-                            <xs:element name="Period">
-                              <xs:complexType>
-                                <xs:attribute name="interval" use="required" type="xs:NCName"/>
-                                <xs:attribute name="max" use="required" type="xs:integer"/>
-                                <xs:attribute name="min" use="required" type="xs:integer"/>
-                                <xs:attribute name="valid-from" use="required"/>
-                                <xs:attribute name="valid-till" use="required"/>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="DocumentTemplate">
-                              <xs:complexType>
-                                <xs:sequence>
-                                  <xs:element name="Section" type="xs:string"/>
-                                  <xs:element name="Other">
-                                    <xs:complexType>
-                                      <xs:attribute name="kto" type="xs:positiveInteger"/>
-                                    </xs:complexType>
-                                  </xs:element>
-                                  <xs:element name="RefID" type="xs:string"/>
-                                  <xs:element name="TransactionID" type="xs:string"/>
-                                  <xs:element name="TotalAmount">
-                                    <xs:complexType>
-                                      <xs:attribute name="unit"/>
-                                      <xs:attribute name="value"/>
-                                    </xs:complexType>
-                                  </xs:element>
-                                  <xs:element name="Tax">
-                                    <xs:complexType>
-                                      <xs:attribute name="region"/>
-                                      <xs:attribute name="key"/>
-                                      <xs:attribute name="type"/>
-                                    </xs:complexType>
-                                  </xs:element>
-                                  <xs:element name="Description" type="xs:string"/>
-                                </xs:sequence>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="PaymentOptions">
-                              <xs:complexType>
-                                <xs:sequence>
-                                  <xs:element name="PaymentOption" minOccurs="1">
-                                    <xs:complexType>
-                                      <xs:sequence>
-                                        <xs:element name="IBAN" type="xs:NCName"/>
-                                        <xs:element name="PaymentDetail">
-                                          <xs:complexType>
-                                            <xs:simpleContent>
-                                              <xs:extension base="xs:string">
-                                                <xs:attribute name="type">
-                                                  <xs:simpleType>
-                                                  <xs:restriction base="xs:string">
-                                                  <xs:enumeration value="TEXT"/>
-                                                  <xs:enumeration value="REGEX"/>
-                                                  </xs:restriction>
-                                                  </xs:simpleType>
-                                                </xs:attribute>
-                                              </xs:extension>
-                                            </xs:simpleContent>
-                                          </xs:complexType>
-                                        </xs:element>
-                                      </xs:sequence>
-                                      <xs:attribute name="type" use="required" type="xs:NCName"/>
-                                      <xs:attribute name="kto" use="required" type="xs:integer"/>
-                                    </xs:complexType>
-                                  </xs:element>
-                                </xs:sequence>
-                              </xs:complexType>
-                            </xs:element>
-                            <xs:element name="Notes" type="xs:string"/>
-                          </xs:sequence>
-                        </xs:complexType>
-                      </xs:element>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
-              </xs:sequence>
+              <xs:element name="Name"/>
             </xs:sequence>
-            <xs:attribute name="classes" use="required" type="xs:NCName"/>
-            <xs:attribute name="debtee"/>
-            <xs:attribute name="iban"/>
-            <xs:attribute name="id" use="required" type="xs:NMTOKEN"/>
-            <xs:attribute name="kto" use="required" type="xs:integer"/>
-            <xs:attribute name="type" use="required" type="xs:NCName"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Person">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Vorname" type="xs:string"/>
+              <xs:element name="Nachname" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Contact">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Vorname" type="xs:string"/>
+              <xs:element name="Nachname" type="xs:string"/>
+              <xs:element name="Email" type="xs:string"/>
+              <xs:element name="Website" default="" type="xs:anyURI"> </xs:element>
+              <xs:element name="Telefon" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="CustomerID" type="xs:string"/>
+        <xs:element name="BankAccounts">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="BankAccount" minOccurs="0" maxOccurs="50">
+                <xs:complexType>
+                  <xs:attribute name="name" type="xs:string"/>
+                  <xs:attribute name="iban" type="xs:string"/>
+                  <xs:attribute name="notes" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="ProcessTemplates">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ProcessTemplate" type="ProcessTemplateType" maxOccurs="50" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>        
+        <xs:element name="PeriodicPayments">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="PeriodicPayment" minOccurs="0" maxOccurs="50">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Name" type="xs:string"/>
+                    <xs:element name="Period">
+                      <xs:complexType>
+                        <xs:attribute name="interval" use="required" type="xs:NCName"/>
+                        <xs:attribute name="max" use="required" type="xs:integer"/>
+                        <xs:attribute name="min" use="required" type="xs:integer"/>
+                        <xs:attribute name="valid-from" use="required"/>
+                        <xs:attribute name="valid-till" use="optional"/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="DocumentTemplate" type="ProcessTemplateType" maxOccurs="50" minOccurs="0"/>
+                    <!-- 
+                    <xs:element name="Documents">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="InitialContract">
+                          </xs:element>
+                          <xs:element name="IntervalInvoice">
+                            <xs:complexType>
+                              <xs:attribute name="required" type="xs:boolean"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    -->
+                    <xs:element name="PaymentRules">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="PaymentRule" type="PaymentRuleType" minOccurs="0" maxOccurs="50"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <!--
+                    <xs:element name="PaymentOptions">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="PaymentOption" minOccurs="1">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="IBAN" type="xs:NCName"/>
+                                <xs:element name="PaymentDetail">
+                                  <xs:complexType>
+                                    <xs:simpleContent>
+                                      <xs:extension base="xs:string">
+                                        <xs:attribute name="type">
+                                          <xs:simpleType>
+                                          <xs:restriction base="xs:string">
+                                          <xs:enumeration value="TEXT"/>
+                                          <xs:enumeration value="REGEX"/>
+                                          </xs:restriction>
+                                          </xs:simpleType>
+                                        </xs:attribute>
+                                      </xs:extension>
+                                    </xs:simpleContent>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                              <xs:attribute name="type" use="required" type="xs:NCName"/>
+                              <xs:attribute name="kto" use="required" type="xs:integer"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    -->                  
+                    <xs:element name="Notes" type="xs:string"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
           </xs:complexType>
         </xs:element>
       </xs:sequence>
-    </xs:complexType>
-  </xs:element>
+      <xs:element name="BudgetCategories">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="BudgetCategory" minOccurs="0" maxOccurs="50">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Period">
+                                <xs:complexType>
+                                    <xs:attribute name="valid-from" type="xs:date" use="required"/>
+                                    <xs:attribute name="valid-till" type="xs:date" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="PaymentRules">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="PaymentRule" type="PaymentRuleType" minOccurs="0" maxOccurs="50"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Notes" type="xs:string" minOccurs="0"/>
+                        </xs:sequence>
+                        <xs:attribute name="id" type="xs:string" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Accounting">
+        <xs:complexType>
+          <xs:attribute name="openingBalance" type="xs:decimal" use="required"/>
+          <xs:attribute name="closingBalance" type="xs:decimal" use="required"/>
+          <xs:attribute name="debitSum" type="xs:decimal" use="required"/>
+          <xs:attribute name="creditSum" type="xs:decimal" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="classes" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="(self|creditor|debitor|assets|revenues|liabilities|expenses|bank)(\s(self|creditor|debitor|assets|revenues|expenses|liabilities|bank))*"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="debtee"/>
+    <xs:attribute name="id" use="required" type="xs:NMTOKEN"/>
+    <xs:attribute name="kto" use="required" type="xs:integer"/>
+    <xs:attribute name="type" use="required" type="xs:NCName"/>
+  </xs:complexType>
+
+  <xs:complexType name="PaymentRuleType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="type" use="required">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="SEPA_DIRECT-DEBIT_IBAN"/>
+              <xs:enumeration value="SEPA_DIRECT-DEBIT_CREDITOR-ID"/>
+              <xs:enumeration value="SEPA_CREDIT-TRANSFER_IBAN"/>
+              <xs:enumeration value="SEPA_PAYMENT-DETAILS_ASCII"/>
+              <xs:enumeration value="SEPA_PAYMENT-DETAILS_REGEX"/>
+              <xs:enumeration value="PAYER_BANK-ACCOUNT_CONCERNED"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ProcessTemplateType">
+    <xs:sequence>
+      <xs:element name="Section" type="xs:string"/>
+      <xs:element name="Other">
+        <xs:complexType>
+          <xs:attribute name="kto" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="RefID" type="xs:string"/>
+      <xs:element name="TransactionID" type="xs:string"/>
+      <xs:element name="Description" type="xs:string"/>
+      <xs:element name="Tax">
+        <xs:complexType>
+          <xs:attribute name="key" type="xs:string"/>
+          <xs:attribute name="region" type="xs:string"/>
+          <xs:attribute name="type" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="TotalAmount">
+        <xs:complexType>
+          <xs:attribute name="unit" type="xs:string"/>
+          <xs:attribute name="value" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Appointment">
+        <xs:complexType>
+          <xs:attribute name="date" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Notes" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
 </xs:schema>

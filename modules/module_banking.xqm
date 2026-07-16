@@ -17,7 +17,7 @@ All rights reserved by bintellix GmbH, Germany
 @Version: 1.0
 ======================================================================== 
 :)
-
+ 
 xquery version "3.1";
 
 (: 
@@ -74,6 +74,7 @@ declare function banking:listBankAccounts ($home-data as xs:string, $tenant as x
 		</BankAccounts>
 };
 
+
 (:
 	Take care of online banking data given back (: .../BankAccountDetail/[name()!='OnlineBanking'] :)
 :)
@@ -81,15 +82,35 @@ declare function banking:getBankAccount ($home-data as xs:string, $tenant as xs:
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
 	return
 		<BankAccount version="1.0" kto="{$bank-account-id}" hasOnlineBanking="{exists($bank-account/BankAccountDetail/OnlineBanking/*)}">
-		{
 			<BankAccountDetail>
 				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/@*}
-				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*}
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*[name()!='OnlineBanking' and name()!='Notes']}
+				<!-- <OnlineBanking> is hidden by security reason -->
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/Notes}
 			</BankAccountDetail>
-		}
+			{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/Accountings}
 		</BankAccount>
 };
 
+
+(:
+	Take care of online banking data given back (: .../BankAccountDetail/[name()!='OnlineBanking'] :)
+:)
+declare function banking:getBankAccountDetail ($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:integer) {
+	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
+	return
+		<BankAccount version="1.0" kto="{$bank-account-id}" hasOnlineBanking="{exists($bank-account/BankAccountDetail/OnlineBanking/*)}">
+			<BankAccountDetail>
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/@*}
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*[name()!='OnlineBanking' and name()!='Notes']}
+				<OnlineBanking>
+					{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/OnlineBanking/@*}
+					{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/OnlineBanking/*[name() != 'auth']}
+				</OnlineBanking>
+				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/Notes}
+			</BankAccountDetail>
+		</BankAccount>
+};
 
 
 declare function banking:listAccountings ($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:integer) {
@@ -229,60 +250,122 @@ declare function banking:getAccountingByIdAsPDF($home-data as xs:string, $home-w
 };
 
 
-declare function banking:getAccountBalanceList($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:string) {
+declare function local:getBookings($accounting-id as xs:string, $payments as node()*) as element()* {
+	for $payment in $payments/PaymentTask[RefID = $accounting-id]
+	return 
+		<Booking id="{$payment/@id}" 
+			amount="{format-number(xs:double($payment/Amount/text()), '0.00')}"
+			paymentDetail="{$payment/PaymentDetail/text()}"/>
+};
 
-	if ($home-data = '' or $tenant = '' or $bank-account-id = '' or $year = '' ) then
+
+declare function banking:getAccountBalanceList($home-data as xs:string, $tenant as xs:string, $year as xs:string, $bankAccountId as xs:string) {
+	if ($home-data = '' or $tenant = '' or $year = '' or $bankAccountId = '') then
 		<error>Mandatory parameter missing</error>
-	else if ($bank-account-id castable as xs:integer and xs:integer($bank-account-id) = 0) then
-		let $bank-accounts := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount
-		let $start-saldo := sum($bank-accounts/Accountings/@saldoInitAmount)
-		let $changes := 
-			for $item in $bank-accounts/Accountings/Accounting
-			let $d := $item/ValueDate
-			group by $d
-			order by $d
-			return
-				<change date="{$d}" value="{sum($item/Amount)}"/> 
+	
+	(: Fall: Summierung für alle Konten (bank-account-id = 0) :)
+  else if ($bankAccountId castable as xs:integer and xs:integer($bankAccountId) = 0) then
+    let $bankAccounts := collection($home-data || '/' || $tenant || '/' || $year)/BankAccount
+    let $paymentTasks := collection($home-data || '/' || $tenant || '/' || $year)/Process/Tasks/PaymentTask/RefID
+    return
+      let $start-saldo := sum($bankAccounts/Accountings/@saldoInitAmount)
+      (: Erfasse alle relevanten Datumswerte und gruppiere sie :)
+      let $dates := distinct-values(
+        for $account in $bankAccounts
+        for $accounting in $account/Accountings/Accounting
+        order by $accounting/ValueDate
+        return 
+          xs:date($accounting/ValueDate)
+      )
+      let $balances :=
+        for $date in $dates
+        (: Berechne die Tagesbuchungen über alle Konten :)
+        let $daily-balance := round-half-to-even(
+          sum(
+            for $account in $bankAccounts
+            let $daily-bookings := 
+              $account/Accountings/Accounting[xs:date(ValueDate) = $date]
+            return sum(for $amount in $daily-bookings/Amount/text() return xs:double($amount))
+          ) * 100
+        ) div 100
+        (: Berechne den laufenden Saldo als Startsaldo plus alle Buchungen bis einschließlich dieses Tages :)
+        let $daySaldo := $start-saldo + sum(
+          for $account in $bankAccounts
+          for $accounting in $account/Accountings/Accounting
+          where xs:date($accounting/ValueDate) <= $date
+          return xs:double($accounting/Amount/text())
+        )
+        return
+          (: Erstelle die Liste der Bankbewegungen mit Details und verknüpfe sie mit den Buchungen :)
+          let $transactions := 
+            for $account in $bankAccounts
+            for $accounting in $account/Accountings/Accounting[xs:date(ValueDate) = $date]
+            return 
+              <Transaction id="{$accounting/@id}" 
+                amount="{format-number(xs:double($accounting/Amount/text()), '0.00')}"
+                paymentDetail="{$accounting/PaymentDetail/text()}">
+                  <Bookings>
+                    { local:getBookings($accounting/@id, $paymentTasks) }
+                  </Bookings>
+              </Transaction>
+          let $day-of-year := xs:integer((xs:date($date) - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
+          return 
+            <Balance date="{$date}" 
+              day="{$day-of-year}"
+              amount="{format-number($daily-balance, '0.00')}"
+              saldo="{format-number($daySaldo, '0.00')}">
+              { $transactions }
+            </Balance>
+      return
+        (: Ausgabe der Balances für alle Konten im gewünschten Format :)
+        <Balances tenantId="{$tenant}" yearId="{$year}" bankAccountId="0" bankName="0" unit="EUR" saldoInitAmount="{$start-saldo}" numberOfPaymentTasks="{count($paymentTasks)}">
+          { $balances }
+        </Balances>
+	
+	(: Fall: Verarbeitung eines spezifischen Kontos :)
+	else
+		let $bankAccount := collection($home-data || '/' || $tenant || '/' || $year)/BankAccount[@kto = $bankAccountId]
+		let $paymentTasks := collection($home-data || '/' || $tenant || '/' || $year)/Process/Tasks/PaymentTask/RefID
 		return
-		<Balances tenant="{$tenant}" year="{$year}" bank-account="0" unit="EUR" saldoInitAmount="{$start-saldo}" href="{concat('/',$tenant,'/',$year,'/banking/index.html')}">
-		{
-			for $item at $pos in $changes
-			return
-				try {
-					<Balance date="{$item/@date}" value="{$start-saldo + sum($changes[position() le $pos]/@value)}" bank-account="0" day="{xs:integer((xs:date($item/@date) - xs:date(concat(year-from-date($item/@date),'-01-01'))) div xs:dayTimeDuration('P1D'))}"/>
-				}
-				catch * {
-					<error date="{$item/@date}" pos="{$pos}"/>
-				}
-		}
-		</Balances>
-	else 
-		let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
-		let $payments := collection($home-data||'/'||$tenant||'/'||$year)/Process/Tasks/PaymentTask/RefID
-		return
-		<Balances tenant="{$tenant}" year="{$year}" bank-account="{$bank-account/BankAccountDetail/AccountNick}" unit="EUR" saldoInitAmount="{$bank-account/Accountings/@saldoInitAmount}" href="{concat('/',$tenant,'/',$year,'/banking/',$bank-account-id,'/index.html')}">
-		{
-			for $item at $pos in $bank-account/Accountings/Accounting
-			let $d := $item/ValueDate
-			let $b := $item[@id = $payments]
-			group by $d
-			order by $d
-			return
-				try {
-					<Balance date="{$d}" value="{sum($item/@saldoAmount) div count($item/@saldoAmount)}" day="{xs:integer((xs:date($d) - xs:date(concat(year-from-date($d),'-01-01'))) div xs:dayTimeDuration('P1D'))}" href="{concat('/',$tenant,'/',$year,'/banking/',$bank-account-id,'/',$item[1]/@id,'/details.html')}">
-					{
-						if ($b) then
-							attribute {'isBooked'} {'true'}
-						else
-							attribute {'isBooked'} {'false'}
-					}
+		if (empty($bankAccount)) then
+			<error>No Bank movements found for {$bankAccountId}</error>
+		else
+			let $start-saldo := xs:double($bankAccount/Accountings/@saldoInitAmount)
+			(: Gruppiere und summiere alle Buchungen pro Datum, basierend auf Amount/text(), und liste die Bewegungen auf :)
+			let $changes :=
+				for $date in distinct-values($bankAccount/Accountings/Accounting/ValueDate)
+				order by $date
+				let $daily-balance := round-half-to-even(
+					sum(
+						for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)]
+						return xs:double($accounting/Amount/text())
+					) * 100
+				) div 100
+				let $transactions := 
+					for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)]
+					return 
+						<Transaction id="{$accounting/@id}" 
+							amount="{format-number(xs:double($accounting/Amount/text()), '0.00')}"
+							paymentDetail="{$accounting/PaymentDetail/text()}">
+							<Bookings>
+								{ local:getBookings($accounting/@id, $paymentTasks) }
+							</Bookings>
+						</Transaction>
+				let $day-of-year := xs:integer((xs:date($date) - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
+				let $daySaldo := $start-saldo + sum($bankAccount/Accountings/Accounting[xs:date(ValueDate) < xs:date($date)]/Amount) + $daily-balance
+				(: let $daySaldo := $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)][last()]/@saldoAmount :)(: Saldo is given based on booking date order! :)
+				return
+					<Balance date="{$date}" 
+						day="{$day-of-year}"
+						amount="{format-number($daily-balance, '0.00')}"
+						saldo="{format-number($daySaldo, '0.00')}">
+						{ $transactions }
 					</Balance>
-				}
-				catch * {
-					<error date="{$d}" pos="{$pos}"/>
-				}
-		}
-		</Balances>
+			return
+				(: Ausgabe im gewünschten Format für ein spezifisches Konto :)
+				<Balances tenantId="{$tenant}" yearId="{$year}" bankAccountId="{$bankAccount/@kto}" bankName="{$bankAccount/BankAccountDetail/AccountNick}" unit="EUR" saldoInitAmount="{$start-saldo}" numberOfPaymentTasks="{count($paymentTasks)}">
+					{ $changes }
+				</Balances>
 };
 
 
@@ -371,7 +454,7 @@ declare function banking:importStatementCSV($home-data, $tenant as xs:string, $c
 						<Recipient>{$row/Recipient/text()}</Recipient>
 						{ 
 						if ($row/DivergentRecepient != '') then
-							<DivergentRecepient>{$row/DivergentRecepient/text()}</DivergentRecepient>
+							<DivergentRecepient type="{$row/DivergentRecepient/@type/data()}">{$row/DivergentRecepient/text()}</DivergentRecepient>
 						else
 							()
 						}
@@ -471,7 +554,6 @@ declare function banking:importHibiscus($home-data as xs:string, $tenant as xs:s
 
 
 declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank-account as xs:string, $year as xs:integer, $from as xs:date?, $till as xs:date?, $doImport as xs:boolean?) {
-
 	let $start := if ($from castable as xs:date) then xs:date($from) else format-date(current-dateTime()-xs:dayTimeDuration('P90D'),'[Y0000]-[M00]-[D00]') 
 	let $end := if ($till castable as xs:date) then xs:date($till) else format-date(current-dateTime()-xs:dayTimeDuration('P1D'),'[Y0000]-[M00]-[D00]')
 	let $bank := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account]
@@ -555,12 +637,57 @@ declare function banking:storeAccountings ($home-data as xs:string, $tenant as x
 };
 
 
+
+(:
+	is been used by periodic-payments.xqy
+:)
+declare function banking:getPeriodicPaymentList ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string) {
+	let $collection := $home-data||'/'||$tenant||'/'||$year
+	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
+	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
+	for $PeriodicPayment in $Accountings/PeriodicPayments/PeriodicPayment
+	return
+		<PeriodicPayments>
+			<PeriodicPayment>
+				{$PeriodicPayment/@*}
+				{$PeriodicPayment/node()}
+				<RegardingAccount>
+					{$PeriodicPayment/../../@*}
+					{$PeriodicPayment/../../Name}
+					{$PeriodicPayment/../../Notes}
+				</RegardingAccount>
+			</PeriodicPayment>
+		</PeriodicPayments>
+};
+
+
+(:
+	Create a list of all available periodic payments (from accounts.dm.xml of given year).
+	$date: if given, then the given date should be used to filter only acive payment periods.
+:)
+declare function banking:getPeriodicPayments ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $date as xs:date?) {
+	let $collection := $home-data||'/'||$tenant||'/'||$year
+	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
+	for $PeriodicPayment in $Accountings/PeriodicPayments/PeriodicPayment
+	return
+		if ($date) then
+			if ($PeriodicPayment/Period/@valid-from <= $date and $PeriodicPayment/Periodic/@valid-till >= $date) then
+				$PeriodicPayment
+			else
+				()
+		else
+			$PeriodicPayment
+};
+
+(:
+	is been used by banking:createPeriodicPayments, banking_periodic-payment.xqy, banking_create-periodics.xqy, automatic_periodic-payments.xqy
+:)
 declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $payment-id as xs:string) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
 	let $Movement := $bank-account/Accountings/Accounting[@id=$payment-id]
-	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
-	for $PeriodicPayment in $Accountings[contains-token(@iban, $Movement/IBAN)]/PeriodicPayments/PeriodicPayment (: [Period/@valid-from <= $Movement/ValueDate and Periodic/@valid-till >= $Movement/ValueDate] :)
+	let $PeriodicPayments := banking:getPeriodicPayments($home-data, $tenant, $year, ())
+	for $PeriodicPayment in $PeriodicPayments[PaymentOptions/PaymentOption/IBAN = $Movement/IBAN]
 	return
 		if ($PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/@type='TEXT' and not(contains(string-join($Movement/PaymentDetails/PaymentDetail,''), $PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail))) then
 			<error>The Payment Detail '{$Movement/PaymentDetails/PaymentDetail/text()}' does not contain the text '{$PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/text()}'</error>
@@ -626,17 +753,18 @@ declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as
 			</Process>
 };
 
-declare function banking:updateViaFinTS ($RecipientCountry as xs:string, $RecipientBic as xs:string, $RecipientIban as xs:string, $RecipientName as xs:string, $Date as xs:date, $CurrencyAmount as xs:double, $CurrencyUnit as xs:string, $UsageText as xs:string) {
-	let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
+declare function banking:transferViaFinTS ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $RecipientCountry as xs:string, $RecipientBic as xs:string, $RecipientIban as xs:string, $RecipientName as xs:string, $Date as xs:date, $CurrencyAmount as xs:double, $CurrencyUnit as xs:string, $UsageText as xs:string) {
+	let $collection := $home-data||'/'||$tenant||'/'||$year
+	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
 
-	let $bank-statement-init := hbci4java:initialize($bank/BankAccountDetail/CustomerID, "DE", $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, "geheim", $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader)
-	let $bank-statement-bankTransfer := hbci4java:arangeBankTransfer($bank/BankAccountDetail/CustomerID, $RecipientCountry, RecipientBic, $RecipientIban, $RecipientName, null, $CurrencyAmount, $CurrencyUnit, $UsageText)
-	let $bank-statement-close := hbci4java:close($bank/BankAccountDetail/CustomerID)
+	let $bank-statement-init := hbci4java:initialize($bank-account/BankAccountDetail/CustomerID, "DE", $bank-account/BankAccountDetail/OnlineBanking/Port, $bank-account/BankAccountDetail/BLZ, $bank-account/BankAccountDetail/BIC, $bank-account/BankAccountDetail/IBAN, $bank-account/BankAccountDetail/KTNR, $bank-account/BankAccountDetail/BankUserID, $bank-account/BankAccountDetail/CustomerID, "geheim", $bank-account/BankAccountDetail/OnlineBanking/Auth/@type, $bank-account/BankAccountDetail/OnlineBanking/Auth/PIN, $bank-account/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank-account/BankAccountDetail/OnlineBanking/MessageOut/@url, null)
+	let $bank-statement-bankTransfer := hbci4java:arangeBankTransfer($bank-account/BankAccountDetail/CustomerID, $RecipientCountry, RecipientBic, $RecipientIban, $RecipientName, null, $CurrencyAmount, $CurrencyUnit, $UsageText)
+	let $bank-statement-close := hbci4java:close($bank-account/BankAccountDetail/CustomerID)
 	return
 		<result>
 			<init>{$bank-statement-init}</init>
 			<transfer>{$bank-statement-bankTransfer}</transfer>
-			<close>{$close}</close>
+			<close>{$bank-statement-close}</close>
 		</result>
 };
 

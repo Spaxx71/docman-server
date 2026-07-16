@@ -1,4 +1,4 @@
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs" version="3.0">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xf="http://www.w3.org/2002/xforms" exclude-result-prefixes="xs" version="3.0">
 
 	<xsl:decimal-format name="EU" decimal-separator="," grouping-separator="."/>
 
@@ -9,11 +9,12 @@
 			<GV key="083" type="prefix">Auszahlung</GV> 
 			<GV key="104" type="fallback">Einzelbuchung Soll, SEPA B2B</GV>
 			<GV key="105" type="replace">Lastschrift von</GV> <!-- Einzelbuchung Soll, SEPA Core -->
+			<GV key="106" type="replace">Lastschrift via Karte</GV> <!-- Einzelbuchung Soll, SEPA Core -->
 			<GV key="107" type="replace">Lastschrift (ELV) von</GV>
 			<GV key="108" type="fallback">Rückbelastung Soll, SEPA B2B</GV>
 			<GV key="109" type="fallback">Rückbelastung Soll, SEPA Core</GV>
-			<GV key="116" type="fallback">Überweisung</GV> <!-- Einzelbuchung Soll -->
-			<GV key="118" type="fallback">Einzelbuchung Soll</GV>
+			<GV key="116" type="fallback">Überweisung an</GV> <!-- Einzelbuchung Soll -->
+			<GV key="118" type="fallback">Überweisung (SOFORT) an</GV> <!-- Einzelbuchung INSTANT Soll -->
 			<GV key="119" type="fallback">Einzelbuchung Spende (SEPA Purpose Code: CHAR)</GV>
 			<GV key="152" type="fallback">Einzelbuchung Dauerauftrag</GV>
 			<GV key="153" type="fallback">Einzelbuchung Haben, Lohn, Gehalts, Rentengutschrift</GV>
@@ -21,8 +22,8 @@
 			<GV key="156" type="fallback">Einzelbuchung Haben, Überweisung öffentlicher Kassen</GV>
 			<GV key="159" type="fallback">Retoure Haben für unanbringliche SEPA Überweisung</GV>
 			<GV key="160" type="fallback">Rücküberweisung (wegen Rückruf)</GV>
-			<GV key="166" type="fallback">Gutschrift</GV> <!-- Einzelbuchung Haben -->
-			<GV key="168" type="fallback">Gutschrift von</GV> <!-- Einzelbuchung Haben -->
+			<GV key="166" type="fallback">Gutschrift von</GV> <!-- Einzelbuchung Haben -->
+			<GV key="168" type="fallback">Gutschrift (SOFORT) von</GV> <!-- Einzelbuchung Haben -->
 			<GV key="169" type="replace">Einzelbuchung Spende(SEPA Purpose Code: CHAR)</GV>
 			<GV key="171" type="fallback">Einzelbuchung Haben, SEPA Core</GV>
 			<GV key="174" type="fallback">Einzelbuchung Haben, SEPA B2B</GV>
@@ -79,7 +80,27 @@
 		</GVs>
 	</xsl:variable>
 
-	<!-- <xsl:key name="GVC" match="$GVList/GVs/GV" use="@code"/> -->
+	
+	<!-- Template, to separate string into couples of four chars -->
+	<xsl:template name="split-into-blocks">
+		<xsl:param name="inputString"/>
+		<xsl:param name="blockSize" select="4"/>
+		
+		<!-- Starting with the first 4 chars -->
+		<xsl:value-of select="substring($inputString, 1, $blockSize)"/>
+		
+		<!-- check if there are more chars -->
+		<xsl:if test="string-length($inputString) &gt; $blockSize">
+			<!-- add separtor sign -->
+			<xsl:text> </xsl:text>
+			<!-- repeat with the rest of chars -->
+			<xsl:call-template name="split-into-blocks">
+				<xsl:with-param name="inputString" select="substring($inputString, $blockSize + 1)"/>
+				<xsl:with-param name="blockSize" select="$blockSize"/>
+			</xsl:call-template>
+		</xsl:if>
+	</xsl:template>
+
 
 	<xsl:template name="BankAccountDetail">
 		<xsl:param name="BankAccountDetail" required="yes" as="element()"/>
@@ -110,21 +131,25 @@
 				</td>
 			</tr>
 			<tr>
-				<th>IBAN (BIC):</th>
+				<th>IBAN / BIC:</th>
 				<td>
-					<xsl:value-of select="$BankAccountDetail/IBAN"/>
-					<xsl:text> (</xsl:text>
+					<!-- <xsl:value-of select="$BankAccountDetail/IBAN"/> -->
+					<xsl:call-template name="split-into-blocks">
+						<xsl:with-param name="inputString" select="$BankAccountDetail/IBAN"/>
+					</xsl:call-template>
+					<xsl:text> / </xsl:text>
 					<xsl:value-of select="$BankAccountDetail/BIC"/>
-					<xsl:text>)</xsl:text>
 				</td>
 			</tr>
 			<tr>
 				<th>KontoNr / BLZ:</th>
 				<td>
-					<xsl:value-of select="$BankAccountDetail/KTNR"/>
-					<xsl:text> (</xsl:text>
+					<!-- <xsl:value-of select="$BankAccountDetail/KTNR"/> -->
+					<xsl:call-template name="split-into-blocks">
+						<xsl:with-param name="inputString" select="$BankAccountDetail/KTNR"/>
+					</xsl:call-template>
+					<xsl:text> / </xsl:text>
 					<xsl:value-of select="$BankAccountDetail/BLZ"/>
-					<xsl:text>)</xsl:text>
 				</td>
 			</tr>
 			<tr>
@@ -187,272 +212,293 @@
 		</table>
 	</xsl:template>
 
+	
 	<xsl:template match="Accountings">
 		<table>
-			<tr>
-				<th>#</th>
-				<th>Aktivität</th>
-				<th>Datum</th>
-				<th>Betrag</th>
-				<th>Umsatzart</th>
-				<th>Begünstigter / Auftraggeber</th>
-				<th>Verwendungszweck</th>
-				<th>IBAN</th>
-				<th>BIC</th>
-				<th>Kundenreferenz</th>
-				<th>Mandatsreferenz</th>
-				<th>Gläubiger ID</th>
-				<th>Sonstiges</th>
-				<th>Saldo</th>
-			</tr>
-			<xsl:apply-templates>
-				<xsl:sort select="BookingDate"/>
-			</xsl:apply-templates>
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Datum</th>
+					<th>Betrag</th>
+					<th>Umsatzart</th>
+					<th>Begünstigter / Auftraggeber</th>
+					<th>Verwendungszweck</th>
+					<th>Saldo</th>
+					<th>Kategorie</th>
+					<th>Aktivität</th>
+					<th>IBAN</th>
+					<th>BIC</th>
+					<th>Kundenreferenz</th>
+					<th>Mandatsreferenz</th>
+					<th>Gläubiger ID</th>
+					<th>Sonstiges</th>
+				</tr>
+			</thead>
+			<tbody>
+				<xsl:apply-templates>
+					<xsl:sort select="BookingDate"/>
+				</xsl:apply-templates>
+			</tbody>
 		</table>
 	</xsl:template>
-	
+
 
 	<xsl:template match="Accounting">
 		<xsl:variable name="iban" select="IBAN"/>
-		<xsl:variable name="owner" select="/result/Accounts/Account[$iban=tokenize(@iban)]"/>
+		<xsl:variable name="owner" select="/result/Accounts/Account[$iban=BankAccounts/BankAccount/@iban]"/>
 		<xsl:variable name="isDuplicate" select="exists(/result/Parameter/UsedIDs/UsedID[. = current()/@id])"/>
 
 		<tr>
-			<xsl:attribute name="class">
-				<xsl:choose>
-					<xsl:when test="count(preceding-sibling::*) mod 2 = 0">
-						<xsl:text>even</xsl:text>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:text>odd</xsl:text>
-					</xsl:otherwise>
-				</xsl:choose>
+			<xsl:try>
 
-				<xsl:variable name="previousSaldo">
+				<xsl:attribute name="class">
 					<xsl:choose>
-						<xsl:when test="not(preceding-sibling::Accounting)">
-							<xsl:value-of select="../@saldoInitAmount"/>
+						<xsl:when test="count(preceding-sibling::*) mod 2 = 0">
+							<xsl:text>even</xsl:text>
 						</xsl:when>
 						<xsl:otherwise>
-							<xsl:value-of select="preceding-sibling::Accounting[1]/@saldoAmount"/>
+							<xsl:text>odd</xsl:text>
 						</xsl:otherwise>
 					</xsl:choose>
-				</xsl:variable>
-				<xsl:choose>
-					<xsl:when test="not(Amount castable as xs:double)">
-						<xsl:text> Invalid</xsl:text>
-					</xsl:when>
-					<xsl:when test="not($previousSaldo castable as xs:double)">
-						<xsl:text> NoTrust</xsl:text>
-					</xsl:when>
-					<xsl:when test="not(@saldoAmount castable as xs:double)">
-						<xsl:text> NoTrust</xsl:text>
-					</xsl:when>
-					<xsl:when test="format-number(xs:double($previousSaldo) + xs:double(Amount) + xs:double(if(ExternalCosts castable as xs:double) then ExternalCosts else 0),'0.00') = format-number(@saldoAmount,'0.00')">
-						<xsl:text> Trusted</xsl:text>
-					</xsl:when>
-					<xsl:when test="preceding-sibling::Accounting[1]/@saldoAmount">
-						<xsl:text> Invalid</xsl:text>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:text> Invalid</xsl:text>
-					</xsl:otherwise>
-				</xsl:choose>
 
-				<xsl:if test="$isDuplicate">
-					<xsl:text> Duplicate</xsl:text>
-				</xsl:if>
-			</xsl:attribute>
-
-			<td>
-				<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/details.html')}">
-					<xsl:value-of select="count(preceding-sibling::Accounting)+1"/>
-				</a>
-
-				<xsl:if test="$isDuplicate">
-					<xsl:text> !</xsl:text>
-				</xsl:if>
-			</td>
-			<td>
-				<xsl:choose>
-					<xsl:when test="format-number(@booked-amount,'0.00')=format-number(Amount,'0.00')">
-						<xsl:attribute name="class" select="'done'"/>
-						<xsl:for-each select="tokenize(@booked)">
-							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
-							<br/>
-						</xsl:for-each>
-						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">weiteren Beleg zuordnen</a>
-					</xsl:when>
-					<xsl:when test="(Amount &lt; 0 and @booked-amount &gt; 0) or (Amount &gt; 0 and @booked-amount &lt; 0)">
-						<xsl:attribute name="class" select="'invalid'"/>
-						<div>Falsche Zuordnung:</div>
-						<xsl:for-each select="tokenize(@booked)">
-							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
-							<br/>
-						</xsl:for-each>
-					</xsl:when>
-					<xsl:when test="abs(Amount) &lt; abs(@booked-amount)">
-						<xsl:attribute name="class" select="'invalid'"/>
-						<div>Falsche Zuordnung:</div>
-						<xsl:for-each select="tokenize(@booked)">
-							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
-							<br/>
-						</xsl:for-each>
-					</xsl:when>
-					<xsl:when test="@booked">
-						<xsl:attribute name="class" select="'part'"/>
-						<xsl:for-each select="tokenize(@booked)">
-							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
-							<br/>
-						</xsl:for-each>
-						<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">weiteren Beleg zuordnen</a>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:attribute name="class" select="'open'"/>
-						<ul class="Nav">
-							<li><a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/enter/index.html?ref=','/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'.pdf')}">Dokument erstellen</a></li>
-							<li><a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">einem Beleg zuordnen</a></li>
-						</ul>
-					</xsl:otherwise>
-				</xsl:choose>
-			</td>
-			<td>
-				<xsl:value-of select="format-date(ValueDate,'[D01].[M01].[Y0001]')"/><br/>
-				<span style="color:#aaa" class="BookingDate">
-					<xsl:value-of select="format-date(BookingDate,'[D01].[M01].[Y0001]')"/>
-				</span>
-			</td>
-			<td class="Money">
-				<xsl:value-of select="format-number(Amount,'#.##0,00','EU')"/>
-				
-				<div>
+					<xsl:variable name="previousSaldo">
+						<xsl:choose>
+							<xsl:when test="not(preceding-sibling::Accounting)">
+								<xsl:value-of select="../@saldoInitAmount"/>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:value-of select="preceding-sibling::Accounting[1]/@saldoAmount"/>
+							</xsl:otherwise>
+						</xsl:choose>
+					</xsl:variable>
 					<xsl:choose>
-						<xsl:when test="format-number(Amount,'0.00')=format-number(@booked-amount,'0.00')">
-							<xsl:attribute name="style" select="'color:#6c6'"/>
+						<xsl:when test="not(Amount castable as xs:double)">
+							<xsl:text> Invalid</xsl:text>
 						</xsl:when>
-						<xsl:when test="(Amount &lt; 0 and @booked-amount &gt; 0) or (Amount &gt; 0 and @booked-amount &lt; 0)">
-							<xsl:attribute name="style" select="'color:#d20'"/>
+						<xsl:when test="not($previousSaldo castable as xs:double)">
+							<xsl:text> NoTrust</xsl:text>
 						</xsl:when>
-						<xsl:when test="abs(Amount) &lt; abs(@booked-amount)">
-							<xsl:attribute name="style" select="'color:#d20'"/>
+						<xsl:when test="not(@saldoAmount castable as xs:double)">
+							<xsl:text> NoTrust</xsl:text>
 						</xsl:when>
-						<xsl:when test="@booked">
-							<xsl:attribute name="style" select="'color:#f90'"/>
+						<xsl:when test="format-number(xs:double($previousSaldo) + xs:double(Amount) + xs:double(if(ExternalCosts castable as xs:double) then ExternalCosts else 0),'0.00') = format-number(@saldoAmount,'0.00')">
+							<xsl:text> Trusted</xsl:text>
+						</xsl:when>
+						<xsl:when test="preceding-sibling::Accounting[1]/@saldoAmount">
+							<xsl:text> Invalid</xsl:text>
 						</xsl:when>
 						<xsl:otherwise>
-							<xsl:attribute name="style" select="'color:#ea3'"/>
-						</xsl:otherwise>
-					</xsl:choose>				
-					<xsl:text> (</xsl:text>
-					<xsl:choose>
-						<xsl:when test="@booked-amount castable as xs:decimal">
-							<xsl:value-of select="format-number(@booked-amount,'#.##0,00','EU')"/>
-						</xsl:when>
-						<xsl:otherwise>
-							<xsl:value-of select="format-number(0,'#.##0,00','EU')"/>
+							<xsl:text> Invalid</xsl:text>
 						</xsl:otherwise>
 					</xsl:choose>
-					<xsl:text>)</xsl:text>
-				</div>
-				<xsl:if test="OriginalAmount != ''">
-					<div style="color:#aaa" class="OriginalAmount ClassMoney">
-						<xsl:text> orig: </xsl:text>
-						<xsl:value-of select="OriginalAmout"/>
-						<xsl:text/>
-					</div>
-				</xsl:if>
-			</td>
-			<td>
-				<xsl:variable name="GV" select="$GVList/GVs/GV[@key=current()/SalesType/@key]"/>
-				<xsl:choose>
-					<xsl:when test="$GV[@type='replace']">
-						<xsl:value-of select="$GV/text()"/>
-					</xsl:when>
-					<xsl:when test="$GV[@type='prefix']">
-						<xsl:value-of select="$GV/text()"/>
-						<xsl:if test="SalesType/text() != ''">
-							<xsl:text>: </xsl:text>
-							<span style="color:#999"><xsl:value-of select="SalesType"/></span>
-						</xsl:if>
-					</xsl:when>
-					<xsl:when test="SalesType/text() != ''">
-						<span style="color:#999"><xsl:value-of select="SalesType"/></span>
-					</xsl:when>
-					<xsl:otherwise> <!-- @type="fallback" -->
-						<xsl:value-of select="$GV/text()"/>
-					</xsl:otherwise>
-				</xsl:choose>
-			</td>
-			<td>
-				<xsl:choose>
-					<xsl:when test="$owner">
-						<xsl:value-of select="Recipient"/>
-						<br/>			
-						<a href="{$home-web-gui}/{$tenant}/accounts/{$owner/@id}/details.html" style="color:#aaa">
-							<xsl:value-of select="$owner/Name"/>
-							<xsl:text> (</xsl:text>
-							<xsl:value-of select="$owner/@kto"/>
-							<xsl:text>)</xsl:text>
-						</a>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:value-of select="Recipient"/>
-					</xsl:otherwise>
-				</xsl:choose>
-				<xsl:if test="DivergentRecepient">
-					<div style="color:#aaa" class="DivergentRecepient">
+
+					<xsl:if test="$isDuplicate">
+						<xsl:text> Duplicate</xsl:text>
+					</xsl:if>
+				</xsl:attribute>
+				<td>
+					<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/details.html')}">
+						<xsl:value-of select="count(preceding-sibling::Accounting)+1"/>
+					</a>
+
+					<xsl:if test="$isDuplicate">
+						<xsl:text> !</xsl:text>
+					</xsl:if>
+				</td>
+				<td>
+					<xsl:value-of select="format-date(ValueDate,'[D01].[M01].[Y0001]')"/><br/>
+					<span style="color:#aaa" class="BookingDate">
+						<xsl:value-of select="format-date(BookingDate,'[D01].[M01].[Y0001]')"/>
+					</span>
+				</td>
+				<td class="Money">
+					<xsl:value-of select="format-number(Amount,'#.##0,00','EU')"/>
+					
+					<div>
+						<xsl:choose>
+							<xsl:when test="format-number(Amount,'0.00')=format-number(@booked-amount,'0.00')">
+								<xsl:attribute name="style" select="'color:#6c6'"/>
+							</xsl:when>
+							<xsl:when test="(Amount &lt; 0 and @booked-amount &gt; 0) or (Amount &gt; 0 and @booked-amount &lt; 0)">
+								<xsl:attribute name="style" select="'color:#d20'"/>
+							</xsl:when>
+							<xsl:when test="abs(Amount) &lt; abs(@booked-amount)">
+								<xsl:attribute name="style" select="'color:#d20'"/>
+							</xsl:when>
+							<xsl:when test="@booked">
+								<xsl:attribute name="style" select="'color:#f90'"/>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:attribute name="style" select="'color:#ea3'"/>
+							</xsl:otherwise>
+						</xsl:choose>				
 						<xsl:text> (</xsl:text>
-						<xsl:value-of select="DivergentRecepient"/>
+						<xsl:choose>
+							<xsl:when test="@booked-amount castable as xs:decimal">
+								<xsl:value-of select="format-number(@booked-amount,'#.##0,00','EU')"/>
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:value-of select="format-number(0,'#.##0,00','EU')"/>
+							</xsl:otherwise>
+						</xsl:choose>
 						<xsl:text>)</xsl:text>
 					</div>
-				</xsl:if>
-			</td>
-			<td>
-				<xsl:for-each select="PaymentDetails/PaymentDetail">
-					<div class="PaymentDetail">
-						<xsl:value-of select="."/>
-					</div>
-				</xsl:for-each>
-				<xsl:for-each select="Usages/Usage">
-					<div class="Usage" style="font-style:italic;">
-						<xsl:value-of select="."/>
-					</div>
-				</xsl:for-each>
-				<xsl:if test="Additional != ''">
-					<div class="Additional">
-						<xsl:value-of select="Additional"/>
-					</div>
-				</xsl:if>
-			</td>
-			<td>
-				<xsl:choose>
-					<xsl:when test="$owner">
-						<a href="{$home-web-gui}/{$tenant}/accounts/{$owner/@id}/details.html">
-							<xsl:value-of select="IBAN"/>
-						</a>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:value-of select="IBAN"/>
-					</xsl:otherwise>
-				</xsl:choose>
-			</td>
-			<td><xsl:value-of select="BIC"/></td>
-			<td>
-				<xsl:value-of select="EndToEndRef"/>
-				<xsl:if test="CustomerRef != '' and CustomerRef != 'NONREF'">
-					<xsl:value-of select="CustomerRef"/>
-				</xsl:if>
-			</td>
-			<td><xsl:value-of select="MandantRef"/></td>
-			<td><xsl:value-of select="CreditorID"/></td>
-			<td>
-				<xsl:if test="ExternalCosts != ''">
-					<div class="ExternalCosts">Externe Kosten: <xsl:value-of select="ExternalCosts"/></div>
-				</xsl:if>
-			</td>
-			<td class="Money">
-				<xsl:value-of select="format-number(@saldoAmount,'#.##0,00','EU')"/>
-			</td>
+					<!--
+					<xsl:if test="OriginalAmount != ''">
+						<div style="color:#aaa" class="OriginalAmount ClassMoney">
+							<xsl:text> orig: </xsl:text>
+							<xsl:value-of select="OriginalAmout"/>
+							<xsl:text/>
+						</div>
+					</xsl:if>
+					-->
+				</td>
+				<td style="white-space: nowrap;">
+					<xsl:variable name="GV" select="$GVList/GVs/GV[@key=current()/SalesType/@key]"/>
+					<xsl:choose>
+						<xsl:when test="$GV[@type='replace']">
+							<xsl:value-of select="$GV/text()"/>
+						</xsl:when>
+						<xsl:when test="$GV[@type='prefix']">
+							<xsl:value-of select="$GV/text()"/>
+							<xsl:if test="SalesType/text() != ''">
+								<xsl:text>: </xsl:text>
+								<span style="color:#999"><xsl:value-of select="SalesType"/></span>
+							</xsl:if>
+						</xsl:when>
+						<xsl:when test="SalesType/text() != ''">
+							<span style="color:#999"><xsl:value-of select="SalesType"/></span>
+						</xsl:when>
+						<xsl:otherwise> <!-- @type="fallback" -->
+							<xsl:value-of select="$GV/text()"/>
+						</xsl:otherwise>
+					</xsl:choose>
+				</td>
+				<td>
+					<xsl:choose>
+						<xsl:when test="$owner">
+							<xsl:value-of select="Recipient"/>
+							<br/>			
+							<a href="{$home-web-gui}/{$tenant}/accounts/{$owner/@id}/details.html" style="color:#aaa">
+								<xsl:value-of select="$owner/Name"/>
+								<xsl:text> (</xsl:text>
+								<xsl:value-of select="$owner/@kto"/>
+								<xsl:text>)</xsl:text>
+							</a>
+						</xsl:when>
+						<xsl:otherwise>
+							<xsl:value-of select="Recipient"/>
+						</xsl:otherwise>
+					</xsl:choose>
+					<xsl:if test="DivergentRecepient">
+						<div style="color:#aaa; background-color:#ffffcc" class="DivergentRecepient">
+							<xsl:text>Abweichender Kontoinhaber:</xsl:text>
+							<xsl:value-of select="DivergentRecepient"/>
+						</div>
+					</xsl:if>
+				</td>
+				<td>
+					<xsl:if test="PaymentDetail != ''">
+						<div class="PaymentDetail">
+							<xsl:value-of select="."/>
+						</div>
+					</xsl:if>
+					<xsl:if test="Usage != ''">
+						<div class="Usage" style="font-style:italic;">
+							<xsl:value-of select="."/>
+						</div>
+					</xsl:if>
+					<xsl:if test="Additional != ''">
+						<div class="Additional">
+							<xsl:value-of select="Additional"/>
+						</div>
+					</xsl:if>
+				</td>
+				<td class="Money" style="background-color:rgba(0,0,0,0.1)">
+					<xsl:value-of select="format-number(@saldoAmount,'#.##0,00','EU')"/>
+				</td>			
+				<td>
+					<xsl:choose>
+						<xsl:when test="format-number(@booked-amount,'0.00')=format-number(Amount,'0.00')">
+							<xsl:attribute name="class" select="'done'"/>
+							<xsl:for-each select="tokenize(@booked)">
+								<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
+								<br/>
+							</xsl:for-each>
+							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">weiteren Beleg zuordnen</a>
+						</xsl:when>
+						<xsl:when test="(Amount &lt; 0 and @booked-amount &gt; 0) or (Amount &gt; 0 and @booked-amount &lt; 0)">
+							<xsl:attribute name="class" select="'invalid'"/>
+							<div>Falsche Zuordnung:</div>
+							<xsl:for-each select="tokenize(@booked)">
+								<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
+								<br/>
+							</xsl:for-each>
+						</xsl:when>
+						<xsl:when test="abs(Amount) &lt; abs(@booked-amount)">
+							<xsl:attribute name="class" select="'invalid'"/>
+							<div>Falsche Zuordnung:</div>
+							<xsl:for-each select="tokenize(@booked)">
+								<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
+								<br/>
+							</xsl:for-each>
+						</xsl:when>
+						<xsl:when test="@booked">
+							<xsl:attribute name="class" select="'part'"/>
+							<xsl:for-each select="tokenize(@booked)">
+								<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/',.,'.html')}">Verknüpfung <xsl:value-of select="position()"/> anzeigen</a>
+								<br/>
+							</xsl:for-each>
+							<a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">weiteren Beleg zuordnen</a>
+						</xsl:when>
+						<xsl:otherwise>
+							<xsl:attribute name="class" select="'open'"/>
+							<ul class="Nav">
+								<li><a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/binders/enter/index.html?ref=','/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'.pdf')}">Dokument erstellen</a></li>
+								<li><a href="{concat($home-web-gui,'/',$tenant,'/',$year,'/banking/',$resource-id,'/',@id,'/assign-document.html?owner=',$owner/@kto)}">einem Beleg zuordnen</a></li>
+							</ul>
+						</xsl:otherwise>
+					</xsl:choose>
+				</td>
+				<td>
+					<xsl:value-of select="@budgetCategory"/>
+				</td>				
+				<td>
+					<xsl:choose>
+						<xsl:when test="$owner">
+							<a href="{$home-web-gui}/{$tenant}/accounts/{$owner/@id}/details.html">
+								<!-- <xsl:value-of select="IBAN"/> -->
+								<xsl:call-template name="split-into-blocks">
+									<xsl:with-param name="inputString" select="IBAN"/>
+								</xsl:call-template>
+							</a>
+						</xsl:when>
+						<xsl:otherwise>
+							<!-- <xsl:value-of select="IBAN"/> -->
+							<xsl:call-template name="split-into-blocks">
+								<xsl:with-param name="inputString" select="IBAN"/>
+							</xsl:call-template>
+						</xsl:otherwise>
+					</xsl:choose>
+				</td>
+				<td><xsl:value-of select="BIC"/></td>
+				<td>
+					<xsl:value-of select="EndToEndRef"/>
+					<xsl:if test="CustomerRef != '' and CustomerRef != 'NONREF'">
+						<xsl:value-of select="CustomerRef"/>
+					</xsl:if>
+				</td>
+				<td><xsl:value-of select="MandantRef"/></td>
+				<td><xsl:value-of select="CreditorID"/></td>
+				<td>
+					<xsl:if test="ExternalCosts != ''">
+						<div class="ExternalCosts">Externe Kosten: <xsl:value-of select="ExternalCosts"/></div>
+					</xsl:if>
+				</td>
+				<xsl:catch>
+					<td>An error has been occured in this Account Entry</td>
+				</xsl:catch>
+			</xsl:try>
 		</tr>
 	</xsl:template>
 

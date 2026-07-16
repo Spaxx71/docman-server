@@ -41,6 +41,6 @@ let $resource-id := request:get-attribute('resource-id')
 
 return
 	<result resource-id="{$resource-id}">
-		{banking:getBankAccount ($home-data, $tenant, $bank-account, $year)}
+		{banking:getBankAccountDetail ($home-data, $tenant, $bank-account, $year)}
 		{banking:getAccountingById($home-data, $tenant, $bank-account, $year, $resource-id)}
 	</result>

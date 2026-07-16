@@ -36,7 +36,7 @@
 					</xf:instance>
 
 					<xf:submission id="save" method="post" ref="instance('task')" replace="none" validate="true">						<!-- indent="true" replace="all / none" -->						<!-- /{$year}/{$binder}/{$document} -->
-						<xf:resource value="concat('{$home-web-api}/{$tenant}/',{$year},'/binders/',instance('temp')/binder,'/',instance('temp')/document-id)"/>
+						<xf:resource value="concat('{$home-web-api}/tenants/{$tenant}/years/',{$year},'/binders/',instance('temp')/binder,'/',instance('temp')/document-id)"/>
 
 						<xf:action ev:event="xforms-submit-done">
 							<xf:message>Dokument wurde erfolgreich gespeichert.

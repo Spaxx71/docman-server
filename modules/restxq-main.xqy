@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+(: /rest/db/apps/docman/modules/restxq-main.xqy :)
+xquery version "3.1";
 
 (: can be tested by using 
 http://localhost:8080/exist/restxq/docman/index.html 
@@ -56,8 +57,38 @@ declare
 
 
 (: 
+	TODO: does not work!
 	http://localhost:8080/exist/restxq/docman
+	GET /api/
+:)
+declare
+	%rest:GET
+	%rest:path("/docman")
+	%output:media-type("text/html")
+	%output:method("html")
+function dmmain:choice() {
+	<html>
+		<body>
+			<h1>Welcome at Docman API</h1>
 
+			Theare are two versions given:
+			<ul>
+				<li>
+					<a href="/api/xml">XML Version</a>
+				</li>
+				<li>
+					<a href="/api/json">JSON Version</a>
+				</li>
+			</ul>
+		</body>
+	</html>
+};
+
+
+(: 
+	http://localhost:8080/exist/restxq/docman/index.html
+	GET /api/
+:)
 declare
 	%rest:GET
 	%rest:path("/docman/index.html")
@@ -70,25 +101,104 @@ function dmmain:index() {
 		</http:response>
 	</rest:response>
 };
-:)
+
 
 (: 
-	http://localhost:8080/exist/restxq/docman
+	http://localhost:8080/exist/restxq/docman/(xml|json)
+	GET /api/(xml|json)
 :)
 declare
 	%rest:GET
-	%rest:path("/docman")
-(:	%rest:consumes("application/xml")
-	%rest:consumes("text/xml")
-	%output:method("xml")
-	%output:media-type("text/xml")
+	%rest:path("/docman/{$format}")
+	%output:media-type("text/html")
+	%output:method("html")
+function dmmain:format($format as xs:string) {
+	if (matches($format, "^(xml|json)$")) then
+		<html>
+			<body>
+				<h1>Welcome at Docman API for {upper-case($format)}</h1>
+			</body>
+		</html>
+	else
+		error(xs:QName("invalid-format"), "Ungültiges Format: " || $format)		
+};
+
+
+
+(: 
+	GET http://localhost:8080/exist/restxq/docman/test
+	GET /api/test
 :)
-	%rest:query-param("user", "{$user}", "Guest")
-function dmmain:welcome($user as xs:string*) {
-	<Tenants version="1.0">
-		<Tenant id="bix" name="bintellix"/>
-		<Tenant id="is" name="INTERSECURITY"/>
-	</Tenants>
+declare
+	%rest:GET
+	%rest:path("/docman/xml/test")
+	%output:method("xml")
+
+function dmmain:welcomeXML($user as xs:string*) {
+	<Test>SUCCESS</Test>
+};
+
+(: 
+	GET http://localhost:8080/exist/restxq/docman/test
+	GET /api/test
+:)
+declare
+	%rest:GET
+	%rest:path("/docman/json/test")
+
+function dmmain:welcomeJSON($user as xs:string*) {
+
+    (:
+    let $jsonSerializationParams :=
+        <output:serialization-parameters
+                xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
+            <output:method value="json"/>
+            <output:media-type value="application/json"/>
+            <output:json-ignore-whitespace-text-nodes value="yes"/>
+        </output:serialization-parameters>
+    return
+	serialize(account:listAccounts($main:home-data, $tenant, $year), $jsonSerializationParams)
+    :)
+	(:
+    <rest:response>
+        <output:serialization-parameters>
+            <output:method value="json" />
+            <output:json-ignore-whitespace-text-nodes value="yes" />
+            <exist:json-ignore-whitespace-text-nodes value="yes" />
+        </output:serialization-parameters>
+        <http:response>
+            <http:header name="Content-Type" value="application/json" />
+        </http:response>
+    </rest:response>,
+	:)
+
+	let $json-ignore-whitespace-text-nodes-param-xml := 
+		<output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
+			<output:method value="json"/>
+			<exist:json-ignore-whitespace-text-nodes value="yes"/>
+		</output:serialization-parameters>
+
+	let $json-ignore-whitespace-text-nodes-param-map := 
+		map {
+			"method": "json",
+			"exist:json-ignore-whitespace-text-nodes": true()
+		}
+
+	let $source := 
+		<a z='99'>
+			<b x='1'/>
+			<b x='2'></b>
+			<b x='3'>stuff</b>
+			<b x='4'>     </b>
+		</a>
+
+	return
+		(
+			(: fn:serialize($source, $json-ignore-whitespace-text-nodes-param-xml) :)
+			(: fn:serialize($source, $json-ignore-whitespace-text-nodes-param-map) :)
+			fn:serialize($source, $json-ignore-whitespace-text-nodes-param-xml)
+		)
+	(: <Test>SUCCESS</Test> :)
 };
 
 
@@ -154,3 +264,14 @@ function dmmain:jsFile($location) {
 
 :)
 
+(:
+crate multipart-mixed output:
+
+declare
+   %rest:GET
+   %rest:path("/test")
+   %rest:produces("multipart/mixed")
+function my:test-multipart() {
+   (<ok/>, json:serialize(map{'some':'json'}))
+};
+:)

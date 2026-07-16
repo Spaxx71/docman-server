@@ -41,12 +41,12 @@ let $bank-account := request:get-parameter("bank-account", "")
 return
 	<result src="bankings_index.xqy">
 			<Analysis type="linegraph">
-			{ banking:getAccountBalanceList($home-data, $tenant, '0', $year) }
+			{ banking:getAccountBalanceList($home-data, $tenant, $year, '0') }
 			<!-- { binder:getBinderBalanceList($home-data, $tenant, $year)} -->
 			{
 				for $bank-account-id in banking:listBankAccounts($home-data, $tenant, $year)/BankAccount/@kto
 				return
-					banking:getAccountBalanceList($home-data, $tenant, $bank-account-id, $year)
+					banking:getAccountBalanceList($home-data, $tenant, $year, $bank-account-id)
 			}
 		</Analysis>
 		{banking:listBankAccounts ($home-data, $tenant, $year)}

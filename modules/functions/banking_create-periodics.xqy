@@ -23,7 +23,12 @@ xquery version "3.0";
 
 (:
 
-/exist-backend/rest/db/apps/docman/modules/banking/banking_create-periodics.xqy
+/exist-backend/rest/db/apps/docman/modules/functions/banking_create-periodics.xqy
+?home-data=/db/apps/docman/data/bintellix/2000/
+&tenant=bintellix
+&year=2000
+&bank-account=222971400
+&payment-id=PAY21c856b3530171993626a6a8e455c50f
 
 :)
 

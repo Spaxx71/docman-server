@@ -5,6 +5,10 @@ declare namespace file = "http://exist-db.org/xquery/file";
 (:
 This script might be tested at:
 /exist/rest/db/apps/docman/update_module_hbci.xqy
+
+needs to have app/packageservice to be given
+https://github.com/eXist-db/existdb-packageservice
+
 :)
 
 (:

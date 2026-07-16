@@ -556,7 +556,7 @@
 
 		<xf:instance xmlns="" id="accounts">
 			<Accounts>
-				<Account id="" kto="" type="nominal_account" classes="debitor creditor owner">
+				<Account id="" kto="" type="nominal_account" classes="debitor creditor">
         			<Name>– Konto auswählen –</Name>
 				</Account>
 				<xsl:for-each select="Accounts/Account">
@@ -661,7 +661,7 @@
 		<xf:submission id="save" method="put" ref="instance('document')/Process" replace="all" validate="true">
 			<!-- indent="true"  replace="all / none" -->
 			<!-- /{$year}/{$binder}/{$document} -->
-			<xf:resource value="concat('{$home-web-api}/{$tenant}/',substring(instance('document')/Process/@date,1,4),'/binders/',instance('document')/Process/@binder,'/', if({$new-document}(), instance('document')/Process/@name, instance('document')/Process/@id))"/>
+			<xf:resource value="concat('{$home-web-api}/tenants/{$tenant}/years/',substring(instance('document')/Process/@date,1,4),'/binders/',instance('document')/Process/@binder,'/', if({$new-document}(), instance('document')/Process/@name, instance('document')/Process/@id))"/>
 
 			<xf:action ev:event="xforms-submit-done">
 				<xf:message>

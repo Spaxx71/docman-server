@@ -27,7 +27,7 @@
 
 				<h3>Unternehmensdokumente</h3>
 				<ul>
-					<xsl:for-each select="result/CompanyPaperFiles/CompanyPaperFile">
+					<xsl:for-each select="result/Tenant/CompanyPaperFiles/CompanyPaperFile">
 						<li>
 							<a href="{$home-web-gui||'/'||$tenant||'/files/'||text()||'/index.html'}">
 								<xsl:value-of select="text()"/>

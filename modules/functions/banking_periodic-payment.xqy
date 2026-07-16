@@ -23,7 +23,8 @@ xquery version "3.0";
 
 (:
 
-/exist-backend/rest/db/apps/docman/modules/banking/banking_index.xqy
+/exist-backend/rest/db/apps/docman/modules/functions/banking_periodic-payment.xqy
+/app/test/2000/banking/222971400/PAY21c856b3530171993626a6a8e455c50f/periodic-payment.html
 
 :)
 
@@ -35,14 +36,19 @@ import module namespace banking="http://bintellix.com/docman/banking" at "/db/ap
 let $home-web-gui := request:get-attribute('home-web-gui')
 let $home-data := request:get-attribute('home-data')
 let $tenant := request:get-attribute('tenant')
-let $bank-account := request:get-attribute('bank-account')
+let $bank-account-id := request:get-attribute('bank-account')
 let $year := request:get-attribute('year')
 let $resource-id := request:get-attribute('resource-id')
 
-let $periodicPayment := banking:getPeriodicPayment($home-data, $tenant, $year, $bank-account, $resource-id)
+let $periodicPayment := banking:getPeriodicPayment($home-data, $tenant, $year, $bank-account-id, $resource-id)
 return
 	<result resource-id="{$resource-id}">
-		{account:getAccount ($home-data, $tenant, $year, $periodicPayment/Tasks/InvoiceInTask/Owner/text())}
-		{banking:getBankAccount ($home-data, $tenant, $bank-account, $year)}
+		{
+			if ($periodicPayment != ()) then
+				account:getAccount ($home-data, $tenant, $year, $periodicPayment/Tasks/InvoiceInTask/Owner/text())
+			else
+				<error>No periodic payment '{$resource-id}' exist. {$periodicPayment}</error>
+		}
+		{banking:getBankAccount ($home-data, $tenant, $bank-account-id, $year)}
 		{$periodicPayment}
 	</result>

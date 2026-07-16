@@ -37,6 +37,7 @@
 							<CustomerRef>NONREF</CustomerRef>
 							<EndToEndRef>NOTPROVIDED</EndToEndRef>
 							<CreditorID/>
+							<Primanota/>
 							<ExternalCosts/>
 							<Amount type="DEBIT">0.0</Amount>
 							<OriginalAmount/>
@@ -129,7 +130,7 @@
 
 
 				<xf:submission id="save" method="put" instance="accounting" ref="BankAccount" replace="all" validate="true"> <!--  ref="BankAccount/Accountings"  -->
-					<xf:resource value="concat('{$home-web-api}','/','{$tenant}','/banks/',instance('bank-account')/BankAccount/@kto,'/','{$year}')"/>
+					<xf:resource value="concat('{$home-web-api}','/tenants/','{$tenant}','/years/','{$year}','/banks/',instance('bank-account')/BankAccount/@kto')"/>
 	                		<xf:action ev:event="xforms-submit-done">
 						<xf:message>Erfolgreich gespeichert.
 							<xf:output value="event('resource-uri')">

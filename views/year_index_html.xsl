@@ -93,6 +93,18 @@
 								<a href="{$home-web-gui||'/'||$tenant||'/'||$year||'/banking/index.html'}">Bankkonten</a>
 							</li>
 						</xsl:if>
+						<li>
+							<a href="{$home-web-gui||'/'||$tenant||'/'||$year||'/categories/index.html'}">Budget-Kategorien</a>
+						</li>
+					</ul>
+
+					<h3>Tools</h3>
+					<ul>
+						<!-- wiederkehrende Zahlungen erstellen und Verküpfen -->
+						<!-- /rest/db/apps/docman/modules/functions/automatic/automatic_periodic-payments.xqy -->
+						<li>
+							<a href="{$home-web-gui||'/'||$tenant||'/'||$year||'/test.html'}">Konstistenz und Validität der Daten</a>
+						</li>
 					</ul>
 				</div>
 
@@ -103,9 +115,16 @@
 					<div>
 						<br/>
 						<h3>Übersicht Ein/Ausgaben</h3>
-						<xsl:call-template name="BalanceGraph">
-							<xsl:with-param name="Analysis" select="result/Analysis"/>
-						</xsl:call-template>
+						<xsl:choose>
+							<xsl:when test="result/Analysis/Balances/*">
+								<xsl:call-template name="BalanceGraph">
+									<xsl:with-param name="Analysis" select="result/Analysis"/>
+								</xsl:call-template>
+							</xsl:when>
+							<xsl:otherwise>
+								Keine Bankbeweungen vorhanden.
+							</xsl:otherwise>
+						</xsl:choose>
 					</div>
 				</div>
 

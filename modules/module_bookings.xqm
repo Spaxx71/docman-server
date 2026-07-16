@@ -164,8 +164,8 @@ declare function bookings:refreshAccounts($dm-home-data as xs:string, $tenant-id
 
 
 declare function bookings:missingBankBookings($dm-home-data as xs:string, $tenant-id as xs:string, $year as xs:integer, $month as xs:integer?, $missing-kto as xs:integer) as node()* {
-	let $data-collection := $dm-home-data||'/'||$tenant-id||'/'||format-number($year,'00')
-    let $accounts := doc($dm-home-data||'/'||$tenant-id||'/'||$year||'/accounts.dm.xml')/Accounts
+	let $data-collection := $dm-home-data||'/'||$tenant-id||'/'||format-number($year,'0000')
+    let $accounts := doc($data-collection||'/accounts.dm.xml')/Accounts
     let $bookings := collection($data-collection)/Process//Booking
 	let $accountings := collection($data-collection)/BankAccount/Accountings/Accounting
 	

@@ -21,7 +21,7 @@ let $year := request:get-attribute('year')
 return
 	<result src="banking_index.xqy">
 		<Analysis type="linegraph">
-			{banking:getAccountBalanceList($home-data, $tenant, $bank-account, $year)}
+			{banking:getAccountBalanceList($home-data, $tenant, $year, $bank-account)}
 		</Analysis>
 		{banking:listAccountings($home-data, $tenant, $bank-account, $year)}
 		{account:listAccountsSimplified($home-data, $tenant, $year)}

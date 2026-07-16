@@ -261,11 +261,11 @@
 					</li>
 					<li>
 						<a href="{$home-web-gui}/{$tenant}/{$year}/transfer/upload_file.html">Datei hochladen…</a>
-						<!-- <a href="{$home-web-api}/{$tenant}/{$year}/transfer/uploadSingleFile?display=html">Datei hochladen</a> -->
+						<!-- <a href="{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/uploadSingleFile?display=html">Datei hochladen</a> -->
 					</li>
 					<li>
 						<a href="{$home-web-gui}/{$tenant}/{$year}/transfer/upload_folder.html">Verzeichnis hochladen…</a>
-						<!-- <a href="{$home-web-api}/{$tenant}/{$year}/transfer/uploadFolder?display=html">Verzeichnis hochladen</a> -->
+						<!-- <a href="{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/uploadFolder?display=html">Verzeichnis hochladen</a> -->
 					</li>
 					<li>
 						<!--
@@ -507,7 +507,7 @@
 					<xsl:value-of select="@name"/>
 				</a>
 				 
-				<a href="{$home-web-api}/{$tenant}/{$year}/transfer/{@name}">
+				<a href="{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/{@name}">
 					<img alt="Dokument download" src="/app/resources/download.svg" height="20px"/>
 				</a>
 			</td>
@@ -544,7 +544,7 @@
 
 					<li>
 						<!-- https://github.com/SauceCodeFr/RestfulizerJs -->
-						<!-- <button onclick="deleteData('{$home-web-api}/{$tenant}/{$year}/transfer/{@name}?display=html')">X</button> -->
+						<!-- <button onclick="deleteData('{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/{@name}?display=html')">X</button> -->
 						<!-- jquery rails -->
 						<!-- <a data-confirm="Are you sure?" data-method="delete" href="{$home-web}/{$tenant}/{@name}" rel="nofollow">Löschen</a> -->
 						<a href="{$home-web-gui}/{$tenant}/{$year}/transfer/{@name}/delete.html">löschen…</a>

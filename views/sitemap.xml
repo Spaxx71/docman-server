@@ -164,6 +164,15 @@ Copyright:
 					</page>
 				</page>
 
+				<page url="/$tenant/$year/categories/index.html">
+					<title>Budget-Kategorie</title>
+					<breadcrumb>Kategorie</breadcrumb>
+					<page url="/$tenant/$year/categories/edit.html">
+						<title>Budget-Kategorie bearbeiten</title>
+						<breadcrumb>Bearbeiten</breadcrumb>
+					</page>
+				</page>
+
 				<page url="/$tenant/$year/process/index.html">
 					<title>Vorgang</title>
 					<breadcrumb>Vorgang</breadcrumb>
@@ -282,15 +291,27 @@ Copyright:
 							<title>Kontobewegungen von Konto '$resource-id' bearbeiten</title>
 							<breadcrumb>'$resource-id'</breadcrumb>
 						</page>
+						<page url="/$tenant/$year/banking/$bank-account/periodic-payments.html">
+							<title>Übersicht aller Daueraufträge mit dem Bankkonto '$bank-account':</title>
+							<breadcrumb>Übersicht aller Daueraufträge</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$resource-id/periodic-payment.html">
+							<title>Kontobewegung einem Dauerauftrag von Bankkonto '$resource-id' zuordnen (und entsprechenden Vorgang erstellen)</title>
+							<breadcrumb>Daueraufträge zuordnen</breadcrumb>
+						</page>
+						<page url="/$tenant/$year/banking/$resource-id/create-periodics.html">
+							<title>Kontobewegung einem Dauerauftrag von Bankkonto '$resource-id' zuordnen (und entsprechenden Vorgang erstellen)</title>
+							<breadcrumb>Daueraufträge zuordnen</breadcrumb>
+						</page>						
+						<page url="/$tenant/$year/banking/$bank-account/$resource-id/periodic-payment.html">
+							<title>Payment '$resource-id' von Bankkonto '$bank-account' anzeigen</title>
+							<breadcrumb>Payment anzeigen</breadcrumb>
+						</page>
 					</page>
 					<page url="/$tenant/$year/banking/$bank-account/attach.html">
 						<title>Kontobewegung einem oder mehreren Vorgang zuordnen</title>
 						<breadcrumb>zuordnen</breadcrumb>
-					</page>
-					<page url="/$tenant/$year/banking/$bank-account/create-periodics.html">
-						<title>Kontobewegung einem Dauerauftrag zuordnen (und entsprechenden Vorgang erstellen)</title>
-						<breadcrumb>Daueraufträge zuordnen</breadcrumb>
-					</page>					
+					</page>			
 				</page>
 
 				<page url="/$tenant/$year/bookings/index.html">
@@ -347,6 +368,10 @@ Copyright:
 						</page>
 					</page>
 				</page>
+			</page>
+			<page url="/$tenant/$year/test.html">
+				<title>Validierung / Konsistenzprüfung des Jahr $year</title>
+				<breadcrumb>Datencheck</breadcrumb>
 			</page>
 
 			<page url="/$tenant/fils/index.html">

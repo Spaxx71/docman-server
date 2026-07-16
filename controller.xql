@@ -167,7 +167,8 @@ declare function local:processSite($tenant as xs:string, $year as xs:string?, $f
 						<set-attribute name="xslt.resource-id" value="{$resource-id}"/>
 						<set-attribute name="xslt.output.method" value="xhtml"/>
 						{
-							if (($resource-type = 'process' and not($function='index')) or $function = 'edit' or $function = 'attach') then
+							(: or ($resource-type='banking' and $function='index') :)
+							if (($resource-type= 'process' and not($function='index')) or $function = 'edit' or $function = 'attach') then
 								<set-attribute name="xslt.output.media-type" value="text/xml"/> 
 							else
 								<set-attribute name="xslt.output.media-type" value="text/html"/> 
@@ -822,8 +823,8 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/bankin
 
 
 (: /$tenant/banking/$bank-account/$year $operation :)
-else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|attach|create-periodics)\.(html|xml)')) then
-	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|attach|create-periodics)\.(html|xml)')//fn:group, 1)
+else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|transfer|attach|periodic-payments|create-periodics)\.(html|xml)')) then
+	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(index|update|update-process|transfer|attach|periodic-payments|create-periodics)\.(html|xml)')//fn:group, 1)
 	let $tenant := $params[1]
 	let $year := $params[2]
 	let $function := $params[4]
@@ -839,29 +840,10 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/bankin
 
 
 
-
-(: /$tenant/banking/$bank-account/$year/$resurce-id/periodic-payment.pdf :)
-else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)/periodic-payment.(html|xml|pdf)$')) then
-	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)/periodic-payment\.(html|xml|pdf)$')//fn:group, 1)
-	let $tenant := $params[1]
-	let $year := $params[2]
-	let $resource-type := 'banking'
-	let $bank-account := $params[3]
-	let $resource-id := $params[4]
-	let $function := 'periodic-payment'
-	let $format := $params[5]
-	let $param := <parameters xmlns="">
-			<parameter name="bank-account" value="{$bank-account}"/>
-			<parameter name="owner" value="{$parameterOwner}"/>
-		</parameters>	
-	return
-		local:processStandardSite($tenant, $year, $format, $resource-type, $resource-id, $function, $param, '/$tenant/$year/banking/$bank-account/$resource-id/')
-
-
 (: /$tenant/banking/$bank-account/$year/$resource-id/$operation :)
 (: /$tenant/banking/$bank-account/$year/$resurce-id.pdf :)
-else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)(/details|/assign-document)?\.(html|xml|pdf)$')) then
-	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)(/details|/assign-document)?\.(html|xml|pdf)$')//fn:group, 1)
+else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)(/details|/assign-document|/periodic-payment)?\.(html|xml|pdf)$')) then
+	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/banking/([0-9A-Za-z]+)/(PAY[a-f0-9\-]+)(/details|/assign-document|/periodic-payment)?\.(html|xml|pdf)$')//fn:group, 1)
 	let $tenant := $params[1]
 	let $year := $params[2]
 	let $resource-type := 'banking'
@@ -916,7 +898,7 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/(accou
 	let $format := $params[5]
 	let $resource-id := ()
 	let $param := <parameters xmlns="">
-			<parameter name="type" value="{request:get-parameter('type','ledger_account')}"/>
+			<parameter name="type" value="{request:get-parameter('type','*')}"/>
 		</parameters>
 	return
 		local:processStandardSite($tenant, $year, $format, $resource-type, $resource-id, $function, $param, '/$tenant/$year/accounts/')
@@ -935,6 +917,21 @@ else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/(accou
 	return
 		local:processStandardSite($tenant, $year, $format, $resource-type, $resource-id, $function, (), '/$tenant/$year/accounts/$resource-id/')
 
+
+(: /$tenant/categories/$operation :)
+else if (matches($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/categories/(index|edit)\.(html|xml|csv)')) then
+	let $params := subsequence(analyze-string($exist:path, '^/([a-zA-Z][a-zA-Z0-9_\-]+)/(20[0-9][0-9])/categories/(index|edit)\.(html|xml|csv)')//fn:group, 1)
+	let $tenant := $params[1]
+	let $year := $params[2]
+	let $resource-type := 'categories'
+	let $function := $params[3]
+	let $format := $params[4]
+	let $resource-id := ()
+	let $param := <parameters xmlns="">
+			<parameter name="type" value="{request:get-parameter('type','ledger_account')}"/>
+		</parameters>
+	return
+		local:processStandardSite($tenant, $year, $format, $resource-type, $resource-id, $function, $param, '/$tenant/$year/categories/')
 
 
 (: /$tenant/settings/$function :)

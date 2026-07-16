@@ -43,7 +43,7 @@
 								<xf:output ref="instance('accounts')/Account[@kto=instance('document')/Process/Tasks/SimpleTask/Owner]/Service"/>
 							</xf:hint>
 							<xf:alert>Der Halter muss definiert sein</xf:alert>
-							<xf:itemset nodeset="instance('accounts')/Account[contains(@classes,'creditor') or contains(@classes,'owner')]">
+							<xf:itemset nodeset="instance('accounts')/Account[contains(@classes,'creditor') or contains(@classes,'bank') or contains(@classes,'self')]">
 								<xf:label ref="Name"/>
 								<xf:value ref="@kto"/>
 							</xf:itemset>
