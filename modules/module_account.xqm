@@ -78,14 +78,15 @@ declare function account:listAccountsSimplified ($home-data, $tenant, $year as x
 
 
 declare function account:getAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $resource-id as xs:string) { 
-	let $account-id := lower-case($resource-id)
 	let $accounts := doc($home-data||'/'||$tenant||'/'||$year||'/accounts.dm.xml')
+	let $by-id := $accounts/Accounts/Account[lower-case(@id)=lower-case($resource-id)]
+	let $by-kto :=
+		if ($resource-id castable as xs:integer) then
+			$accounts/Accounts/Account[@kto=xs:integer($resource-id)]
+		else
+			()
 	return
-		(
-			$accounts/Accounts/Account[@kto=$resource-id]
-		,
-			$accounts/Accounts/Account[lower-case(@id)=$account-id]
-		)
+		($by-id, $by-kto)[1]
 };
 
 
@@ -99,30 +100,25 @@ declare function account:getAccountByIban ($home-data, $tenant, $year as xs:inte
 declare function account:storeAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $resource-id as xs:string, $account-data) {
 	let $account-id := lower-case($resource-id)
 	let $accounts := doc($home-data||'/'||$tenant||'/'||$year||'/accounts.dm.xml')
+	let $incoming := if ($account-data instance of document-node()) then $account-data/*[1] else $account-data
 	let $current := $accounts/Accounts/Account[lower-case(@id)=$account-id]
 	return
-		if (exists($current)) then
-			let $update := update replace collection($home-data||'/'||$tenant)/Accounts/Account[lower-case(@id)=$account-id] with $account-data
-			return
-				<Account>
-
-				</Account>
-		else
-			let $int := update insert $account-data into $accounts/Accounts  
-			return
-				<Account>
-					<!-- {$accounts/Accounts/Account[lower-case(@id)=$account-id]/(*|@*)} -->
-				</Account>
+		if (exists($current)) then (
+			update replace $current with $incoming,
+			$incoming
+		) else (
+			update insert $incoming into $accounts/Accounts,
+			$incoming
+		)
 };
 
 
 declare function account:deleteAccount ($home-data, $tenant, $year as xs:integer, $resource-id) {
-	let $account-id := lower-case($resource-id)
-	let $accounts := doc($home-data||'/'||$tenant|'/'||$year||'/accounts.dm.xml')
-	let $account := $accounts/Accounts/Account[lower-case(@id)=$account-id]
+	let $accounts := doc($home-data||'/'||$tenant||'/'||$year||'/accounts.dm.xml')
+	let $account := $accounts/Accounts/Account[lower-case(@id)=lower-case($resource-id)]
 	return
 		if ($account = ()) then
-			<error>Kein Account '$resource-i' vorhanden</error>
+			<error>Kein Account vorhanden</error>
 		else
 			<Account>
 				{update delete $account}

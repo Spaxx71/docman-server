@@ -88,13 +88,25 @@ declare
     %rest:query-param("display", "{$display}", "")
 function dmtransfer:transferFile($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
 	let $filename := xs:anyURI($main:home-data||'/'||$tenant||'/'||$year||'/transfer/'||$document)
+	let $lower := lower-case(string($document))
+	let $mime :=
+		if (ends-with($lower, '.pdf')) then 'application/pdf'
+		else if (ends-with($lower, '.png')) then 'image/png'
+		else if (ends-with($lower, '.gif')) then 'image/gif'
+		else if (ends-with($lower, '.jpg') or ends-with($lower, '.jpeg')) then 'image/jpeg'
+		else if (ends-with($lower, '.tif') or ends-with($lower, '.tiff')) then 'image/tiff'
+		else xmldb:get-mime-type($filename)
 	return
 	(
 		<rest:response xmlns:rest="http://exquery.org/ns/restxq">
 			<output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
 				<output:method value="binary"/>
-				<output:media-type value="xmldb:get-mime-type($filename)"/>
+				<output:media-type value="{$mime}"/>
 			</output:serialization-parameters>
+			<http:response status="200">
+				<http:header name="Content-Type" value="{$mime}"/>
+				<http:header name="Content-Disposition" value="inline"/>
+			</http:response>
 		</rest:response>
 		,
 		util:binary-doc($filename) 
@@ -323,4 +335,33 @@ function dmtransfer:delete($user as xs:string*, $display, $tenant as xs:string, 
 		</html>
 	else
 		"done"
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/rename")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("name", "{$name}", "")
+    %output:media-type("application/xml")
+function dmtransfer:rename($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
+	transfer:rename($main:home-data, $tenant, $year, $document, $name)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/trash")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+function dmtransfer:trash($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
+	transfer:toTrash($main:home-data, $tenant, $year, $document)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/trash")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmtransfer:trashIndex($user as xs:string*, $tenant as xs:string) {
+	transfer:trashIndex($main:home-data, $tenant)
 };

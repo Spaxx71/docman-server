@@ -62,3 +62,24 @@ declare function year:getYear($dm-home-data, $tenantId as xs:string, $year as xs
 		</Year>
 	)
 };
+
+declare function year:dashboard($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Dashboard) {
+	let $Collection := concat($dm-home-data, '/', $tenant, '/', $year)
+	let $Documents := collection($Collection)/Process[not(Tasks/DocumentTask) and not(Tasks/SimpleTask)]
+	let $DocumentsCount := count($Documents)
+	let $Mapped := count($Documents[.//PaymentTask])
+	let $BankingsCount := count(collection($Collection)/BankAccount//Accounting)
+	let $Transfer := count(xmldb:get-child-resources(concat($Collection, '/transfer')))
+	let $Email := 0
+	let $Max := $Mapped + ($DocumentsCount - $Mapped) + ($BankingsCount - $Mapped) + $Transfer + $Email
+	return
+		<Dashboard>
+			<OverallCount count="{$Max}">
+				<Mapped>{$Mapped}</Mapped>
+				<DocumentsOpen>{$DocumentsCount - $Mapped}</DocumentsOpen>
+				<BankingsOpen>{$BankingsCount - $Mapped}</BankingsOpen>
+				<Transfer>{$Transfer}</Transfer>
+				<Email>{$Email}</Email>
+			</OverallCount>
+		</Dashboard>
+};

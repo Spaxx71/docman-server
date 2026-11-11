@@ -25,6 +25,7 @@ module namespace dmbinder="http://exist-db.org/apps/restxq/docman-binder";
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace binder="http://bintellix.com/docman/binder" at "/db/apps/docman/modules/module_binder.xqm";
+import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -57,5 +58,15 @@ declare
 
 function dmbinder:listBindersJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
 	binder:listBinders($main:home-data,$tenant,$year)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder)
 };
 

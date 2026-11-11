@@ -189,7 +189,7 @@ DELETE 	http://localhost:8080/exist/restxq/docman/test/accounts/{$accountId}
 :)
 declare
     %rest:DELETE
-    %rest:path("/docman/xml/tenants/{$tenant}/year/{$year}/accounts/{$accountId}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
 
     %rest:query-param("user", "{$user}", "Guest")
 

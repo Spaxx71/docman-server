@@ -248,12 +248,25 @@ declare function document:getNewDocumentTemplate($dm-home-data as xs:string, $te
 };
 
 
+declare function local:processById($collection as xs:string, $document as xs:string) as element()? {
+	(
+		for $name in xmldb:get-child-resources($collection)
+		where ends-with($name, '.dm.xml')
+		let $process := doc($collection || '/' || $name)/Process
+		where $process/@id = $document
+		return $process
+	)[1]
+};
+
 declare function document:getDocument($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string?, $document as xs:string) {
 	if (matches($document,'^PRO[0-9a-f\-]+$')) then
 		if (not($binder)) then
-			collection(concat($home-data,'/',$tenant,'/',$year))/Process[@id=$document]
+			(
+				for $folder in xmldb:get-child-collections(concat($home-data, '/', $tenant, '/', $year))
+				return local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $folder), $document)
+			)[1]
 		else
-			collection(concat($home-data,'/',$tenant,'/',$year,'/',$binder))/Process[@id=$document]
+			local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $binder), $document)
 	else
 		doc(concat($home-data,'/',$tenant,'/',$year,'/',$binder,'/',$document,'.dm.xml'))
 };

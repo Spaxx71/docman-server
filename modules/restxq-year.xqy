@@ -138,3 +138,31 @@ function dmyear:getYearJSON($user as xs:string*, $tenant-id as xs:string, $year 
     else
    	    year:getYear($main:home-data, $tenant-id, $year)
 };
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant-id}/years/{$year}/dashboard")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
+
+function dmyear:dashboardXML($user as xs:string*, $tenant-id as xs:string, $year as xs:integer) {
+    if (not(tenant:existsTenant($main:home-data, $tenant-id))) then
+        (
+            <rest:response>
+                <http:response status="404" message="Invalid data - tenant ID"/>
+            </rest:response>
+            ,
+            <error>Invalid tenant id '{$tenant-id}'</error>
+        )
+    else if (not(exists(index-of(xmldb:get-child-collections(xs:anyURI(concat($main:home-data, '/', $tenant-id))), string($year))))) then
+        (
+            <rest:response>
+                <http:response status="404" message="Invalid data - year"/>
+            </rest:response>
+            ,
+            <error>Invalid year '{$year}'</error>
+        )
+    else
+        year:dashboard($main:home-data, $tenant-id, $year)
+};

@@ -44,9 +44,13 @@ declare
     %output:media-type("text/xml")
 
     %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("scope", "{$scope}", "")
 
-function dmdocument:listDocuments($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
-	document:listDocuments($main:home-data,$tenant,$year,$binder)
+function dmdocument:listDocuments($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $scope as xs:string*) {
+	if ($scope = "folder") then
+		document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder)
+	else
+		document:listDocuments($main:home-data, $tenant, $year, $binder)
 }; 
 
 
