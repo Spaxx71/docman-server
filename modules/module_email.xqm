@@ -131,6 +131,57 @@ declare function email:read-emails($tenant as xs:string) as item() {
 		</result>	
 };
 
+declare function local:sent-by-servers($folder as xs:long, $message as element()?) as xs:string* {
+	let $sent := normalize-space(string($message/*:sent[1]))
+	let $number := string($message/@number)
+	where $message and $sent and $number
+	return
+		try {
+			let $search := <searchTerm type="sent" comparison="eq" format="yyyy-MM-dd" date="{substring($sent, 1, 10)}"/>
+			let $handle := mail:search-message-list($folder, $search)
+			let $listed := mail:get-message-list-as-xml($handle, true())
+			let $hosts :=
+				for $header in $listed//*:message[string(@number) = $number]/*:headers/*:header[lower-case(string(@name)) = 'received']
+				let $after := tokenize(concat(' ', string($header/@value)), '\sby\s+')[2]
+				let $host := replace(tokenize(normalize-space($after), '[^A-Za-z0-9.\-]+')[1], '^\.+|\.+$', '')
+				where $host and matches($host, '[A-Za-z]')
+				return $host
+			let $unique := fold-left($hosts, (), function($found, $host) {
+				if ($host = $found) then $found else ($found, $host)
+			})
+			return (mail:close-message-list($handle), $unique)
+		} catch * {
+			()
+		}
+};
+
+declare function local:with-sent-by($node as node(), $servers as xs:string*) as node() {
+	if (empty($servers)) then
+		$node
+	else if ($node instance of document-node()) then
+		document {
+			for $child in $node/node()
+			return local:with-sent-by($child, $servers)
+		}
+	else if ($node instance of element() and local-name($node) = 'message') then
+		element { node-name($node) } {
+			$node/@*,
+			$node/node(),
+			element { QName(namespace-uri($node), 'received-by') } {
+				for $server in $servers
+				return element { QName(namespace-uri($node), 'server') } { $server }
+			}
+		}
+	else if ($node instance of element()) then
+		element { node-name($node) } {
+			$node/@*,
+			for $child in $node/node()
+			return local:with-sent-by($child, $servers)
+		}
+	else
+		$node
+};
+
 declare function email:read-message($tenant as xs:string, $id as xs:integer) as item() {
 
 	(: Crypto - created by util:base64-encode("abc"):)
@@ -160,9 +211,13 @@ declare function email:read-message($tenant as xs:string, $id as xs:integer) as 
 
 	let $lMessageListHandle := mail:get-message-list($lMailFolderHandle)
 
+	let $cleaned := local:replaceAttributeValue(local:cleanupNamespace(mail:get-messages($lMailFolderHandle, ($id))), 'mime-type', 'application/octet-stream', 'application/pdf')
+	let $message := if ($cleaned instance of document-node()) then $cleaned//*:message[1] else $cleaned//*:message[1]
+	let $servers := local:sent-by-servers($lMailFolderHandle, $message)
+
 	return 
 		<result i="{$id}">	
-			{local:replaceAttributeValue( local:cleanupNamespace(mail:get-messages($lMailFolderHandle, ($id))) , 'mime-type', 'application/octet-stream', 'application/pdf')}
+			{local:with-sent-by($cleaned, $servers)}
 
 			{mail:close-message-list($lMessageListHandle)}
 			{mail:close-mail-folder($lMailFolderHandle, false())}
