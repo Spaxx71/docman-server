@@ -128,16 +128,7 @@ declare
     %rest:query-param("user", "{$user}", "Guest")
 
 function dmaccounts:listAccountsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
-	let $accounts := account:listAccounts($main:home-data, $tenant, $year)
-    return
-        map {
-            "tenant": $tenant,
-            "year": $year,
-            "Account":
-                for $account at $pos in $accounts/Account
-                return
-                    local:accountAsJson($account, $pos)
-        }
+	dmaccounts:listAccountsXML($user, $tenant, $year)
 };
 
 
@@ -196,5 +187,26 @@ declare
 function dmaccounts:deleteAccount($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string) {
 	account:deleteAccount($main:home-data, $tenant, $year, $accountId)
 
+};
+
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmaccounts:putAccountJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string, $body) {
+	dmaccounts:putAccount($user, $tenant, $year, $accountId, $body)
+};
+
+declare
+    %rest:DELETE
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/accounts/{$accountId}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmaccounts:deleteAccountJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $accountId as xs:string) {
+	dmaccounts:deleteAccount($user, $tenant, $year, $accountId)
 };
 

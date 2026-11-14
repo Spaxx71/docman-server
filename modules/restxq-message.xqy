@@ -140,6 +140,23 @@ function dmmessage:getMessageFromHbciJson($user as xs:string*, $tenant as xs:str
 			}
 };
 
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/messages/{$message-id}/get-messages-from-hbci")
+    %output:method("xml")
+    %output:media-type("text/xml")
+    %rest:query-param("user", "{$user}", "Guest")
+function dmmessage:getMessageFromHbciXml($user as xs:string*, $tenant as xs:string, $message-id as xs:string) {
+	let $data := doc(concat($main:home-data,'/hbci_',$message-id,'_receive.dm.xml'))
+	return
+		<Messages>{
+			for $message at $id in $data/Messages/Message
+			where $message/@timestamp > current-dateTime() - xs:dayTimeDuration("P1D")
+			return
+				<Message nr="{$id}" timestamp="{substring($message/@timestamp/data(),1,19)}">{$message/text()}</Message>
+		}</Messages>
+};
+
 
 (: 
 Send Message from Docman (to the HBCI/FinTS module)

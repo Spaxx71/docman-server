@@ -26,13 +26,13 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/account/tena
 
 import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
 import module namespace binder="http://bintellix.com/docman/binder" at "/db/apps/docman/modules/module_binder.xqm";
+import module namespace year="http://bintellix.com/docman/year" at "/db/apps/docman/modules/module_year.xqm";
 
 let $home-web-gui := request:get-attribute('home-web-gui')
 let $home-data := request:get-attribute('home-data')
 let $tenant := request:get-attribute('tenant')
 let $year := request:get-attribute('year')
 
-let $Collection := concat($home-data,'/',$tenant,'/',$year)
 return
 	<result>
 		<Analysis type="linegraph">
@@ -48,23 +48,5 @@ return
 		</Analysis>
 		{binder:listBinders($home-data, $tenant, $year)} 
 		{banking:listBankAccounts($home-data, $tenant, $year)}
-		<Dashboard>
-		{
-			let $Documents := collection($Collection)/Process[not(Tasks/DocumentTask) and not(Tasks/SimpleTask)]
-			let $DocumentsCount := count($Documents)
-			let $Mapped := count($Documents[.//PaymentTask])
-			let $BankingsCount := count(collection($Collection)/BankAccount//Accounting)
-			let $Transfer := count(xmldb:get-child-resources($Collection||'/transfer'))
-			let $Email := 0
-			let $Max := $Mapped + ($DocumentsCount - $Mapped) + ($BankingsCount - $Mapped) + $Transfer + $Email
-			return
-				<OverallCount count="{$Max}">
-					<Mapped>{$Mapped}</Mapped>
-					<DocumentsOpen>{$DocumentsCount - $Mapped}</DocumentsOpen>
-					<BankingsOpen>{$BankingsCount - $Mapped}</BankingsOpen>
-					<Transfer>{$Transfer}</Transfer>
-					<Email>{$Email}</Email>
-				</OverallCount>
-		}
-		</Dashboard>
+		{year:dashboard($home-data, $tenant, xs:integer($year))}
 	</result>

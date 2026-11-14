@@ -28,6 +28,7 @@ module namespace document = "http://bintellix.com/docman/document";
 
 import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 
 declare namespace docman = "http://docman.bintellix.com";
 
@@ -308,12 +309,7 @@ declare function document:createDocument($home-data as xs:string, $tenant as xs:
 							update value $task/@id with concat('ACC',util:uuid())
 
 					let $moveAttachements := for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
-								return
-									let $move := local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
-									let $delUploadSrc := update delete $attachment/@uploadSrc
-									let $updateSrc := update value $attachment/@src with concat($resource-uri, '/', $attachment/@fileName, $attachment/@fileExtension) 
-									return 
-										$attachment
+								return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
 					return
 					<created resource="{$resource-uri}" document-id="{$document-id}" filename="{$filename||'.dm.xml'}">
 						{$moveAttachements}
@@ -361,12 +357,7 @@ declare function document:updateDocument($home-data as xs:string, $tenant as xs:
 							update value $task/@id with concat('ACC',util:uuid())
 
 					let $moveAttachements := for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
-						return
-							let $move := local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
-							let $delUploadSrc := update delete $attachment/@uploadSrc
-							let $updateSrc := update value $attachment/@src with concat($resource-uri, '/', $attachment/@fileName, $attachment/@fileExtension) 
-							return 
-								$attachment
+						return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
 					return
 					<updated resource="{$resource-uri}" document-id="{$document-id}" filename="{$filename||'.dm.xml'}">
 						{$moveAttachements}
@@ -431,12 +422,7 @@ declare function document:insertTask ($home-data as xs:string, $tenant as xs:str
 				update value $accounting/@id with concat('ACC',util:uuid())
 		let $moveAttachements := 
 			for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
-			return
-				let $move := local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
-				let $delUploadSrc := update delete $attachment/@uploadSrc
-				let $updateSrc := update value $attachment/@src with concat($resource-uri, '/', $attachment/@fileName, $attachment/@fileExtension) 
-				return 
-					$attachment
+			return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
 		return
 			<stored resource="{$resource-uri}" resource-id="{$document-id}">
 				{$document}
@@ -477,11 +463,17 @@ declare function local:moveAttachement($home-data as xs:string, $tenant as xs:st
 	return
 		if (contains($attachment/@uploadSrc,concat('/',$tenant,'/',$year,'/transfer/'))) then 
 				let $move := local:moveFileFromTransfer($home-data, $tenant, $year, $binder, $attachment/@fileName, $attachment/@fileExtension, $attachment/@uploadName)
-				let $setSrc := update value $attachment/@src with concat('/', $tenant, '/', $year, '/', $binder, '/', $attachment/@fileName, $attachment/@fileExtension)
-				let $dropUploadSrc := update delete $attachment/@uploadSrc
 				return
-					<Attachment status="moved">
-					</Attachment>
+					if ($move/self::error) then
+						$move
+					else
+						let $transfer-file := replace(string($attachment/@uploadSrc), '.*/', '')
+						let $setSrc := update value $attachment/@src with concat('/', $tenant, '/', $year, '/binders/', $binder, '/', $attachment/@fileName, $attachment/@fileExtension)
+						let $dropUploadSrc := update delete $attachment/@uploadSrc
+						let $archive := di:archive($home-data, $tenant, $year, $transfer-file, $attachment/ancestor::*[local-name() = 'Process'][1])
+						return
+							<Attachment status="moved">
+							</Attachment>
 		else if (matches($attachment/@uploadSrc, concat('.*/',$tenant,'/',$year,'/banking/([A-Za-z0-9]+)/(PAY[A-Za-z0-9-]+)\.pdf'))) then 
 					<Attachment status="moved" location="{$attachment/@uploadSrc}">
 					</Attachment>
@@ -520,7 +512,7 @@ declare function local:moveAttachement($home-data as xs:string, $tenant as xs:st
 :)
 declare function local:moveFileFromTransfer($home-data as xs:string, $tenant as xs:string, $year as xs:string, $binder as xs:string, $document-name as xs:string, $document-extension as xs:string, $file-id as xs:string) {
 
-	let $filename-pattern as xs:string := '^[A-Za-z0-9Ä-Öä-ö_\(\)\-\.]+\.(pdf|tif|tiff|png|gif|txt|xml)$' 
+	let $filename-pattern as xs:string := '^[A-Za-z0-9ÄÖÜäöüß_\(\)\+\$_\-\. ]+\.(pdf|tif|tiff|png|gif|jpg|jpeg|txt|xml|csv)$' 
 
 	let $document-id := concat($document-name,lower-case($document-extension))
 	let $tenant-collection := $home-data||'/'||$tenant
@@ -537,7 +529,7 @@ declare function local:moveFileFromTransfer($home-data as xs:string, $tenant as 
 	else if (not(matches($document-id, $filename-pattern))) then
 		<error>Dokument "{$document-id}" ist kein gueltiger Dokument-Name. Must match {$filename-pattern}.</error>
 
-	else if (index-of(xmldb:get-child-resources($transfer-collection),$file-id) = 0) then
+	else if (empty(index-of(xmldb:get-child-resources($transfer-collection),$file-id))) then
 		<error>Datei "{$file-id}" existiert nicht (im Transfer Ordner).</error>
 
 (:
@@ -549,17 +541,17 @@ declare function local:moveFileFromTransfer($home-data as xs:string, $tenant as 
 :)
 	else
 		let $move1 := xmldb:move($transfer-collection, $tenant-collection, $file-id)
-		let $rename := if ($file-id != $document-id) then xmldb:rename($tenant-collection, $file-id, $document-id) else ()
+		let $rename := if ($file-id != $document-id) then xmldb:rename($tenant-collection, $file-id, $document-id) else "unchanged"
 		let $move2 := xmldb:move($tenant-collection, $binder-collection, $document-id)
 		return
-		if ($move1 = ()) then
+		if (empty($move1)) then
 			<error>Datei konnte nicht in Temp Ordner verschoben werden</error>
-		else if ($rename = ()) then
+		else if ($file-id != $document-id and empty($rename) and empty(index-of(xmldb:get-child-resources($tenant-collection), $document-id))) then
 			<error>Datei konnte nicht umbenannt werden.</error>
-		else if ($move2 = ()) then
+		else if (empty($move2)) then
 			<error>Datei konnte nicht vom Temp Ordner in den Dokumente Ordner verschoben werden.</error>
 		else			
-			<moved document-id="{$document-id}" from="transfer" to="{concat('/',$tenant,'/',$year,'/binder/',$binder)}"/>
+			<moved document-id="{$document-id}" from="transfer" to="{concat('/',$tenant,'/',$year,'/binders/',$binder)}"/>
 };
 
 

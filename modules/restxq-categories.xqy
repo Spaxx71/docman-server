@@ -81,4 +81,15 @@ function dmcategories:putCategories($user as xs:string*, $tenant as xs:string, $
     }
 };
 
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/categories")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmcategories:putCategoriesJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
+	dmcategories:putCategories($user, $tenant, $year, $body)
+};
+
 

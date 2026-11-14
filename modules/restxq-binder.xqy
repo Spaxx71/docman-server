@@ -70,3 +70,13 @@ function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year 
 	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder)
 };
 
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	dmbinder:getBinderXML($user, $tenant, $year, $binder)
+};
+

@@ -185,6 +185,34 @@
             </xs:sequence>
         </xs:complexType>
       </xs:element>
+      <xs:element name="FieldHints" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Hint" minOccurs="0" maxOccurs="50">
+              <xs:complexType>
+                <xs:attribute name="field" use="required">
+                  <xs:simpleType>
+                    <xs:restriction base="xs:NCName">
+                      <xs:enumeration value="invoiceNumber"/>
+                      <xs:enumeration value="invoiceDate"/>
+                      <xs:enumeration value="serviceDate"/>
+                      <xs:enumeration value="dueDate"/>
+                      <xs:enumeration value="payable"/>
+                      <xs:enumeration value="gross"/>
+                      <xs:enumeration value="vat"/>
+                      <xs:enumeration value="iban"/>
+                      <xs:enumeration value="bic"/>
+                    </xs:restriction>
+                  </xs:simpleType>
+                </xs:attribute>
+                <xs:attribute name="label" type="xs:string"/>
+                <xs:attribute name="region" type="xs:string"/>
+                <xs:attribute name="pattern" type="xs:string"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
       <xs:element name="Accounting">
         <xs:complexType>
           <xs:attribute name="openingBalance" type="xs:decimal" use="required"/>

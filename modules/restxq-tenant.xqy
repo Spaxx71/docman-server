@@ -110,10 +110,20 @@ function dmtenant:getTenantJSON($user as xs:string*, $tenant-id as xs:string) {
 :) 
 declare
     %rest:DELETE
-    %rest:path("/docman/json/tenants/{$tenant-id}")
-    %rest:query-param("user", "{$user}", "Guest") 
+    %rest:path("/docman/xml/tenants/{$tenant-id}")
+    %rest:query-param("user", "{$user}", "Guest")
     %output:media-type("text/xml")
     %output:method("xml")
+function dmtenant:deleteTenantXML($user as xs:string*, $display, $tenant-id as xs:string) {
+	dmtenant:deleteTenant($user, $display, $tenant-id)
+};
+
+declare
+    %rest:DELETE
+    %rest:path("/docman/json/tenants/{$tenant-id}")
+    %rest:query-param("user", "{$user}", "Guest") 
+    %output:media-type("application/json")
+    %output:method("json")
 
 function dmtenant:deleteTenant($user as xs:string*, $display, $tenant-id as xs:string) {
 	()

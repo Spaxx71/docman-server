@@ -20,6 +20,8 @@ All rights reserved by bintellix GmbH, Germany
 
 xquery version "3.1";
 
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+
 let $filenames := request:get-uploaded-file-name('files[]')
 let $filesizes := request:get-uploaded-file-size('files[]')
 let $documents := request:get-uploaded-file-data('files[]')
@@ -58,6 +60,7 @@ return
 						""
 				let $storename := $fileName || $suffix || $fileExt
 				let $store := xmldb:store($transfer-collection, $storename, $documents[$pos])
+				let $intel := di:ensure($ct-home-data, $tenant, $year, $storename, '', '')
 				return 
             			<li>
 					<a href="$ct-home-web/{$tenant}/{$year}/transfer/{$storename}">"{$storename}"</a> 

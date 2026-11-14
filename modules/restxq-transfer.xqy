@@ -25,6 +25,7 @@ module namespace dmtransfer="http://exist-db.org/apps/restxq/docman-transfer";
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace transfer="http://bintellix.com/docman/transfer" at "/db/apps/docman/modules/module_transfer.xqm";
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -53,27 +54,7 @@ declare
 	%output:method("json")
     %rest:query-param("user", "{$user}", "Guest")
 function dmtransfer:listTransferJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
-	let $Transfer := transfer:index($main:home-data,$tenant,$year)
-	return
-        map {
-            "version": "1.0",
-            "tenant": $tenant,
-            "year": $year,
-            "Files": (
-				if (exists($Transfer/Files/File)) then
-					array {
-						for $File at $pos in $Transfer/Files/File
-						return
-							map {
-								"name": $File/@name/data(),
-								"size": xs:integer($File/@size/data()),
-								"created": substring($File/@created/data(),1,19)
-							}
-					}
-				else 
-					[]
-			)
-        }  
+	dmtransfer:listTransferXML($user, $tenant, $year)
 };
 
 (: 
@@ -213,6 +194,7 @@ function dmtransfer:upload1($user, $tenant, $year, $content-type, $content-lengt
 					return
 						if ($storename != '') then
 							let $store := xmldb:store($transfer-collection, $storename, $data)
+							let $intel := di:ensure($main:home-data, $tenant, $year, $storename, '', '')
 							(: let $store := xmldb:store($transfer-collection, $storename, $data, $contentType) :)
 							(: let $store := xmldb:store-as-binary($transfer-collection, $storename, $data) :)
 							return
@@ -364,4 +346,69 @@ declare
     %output:method("xml")
 function dmtransfer:trashIndex($user as xs:string*, $tenant as xs:string) {
 	transfer:trashIndex($main:home-data, $tenant)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer/{$document}")
+    %output:method("binary")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("display", "{$display}", "")
+function dmtransfer:transferFileJSON($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
+	dmtransfer:transferFile($user, $display, $tenant, $year, $document)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer")
+    %rest:header-param("Content-Type","{$content-type}")
+    %rest:header-param("Content-Length","{$content-length}")
+    %rest:consumes("multipart/form-data")
+    %output:media-type("application/json")
+    %output:method("json")
+    %rest:query-param("user", "{$user}", "Guest")
+function dmtransfer:uploadJSON($user, $tenant, $year, $content-type, $content-length, $body as item()*) {
+	dmtransfer:upload1($user, $tenant, $year, $content-type, $content-length, $body)
+};
+
+declare
+    %rest:DELETE
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer/{$document}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("display", "{$display}", "")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmtransfer:deleteJSON($user as xs:string*, $display, $tenant as xs:string, $year as xs:string, $document) {
+	dmtransfer:delete($user, $display, $tenant, $year, $document)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer/{$document}/rename")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("name", "{$name}", "")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmtransfer:renameJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
+	dmtransfer:rename($user, $tenant, $year, $document, $name)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer/{$document}/trash")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmtransfer:trashJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
+	dmtransfer:trash($user, $tenant, $year, $document)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/trash")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmtransfer:trashIndexJSON($user as xs:string*, $tenant as xs:string) {
+	dmtransfer:trashIndex($user, $tenant)
 };

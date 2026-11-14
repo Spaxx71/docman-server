@@ -283,6 +283,12 @@
 					<tr>
 						<th>#</th>
 						<th>Dateiname</th>
+						<th>Status</th>
+						<th>Nummer</th>
+						<th>Datum</th>
+						<th>Betrag</th>
+						<th>Aussteller</th>
+						<th>Notiz</th>
 						<th>Aktiviät</th>
 						<th>Größe</th>
 						<th>Erstellt</th>
@@ -510,6 +516,31 @@
 				<a href="{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/{@name}">
 					<img alt="Dokument download" src="/app/resources/download.svg" height="20px"/>
 				</a>
+			</td>
+			<td><xsl:value-of select="Intelligence/@status"/></td>
+			<td>
+				<xsl:if test="number(Intelligence/@number-quality) &lt; 0.5 and Intelligence/@number != ''">
+					<xsl:attribute name="style">color:#a35</xsl:attribute>
+				</xsl:if>
+				<xsl:value-of select="Intelligence/@number"/>
+			</td>
+			<td>
+				<xsl:if test="number(Intelligence/@date-quality) &lt; 0.5 and Intelligence/@date != ''">
+					<xsl:attribute name="style">color:#a35</xsl:attribute>
+				</xsl:if>
+				<xsl:value-of select="Intelligence/@date"/>
+			</td>
+			<td>
+				<xsl:if test="number(Intelligence/@amount-quality) &lt; 0.5 and Intelligence/@amount != ''">
+					<xsl:attribute name="style">color:#a35</xsl:attribute>
+				</xsl:if>
+				<xsl:value-of select="Intelligence/@amount"/>
+			</td>
+			<td><xsl:value-of select="Intelligence/@seller"/></td>
+			<td>
+				<form method="post" action="{$home-web-gui}/{$tenant}/{$year}/transfer/{@name}/note_response.html">
+					<input type="text" name="notes" value="{Intelligence/@note}" size="24"/>
+				</form>
 			</td>
 			<td>
 				<ul class="nav">

@@ -193,3 +193,56 @@ declare
 function dmdocument:deleteDocument($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
 	document:deleteDocument($main:home-data,$tenant,$year,$binder,$document-id)
 };
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents")
+    %output:media-type("application/json")
+    %output:method("json")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("scope", "{$scope}", "")
+function dmdocument:listDocumentsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $scope as xs:string*) {
+	dmdocument:listDocuments($user, $tenant, $year, $binder, $scope)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
+    %output:media-type("application/json")
+    %output:method("json")
+    %rest:query-param("user", "{$user}", "Guest")
+function dmdocument:getDocumentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
+	dmdocument:getDocument($user, $tenant, $year, $binder, $document-id)
+};
+
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmdocument:putDocumentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $body) {
+	dmdocument:putDocument($user, $tenant, $year, $binder, $document-id, $body)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmdocument:postDocumentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $body) {
+	dmdocument:postDocument($user, $tenant, $year, $binder, $document-id, $body)
+};
+
+declare
+    %rest:DELETE
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmdocument:deleteDocumentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
+	dmdocument:deleteDocument($user, $tenant, $year, $binder, $document-id)
+};

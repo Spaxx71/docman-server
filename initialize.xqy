@@ -18,6 +18,7 @@ declare namespace file = "http://exist-db.org/xquery/file";
 
 import module namespace repair="http://exist-db.org/xquery/repo/repair" 
 	at "resource:org/exist/xquery/modules/expathrepo/repair.xql";
+import module namespace scheduler="http://exist-db.org/xquery/scheduler";
 
 
 
@@ -125,7 +126,11 @@ return
 											(sm:chmod($FileUri, 'rwxr-xr-x'),<error type="2" weburi="{$WebUri}" file="{$FileName}">File type not supported!</error>)
 
 									(: special conditions for all files in /modules/ and sup-directories :)
-									else if (matches($WebUri, '^/modules') and matches($FileName, '^restxy-[a-z\-]+\.xqy$')) then
+									(: email calls process:execute and must run as the owner :)
+									else if (matches($WebUri, '^/modules') and matches($FileName, '^(restxq-email\.xqy|module_email\.xqm|module_document-intelligence\.xqm|document_intelligence_process\.xqy)$')) then
+										sm:chmod($FileUri, 'rwsrwx--x')
+
+									else if (matches($WebUri, '^/modules') and matches($FileName, '^restxq-[a-z\-]+\.xqy$')) then
 										sm:chmod($FileUri, 'rwxrwx--x') 
 
 									else if (matches($WebUri, '^/modules') and matches($FileName, '^module_[a-z\-]+\.xqm$')) then
@@ -268,6 +273,19 @@ let $invalidRestXqModules := if (exrest:invalid-modules() != ()) then
 
 (: reindex database :)
 let $reindex := xmldb:reindex($CurrentRoot||'/data')
+
+(: Der Job läuft als Besitzer dieses setuid-Skripts und darf process:execute. :)
+let $intelligence-job :=
+	try {
+		scheduler:schedule-xquery-periodic-job(
+			'xquery version "3.1"; import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm"; di:process("/db/apps/docman/data")',
+			60000,
+			'docman-intelligence',
+			5000
+		)
+	} catch * {
+		()
+	}
 
 
 (: cleanup HBCI / FinTS files 

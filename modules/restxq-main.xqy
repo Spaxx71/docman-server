@@ -145,60 +145,11 @@ function dmmain:welcomeXML($user as xs:string*) {
 declare
 	%rest:GET
 	%rest:path("/docman/json/test")
+	%output:method("json")
+	%output:media-type("application/json")
 
 function dmmain:welcomeJSON($user as xs:string*) {
-
-    (:
-    let $jsonSerializationParams :=
-        <output:serialization-parameters
-                xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-            <output:method value="json"/>
-            <output:media-type value="application/json"/>
-            <output:json-ignore-whitespace-text-nodes value="yes"/>
-        </output:serialization-parameters>
-    return
-	serialize(account:listAccounts($main:home-data, $tenant, $year), $jsonSerializationParams)
-    :)
-	(:
-    <rest:response>
-        <output:serialization-parameters>
-            <output:method value="json" />
-            <output:json-ignore-whitespace-text-nodes value="yes" />
-            <exist:json-ignore-whitespace-text-nodes value="yes" />
-        </output:serialization-parameters>
-        <http:response>
-            <http:header name="Content-Type" value="application/json" />
-        </http:response>
-    </rest:response>,
-	:)
-
-	let $json-ignore-whitespace-text-nodes-param-xml := 
-		<output:serialization-parameters xmlns:output="http://www.w3.org/2010/xslt-xquery-serialization">
-			<output:method value="json"/>
-			<exist:json-ignore-whitespace-text-nodes value="yes"/>
-		</output:serialization-parameters>
-
-	let $json-ignore-whitespace-text-nodes-param-map := 
-		map {
-			"method": "json",
-			"exist:json-ignore-whitespace-text-nodes": true()
-		}
-
-	let $source := 
-		<a z='99'>
-			<b x='1'/>
-			<b x='2'></b>
-			<b x='3'>stuff</b>
-			<b x='4'>     </b>
-		</a>
-
-	return
-		(
-			(: fn:serialize($source, $json-ignore-whitespace-text-nodes-param-xml) :)
-			(: fn:serialize($source, $json-ignore-whitespace-text-nodes-param-map) :)
-			fn:serialize($source, $json-ignore-whitespace-text-nodes-param-xml)
-		)
-	(: <Test>SUCCESS</Test> :)
+	dmmain:welcomeXML($user)
 };
 
 

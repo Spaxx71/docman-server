@@ -25,6 +25,7 @@ module namespace dmmail="http://exist-db.org/apps/restxq/docman-mail";
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -111,8 +112,62 @@ function dmmail:transferXML($user as xs:string*, $tenant as xs:string, $year as 
 			<error>No Attachment found.</error>
 		else
 			let $write := xmldb:store($transfer-collection, $filename, xs:base64Binary($attachment/text()), $attachment/@mime-type)
+			let $message := email:read-message($tenant, $id)
+			let $from := string(($message//*:from)[1])
+			let $subject := string(($message//*:subject)[1])
+			let $intel := di:ensure($main:home-data, $tenant, $year, $filename, $from, $subject)
 			return
 				<result>
 					<transfer document="{$filename}" mime-type="{$attachment/@mime-type}" status=""/>
 				</result>
+};
+
+declare
+	%rest:GET
+	%rest:path("/docman/json/tenants/{$tenant}/years/{$year}/mail")
+	%output:media-type("application/json")
+	%output:method("json")
+	%rest:query-param("user", "{$user}", "Guest")
+function dmmail:listJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	dmmail:listXML($user, $tenant, $year)
+};
+
+declare
+	%rest:GET
+	%rest:path("/docman/json/tenants/{$tenant}/years/{$year}/mail/{$id}")
+	%output:media-type("application/json")
+	%output:method("json")
+	%rest:query-param("user", "{$user}", "Guest")
+function dmmail:messageJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer) {
+	dmmail:messageXML($user, $tenant, $year, $id)
+};
+
+declare
+	%rest:GET
+	%rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/mail/{$id}/attachment/{$index}")
+	%output:media-type("text/xml")
+	%output:method("xml")
+	%rest:query-param("user", "{$user}", "Guest")
+function dmmail:attachmentXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer) {
+	email:read-attachment($tenant, $id, $index)
+};
+
+declare
+	%rest:GET
+	%rest:path("/docman/json/tenants/{$tenant}/years/{$year}/mail/{$id}/attachment/{$index}")
+	%output:media-type("application/json")
+	%output:method("json")
+	%rest:query-param("user", "{$user}", "Guest")
+function dmmail:attachmentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer) {
+	dmmail:attachmentXML($user, $tenant, $year, $id, $index)
+};
+
+declare
+	%rest:POST
+	%rest:path("/docman/json/tenants/{$tenant}/years/{$year}/mail/{$id}/attachment/{$index}/transfer")
+	%output:media-type("application/json")
+	%output:method("json")
+	%rest:query-param("user", "{$user}", "Guest")
+function dmmail:transferJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer) {
+	dmmail:transferXML($user, $tenant, $year, $id, $index)
 };

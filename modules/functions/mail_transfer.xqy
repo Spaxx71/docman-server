@@ -30,6 +30,7 @@ https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/mail/mail_re
 declare namespace mail = "http://exist-db.org/xquery/mail";
 
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 	
 
 
@@ -53,6 +54,10 @@ return
 		<error>No Attachment found.</error>
 	else
 		let $write := xmldb:store($transfer-collection, $filename, xs:base64Binary($attachment/text()), $attachment/@mime-type)
+		let $message := email:read-message($tenant, $id)
+		let $from := string(($message//*:from)[1])
+		let $subject := string(($message//*:subject)[1])
+		let $intel := di:ensure($ct-home-data, $tenant, $year, $filename, $from, $subject)
 		(: let $write := xmldb:store-as-binary($transfer-collection, $filename, xs:base64Binary$attachment/text())) :)
 		return
 			<result>

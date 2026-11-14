@@ -211,6 +211,15 @@ function dmbank:listBankAccountsJSON($user as xs:string*, $tenant as xs:string, 
 };
 
 
+declare function local:bankAccountings($tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
+	let $bankAccount := banking:getBankAccount($main:home-data, $tenant, $bank-account, $year)
+	return
+		if ($bankAccount/Accountings) then
+			$bankAccount/Accountings
+		else
+			<Accountings/>
+};
+
 (:
 GET http://localhost:8080/exist/restxq/docman/tenants/test/years/2000/banks/12345678
 GET /api/(xml|json)/tenants/test/years/2000/12345678
@@ -223,7 +232,7 @@ declare
     %output:method("xml")
 
 function dmbank:listBankDetailXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
-	banking:getBankAccount ($main:home-data, $tenant, $bank-account, $year)
+	local:bankAccountings($tenant, $year, $bank-account)
 };
 
 declare
@@ -234,22 +243,7 @@ declare
     %output:method("json")
 
 function dmbank:listBankDetailJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
-	let $bankAccount := banking:getBankAccount ($main:home-data, $tenant, $bank-account, $year)
-    return
-        map {
-            "version": "1.0",
-            "tenant": $tenant,
-            "year": $year,
-            "kto":  $bank-account,
-            "hasOnlineBanking": xs:boolean($bankAccount/@hasOnlineBanking/data()),
-            "Accountings": map {
-                "saldoInitAmount": xs:decimal($bankAccount/Accountings/@saldoAmount/data()),
-                "Accounting": 
-                    for $bankAccount at $pos in $bankAccount/Accountings/Accounting
-                    return
-                        local:bankAccountAsJson($bankAccount, $pos)
-            }
-        }    
+	local:bankAccountings($tenant, $year, $bank-account)
 };
 
 
@@ -331,23 +325,7 @@ declare
     %output:method("json")
 
 function dmbank:listAccountingsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
-	let $BankAccount := banking:listAccountings($main:home-data, $tenant, $bank-account, $year)
-    return
-        map {
-            "version": "1.0",
-            "tenantId": $tenant,
-            "yearId": $year,
-            "accountId":  $bank-account,
-            "name": "",
-            "hasOnlineBanking": "true",
-            "Accountings": map {
-                "saldoInitAmount": 2365.31,
-                "Accounting": 
-                    for $Accounting at $pos in $BankAccount/Accountings/Accounting
-                    return
-                        local:bankAccountAsJson($Accounting, $pos)
-            }
-        }  
+	dmbank:listAccountingsXML($user, $tenant, $year, $bank-account)
 };
 
 
@@ -399,21 +377,89 @@ declare
     %output:method("json")
 
 function dmbank:getAccountBalanceListJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
-    let $AccountBalanceList := banking:getAccountBalanceList($main:home-data, $tenant, $year, $bank-account)
+	dmbank:getAccountBalanceListXML($user, $tenant, $year, $bank-account)
+};
+
+
+(:
+Update Bank transactions via HBCI/FinTS online-banking
+
+GET	http://localhost:8080/exist/restxq/docman/tenants/test/years/2000/banks/12345678/onlineupdate ?from=2000-01-01&till=2000-12-31&import=yes
+GET /api/(xml|json)/tenants/test/years/0/banks/234/onlineupdate  - for a summary of all bank accounts
+GET /api/(xml|json)/tenants/test/years/200012345678/banks/234/onlineupdate
+:)
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/onlineupdate")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("from", "{$from-input}", "")
+    %rest:query-param("till", "{$till-input}", "")
+    %rest:query-param("import", "{$import}", "no")
+    %output:method("json")
+
+function dmbank:updateViaFinTSJson($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $from-input, $till-input, $import)
+{
+    let $min-date := xs:date(concat($year, '-01-01'))
+    let $max-date := xs:date(concat($year, '-12-31'))
+
+    let $from-raw := if ($from-input = "") then format-date(current-dateTime()-xs:dayTimeDuration('P90D'), '[Y0000]-[M00]-[D00]') else $from-input
+    let $till-raw := if ($till-input = "") then format-date(current-dateTime()-xs:dayTimeDuration('P1D'), '[Y0000]-[M00]-[D00]') else $till-input
+
+    let $from := max(($min-date, xs:date($from-raw)))
+    let $till := min(($max-date, xs:date($till-raw)))
+
+    let $bank-statement := banking:updateViaFinTS($main:home-data, $tenant, $bank-account, $year, $from, $till, $import='yes')
+
     return
-        map {
-            "version": "1.0",
-            "tenantId": $AccountBalanceList/@tenantId,
-            "yearId": $AccountBalanceList/@yearId,
-            "bankAccountId":  $AccountBalanceList/@bankAccountId,
-            "bankName": $AccountBalanceList/@tenantId/@bankName,
-            "unit": $AccountBalanceList/@unit,
-            "saldoInitAmount": $AccountBalanceList/@saldoInitAmount,
-            "numberOfPaymentTasks": $AccountBalanceList/@numberOfPaymentTasks,
-            "Balances": (
-                for $Balance at $pos in $AccountBalanceList/Balance
-                return
-                    local:bankBalancesAsJson($Balance, $pos)
-            )
-        }
+        if (string($year) != substring($from, 1, 4) or string($year) != substring($till, 1, 4)) then
+            <result src="updateviafints">
+                <error>The provided dates must be within the current year "{$year}". Given dates are from={$from} and till={$till}</error>
+            </result>
+        else
+            <result src="updateviafints">
+                <Parameter>
+                    <From>{$from}</From>
+                    <Till>{$till}</Till>
+                    <BankAccount>{$bank-account}</BankAccount>
+                    {(: banking:listAccountingIDs($main:home-data, $tenant, $bank-account, $year) :)}
+                </Parameter>
+                {(: banking:getBankAccount($main:home-data, $tenant, $bank-account, $year) :)}
+                <FinTS>{$bank-statement}</FinTS>
+            </result>
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/onlineupdate")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("from", "{$from-input}", "")
+    %rest:query-param("till", "{$till-input}", "")
+    %rest:query-param("import", "{$import}", "no")
+    %output:method("xml")
+    %output:media-type("text/xml")
+function dmbank:updateViaFinTSXml($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $from-input, $till-input, $import) {
+	dmbank:updateViaFinTSJson($user, $tenant, $year, $bank-account, $from-input, $till-input, $import)
+};
+
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/detail")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:putBankAccountDetailJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
+	dmbank:putBankAccountDetail($user, $tenant, $year, $bank-account, $body)
+};
+
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:putAccountingsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
+	dmbank:putAccountings($user, $tenant, $year, $bank-account, $body)
 };

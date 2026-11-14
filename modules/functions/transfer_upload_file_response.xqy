@@ -20,6 +20,8 @@ All rights reserved by bintellix GmbH, Germany
 
 xquery version "3.1";
 
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+
 (: http://localhost:8080/exist/rest/db/apps/docman/bin/transfer/transfer_upload_file_response.xqy :)
 
 let $ct-home-web := request:get-attribute('home-web-gui')
@@ -33,7 +35,9 @@ let $filenameOrig := replace(request:get-uploaded-file-name('file'),'.*/','')
 let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.txt|\.csv|\.xml)$')//fn:group, 1)
 let $fileName := replace(translate($filenameParts[1],' ','_'),'[^A-Za-z0-9_+$-]+','-')
 let $fileExt := lower-case($filenameParts[2])
-let $store := xmldb:store($transfer-collection, $fileName || $fileExt, request:get-uploaded-file-data('file'))
+let $stored-name := $fileName || $fileExt
+let $store := xmldb:store($transfer-collection, $stored-name, request:get-uploaded-file-data('file'))
+let $intel := di:ensure($ct-home-data, $tenant, $year, $stored-name, '', '')
 return
 <html>
 	<head>

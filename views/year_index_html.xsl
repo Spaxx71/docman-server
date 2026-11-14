@@ -140,11 +140,11 @@
 			<xsl:when test="OverallCount/@count castable as xs:positiveInteger and OverallCount/Mapped castable as xs:nonNegativeInteger and OverallCount/DocumentsOpen castable as xs:nonNegativeInteger and OverallCount/BankingsOpen castable as xs:nonNegativeInteger and OverallCount/Transfer castable as xs:nonNegativeInteger and OverallCount/Email castable as xs:nonNegativeInteger">
 				<xsl:variable name="Segments">
 					<Segments count="{OverallCount/@count}">
-						<Segment index="1" percent="{OverallCount/Mapped * 100 div OverallCount/@count}" name="Vollständig verbucht (Vorgang + Bank)" count="{OverallCount/Mapped}"/>
+						<Segment index="1" percent="{OverallCount/Mapped * 100 div OverallCount/@count}" name="Verbucht" count="{OverallCount/Mapped}"/>
 						<Segment index="2" percent="{OverallCount/DocumentsOpen * 100 div OverallCount/@count}" name="Vorgänge ohne Verknüpfung" count="{OverallCount/DocumentsOpen}"/>
-						<Segment index="3" percent="{OverallCount/BankingsOpen * 100 div OverallCount/@count}" name="Bankbewegungen ohne Verknüpfung" count="{OverallCount/BankingsOpen}"/>
-						<Segment index="4" percent="{OverallCount/Transfer * 100 div OverallCount/@count}" name="Neuzugang Transfer Ordner" count="{OverallCount/Transfer}"/>
-						<Segment index="5" percent="{OverallCount/Email * 100 div OverallCount/@count}" name="Neuzugang Email" count="{OverallCount/Email}"/>
+						<Segment index="3" percent="{OverallCount/BankingsOpen * 100 div OverallCount/@count}" name="Unverknüpfte Bankbewegungen" count="{OverallCount/BankingsOpen}"/>
+						<Segment index="4" percent="{OverallCount/Transfer * 100 div OverallCount/@count}" name="Transfer-Ordner" count="{OverallCount/Transfer}"/>
+						<Segment index="5" percent="{OverallCount/Email * 100 div OverallCount/@count}" name="E-Mails unerledigt" count="{OverallCount/Email}"/>
 					</Segments>
 				</xsl:variable>
 

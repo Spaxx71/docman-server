@@ -166,3 +166,13 @@ function dmyear:dashboardXML($user as xs:string*, $tenant-id as xs:string, $year
     else
         year:dashboard($main:home-data, $tenant-id, $year)
 };
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant-id}/years/{$year}/dashboard")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmyear:dashboardJSON($user as xs:string*, $tenant-id as xs:string, $year as xs:integer) {
+	dmyear:dashboardXML($user, $tenant-id, $year)
+};

@@ -22,6 +22,8 @@ xquery version "3.1";
 
 module namespace transfer = "http://bintellix.com/docman/transfer";
 
+import module namespace di = "http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+
 (: import module namespace crypto = "http://expath.org/ns/crypto"; 
 import module "http://expath.org/ns/crypto";
 :)
@@ -34,12 +36,16 @@ declare function transfer:index ($home-data as xs:string, $tenant as xs:string, 
 		<Files>
 		{ 
 		for $document in $documents
-		order by $document 
+		where not(ends-with($document, '.docman.xml'))
+		let $ready := if (di:is-document($document)) then di:ensure($home-data, $tenant, $year, $document, '', '') else ()
+		order by $document
 		return
-			<File name="{$document}" 
+			<File name="{$document}"
 				size="{xmldb:size($home-data||'/'||$tenant||'/'||$year||'/transfer',$document)}"
 				created="{xmldb:created($home-data||'/'||$tenant||'/'||$year||'/transfer',$document)}"
-				/>
+				>
+				{ di:summary($home-data, $tenant, $year, $document) }
+			</File>
 				(: hash-sha1="{crypto:hash(util:binary-doc($collection-transfer ||'/'||$document),'SHA1')}" :)
 		}
 		</Files>
@@ -48,7 +54,8 @@ declare function transfer:index ($home-data as xs:string, $tenant as xs:string, 
 
 
 declare function transfer:delete ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $document) {
-	xmldb:remove($home-data||'/'||$tenant||'/'||$year||'/transfer', $document)
+	let $companion := di:remove($home-data, $tenant, $year, $document)
+	return xmldb:remove($home-data||'/'||$tenant||'/'||$year||'/transfer', $document)
 };
 
 declare function transfer:rename($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
@@ -61,6 +68,7 @@ declare function transfer:rename($home-data as xs:string, $tenant as xs:string, 
 			<error>Filename "{$name}" already exists.</error>
 		else
 			let $rename := xmldb:rename($transfer-collection, $document, $name)
+			let $companion := di:follow($home-data, $tenant, $year, $document, $name)
 			return <result from="{$document}" to="{$name}" status="{$rename}"/>
 };
 
@@ -69,6 +77,7 @@ declare function transfer:toTrash($home-data as xs:string, $tenant as xs:string,
 	let $parent := $home-data||'/'||$tenant
 	let $trash-collection := $parent||'/trash'
 	let $create := if (xmldb:collection-available($trash-collection)) then () else xmldb:create-collection($parent, 'trash')
+	let $companion := di:trash($home-data, $tenant, $document, $year)
 	let $move := xmldb:move($transfer-collection, $trash-collection, $document)
 	return <result from="{$document}" to="trash" status="{$move}"/>
 };
@@ -81,6 +90,7 @@ declare function transfer:trashIndex($home-data as xs:string, $tenant as xs:stri
 			{
 				if (xmldb:collection-available($trash-collection)) then
 					for $document in xmldb:get-child-resources($trash-collection)
+					where not(ends-with($document, '.docman.xml'))
 					order by $document
 					return
 						<File name="{$document}"

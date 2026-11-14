@@ -36,8 +36,14 @@ let $year := request:get-attribute("year")
 
 let $import := request:get-parameter("import","no")
 
-let $from := request:get-parameter("from",format-date(current-dateTime()-xs:dayTimeDuration('P90D'),'[Y0000]-[M00]-[D00]'))
-let $till := request:get-parameter("till",format-date(current-dateTime()-xs:dayTimeDuration('P1D'),'[Y0000]-[M00]-[D00]'))
+let $min-date := xs:date(concat($year, '-01-01'))
+let $max-date := xs:date(concat($year, '-12-31'))
+
+let $from-raw := request:get-parameter("from", format-date(current-dateTime()-xs:dayTimeDuration('P90D'), '[Y0000]-[M00]-[D00]'))
+let $till-raw := request:get-parameter("till", format-date(current-dateTime()-xs:dayTimeDuration('P1D'), '[Y0000]-[M00]-[D00]'))
+
+let $from := max(($min-date, xs:date($from-raw)))
+let $till := min(($max-date, xs:date($till-raw)))
 
 let $bank := banking:getBankAccount($home-data, $tenant, $bank-account, $year)
 

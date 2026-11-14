@@ -44,6 +44,7 @@
 								</ProcessTemplates>
 								<PeriodicPayments/>
 								<BudgetCategories/>
+								<FieldHints/>
 								<Accounting openingBalance="0" closingBalance="0" debitSum="0" creditSum="0"/>
 							</Account>
 						</xsl:when>
@@ -80,6 +81,14 @@
 							<Appointment date=""/>
 							<Notes/>
 						</ProcessTemplate>
+					</data>
+				</xf:instance>
+
+				<xf:instance xmlns="" id="hint-new">
+					<data>
+						<FieldHints>
+							<Hint field="invoiceNumber" label="" region="invoiceHeader" pattern=""/>
+						</FieldHints>
 					</data>
 				</xf:instance>
 
@@ -786,6 +795,50 @@ Body: </xf:label>
 							<span>nur bei Personenkonten</span>
 						</xf:group>
 
+					</td>
+				</tr>
+				<tr>
+					<th>Feldhinweise<br/><span style="font-size:80%">Bezeichner, Bereich, Muster</span></th>
+					<td>
+						<xf:group ref="instance('account')[contains(@classes,'creditor') or contains(@classes,'debitor') or @type='creditor' or @type='debitor']">
+							<xf:repeat nodeset="FieldHints/Hint">
+								<div>
+									<xf:select1 ref="@field">
+										<xf:label>Feld</xf:label>
+										<xf:item><xf:label>Rechnungsnummer</xf:label><xf:value>invoiceNumber</xf:value></xf:item>
+										<xf:item><xf:label>Rechnungsdatum</xf:label><xf:value>invoiceDate</xf:value></xf:item>
+										<xf:item><xf:label>Leistungsdatum</xf:label><xf:value>serviceDate</xf:value></xf:item>
+										<xf:item><xf:label>Fälligkeit</xf:label><xf:value>dueDate</xf:value></xf:item>
+										<xf:item><xf:label>Zahlbetrag</xf:label><xf:value>payable</xf:value></xf:item>
+										<xf:item><xf:label>Brutto</xf:label><xf:value>gross</xf:value></xf:item>
+										<xf:item><xf:label>USt-IdNr.</xf:label><xf:value>vat</xf:value></xf:item>
+										<xf:item><xf:label>IBAN</xf:label><xf:value>iban</xf:value></xf:item>
+										<xf:item><xf:label>BIC</xf:label><xf:value>bic</xf:value></xf:item>
+									</xf:select1>
+									<xf:input ref="@label"><xf:label>Bezeichner</xf:label></xf:input>
+									<xf:select1 ref="@region">
+										<xf:label>Bereich</xf:label>
+										<xf:item><xf:label>Rechnungskopf</xf:label><xf:value>invoiceHeader</xf:value></xf:item>
+										<xf:item><xf:label>Summen</xf:label><xf:value>amounts</xf:value></xf:item>
+										<xf:item><xf:label>Positionen</xf:label><xf:value>lines</xf:value></xf:item>
+										<xf:item><xf:label>Zahlung</xf:label><xf:value>payment</xf:value></xf:item>
+										<xf:item><xf:label>neben Rechnungsnummer</xf:label><xf:value>near:invoiceNumber</xf:value></xf:item>
+									</xf:select1>
+									<xf:input ref="@pattern"><xf:label>Regex</xf:label><xf:hint>Nur setzen, wenn das Format feststeht. Es wird nicht aus einer Nummer geraten.</xf:hint></xf:input>
+									<xf:trigger>
+										<xf:label>X</xf:label>
+										<xf:delete nodeset="." ev:event="DOMActivate"/>
+									</xf:trigger>
+								</div>
+							</xf:repeat>
+							<xf:trigger>
+								<xf:label>Feldhinweis hinzufügen</xf:label>
+								<xf:action ev:event="DOMActivate">
+									<xf:insert context="instance('account')" origin="instance('hint-new')/FieldHints" nodeset="FieldHints" if="not(FieldHints)"/>
+									<xf:insert context="instance('account')/FieldHints" origin="instance('hint-new')/FieldHints/Hint" nodeset="Hint"/>
+								</xf:action>
+							</xf:trigger>
+						</xf:group>
 					</td>
 				</tr>
 				<tr>
