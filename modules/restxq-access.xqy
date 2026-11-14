@@ -19,6 +19,7 @@ All rights reserved by bintellix GmbH, Germany
 :)
 
 (: /rest/db/apps/docman/modules/restxq-main.xqy :)
+(: Registrierung über /rest/db/apps/docman/initialize.xqy :)
 xquery version "3.1";
 
 (: can be tested by using 

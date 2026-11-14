@@ -58,16 +58,12 @@ declare function di:shell($file as xs:string, $from as xs:string, $subject as xs
 };
 
 declare function di:schedule() as item()* {
-	let $job := 'xquery version "3.1"; import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm"; di:process("/db/apps/docman/data")'
+	let $job := '/db/apps/docman/modules/functions/document_intelligence_process.xqy'
 	return
 		try {
-			scheduler:schedule-xquery-periodic-job($job, 60000, 'docman-intelligence', 2000)
+			scheduler:schedule-xquery-periodic-job($job, 60000, 'docman-intelligence', <parameters/>, 2000, -1)
 		} catch * {
-			try {
-				scheduler:schedule-xquery-periodic-job($job, 60000, 'docman-intelligence')
-			} catch * {
-				()
-			}
+			()
 		}
 };
 
@@ -128,11 +124,34 @@ declare function di:chunks($text as xs:string) as xs:string* {
 		return substring($text, $index * 76 + 1, 76)
 };
 
+declare function di:start-error($command as xs:string, $detail as xs:string) as element() {
+	if (contains($detail, 'error=2') or contains($detail, 'nicht gefunden') or contains($detail, 'No such file')) then
+		<Error>Programm nicht installiert: {$command}. Auf dem Server als root ausführen: sh /tmp/docman-intelligence/install-linux.sh</Error>
+	else
+		<Error>{substring($detail, 1, 500)}</Error>
+};
+
+declare function di:probe($command as xs:string) as element()? {
+	try {
+		let $run := process:execute(($command, '--version'), <options/>)
+		let $detail := normalize-space(string-join(($run/stderr/line, $run/stdout/line), ' '))
+		return
+			if (xs:integer($run/@exitCode) = 0) then ()
+			else di:start-error($command, $detail)
+	} catch * {
+		di:start-error($command, $err:description)
+	}
+};
+
 declare function di:run($home as xs:string, $tenant as xs:string, $year, $file as xs:string, $from as xs:string, $subject as xs:string) as item()* {
+	let $command := di:command()
+	let $probe := di:probe($command)
 	let $collection := di:collection($home, $tenant, $year)
 	let $binary := $collection || '/' || $file
 	return
-		if (not(util:binary-doc-available($binary))) then
+		if ($probe) then
+			$probe
+		else if (not(util:binary-doc-available($binary))) then
 			<Error>Datei fehlt.</Error>
 		else
 			let $accounts := serialize(di:accounts($home, $tenant, $year), map { 'method': 'xml', 'indent': false() })
@@ -155,7 +174,7 @@ declare function di:run($home as xs:string, $tenant as xs:string, $year, $file a
 				'END'
 			)
 			let $run := process:execute(
-				(di:command(), 'read'),
+				($command, 'read'),
 				<options><stdin>{ for $line in $lines return <line>{$line}</line> }</stdin></options>
 			)
 			let $out := string-join($run/stdout/line, '')
@@ -216,10 +235,31 @@ declare function di:process($home as xs:string) as element() {
 		let $collection := di:collection($home, $tenant, $year)
 		where xmldb:collection-available($collection)
 		for $name in xmldb:get-child-resources($collection)[ends-with(., '.docman.xml')]
+		let $doc := doc($collection || '/' || $name)/DocmanIntelligence
+		let $retry := contains($doc/Error, 'dba role') or contains($doc/Error, 'nicht installiert') or contains($doc/Error, 'error=2')
 		where doc-available($collection || '/' || $name)
-			and doc($collection || '/' || $name)/DocmanIntelligence/@status = 'pending'
+			and ($doc/@status = 'pending' or ($doc/@status = 'error' and $retry))
 		return di:read-one($home, $tenant, $year, $name)
 	return <processed count="{count($done)}"/>
+};
+
+declare function di:load($home as xs:string, $tenant as xs:string, $year, $file as xs:string) as element() {
+	let $collection := di:collection($home, $tenant, $year)
+	let $name := di:locate($collection, $file)
+	let $doc := if ($name = '') then () else doc($collection || '/' || $name)/DocmanIntelligence
+	return
+		if (empty($doc)) then
+			<error>Keine Metadaten.</error>
+		else
+			$doc
+};
+
+declare function di:refresh-file($home as xs:string, $tenant as xs:string, $year, $file as xs:string) as element() {
+	let $ensure := di:ensure($home, $tenant, $year, $file, '', '')
+	let $collection := di:collection($home, $tenant, $year)
+	let $name := di:locate($collection, $file)
+	let $run := if ($name = '') then () else di:read-one($home, $tenant, $year, $name)
+	return di:load($home, $tenant, $year, $file)
 };
 
 declare function di:notes($home as xs:string, $tenant as xs:string, $year, $file as xs:string, $text as xs:string) as element() {

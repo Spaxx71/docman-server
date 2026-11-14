@@ -19,6 +19,7 @@ All rights reserved by bintellix GmbH, Germany
 :)
 
 (: /rest/db/apps/docman/modules/restxq-categories.xqy :)
+(: Registrierung über /rest/db/apps/docman/initialize.xqy :)
 xquery version "3.1";
 
 module namespace dmcategories="http://exist-db.org/apps/restxq/docman-categories";

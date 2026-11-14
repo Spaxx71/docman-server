@@ -38,6 +38,7 @@ declare function transfer:index ($home-data as xs:string, $tenant as xs:string, 
 		for $document in $documents
 		where not(ends-with($document, '.docman.xml'))
 		let $ready := if (di:is-document($document)) then di:ensure($home-data, $tenant, $year, $document, '', '') else ()
+		let $meta := if (di:is-document($document)) then di:load($home-data, $tenant, $year, $document) else ()
 		order by $document
 		return
 			<File name="{$document}"
@@ -45,6 +46,7 @@ declare function transfer:index ($home-data as xs:string, $tenant as xs:string, 
 				created="{xmldb:created($home-data||'/'||$tenant||'/'||$year||'/transfer',$document)}"
 				>
 				{ di:summary($home-data, $tenant, $year, $document) }
+				{ $meta[self::DocmanIntelligence] }
 			</File>
 				(: hash-sha1="{crypto:hash(util:binary-doc($collection-transfer ||'/'||$document),'SHA1')}" :)
 		}

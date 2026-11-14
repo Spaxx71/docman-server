@@ -19,6 +19,7 @@ All rights reserved by bintellix GmbH, Germany
 :)
 
 (: /rest/db/apps/docman/modules/restxq-transfer.xqy :)
+(: Registrierung über /rest/db/apps/docman/initialize.xqy :)
 xquery version "3.1";
 
 module namespace dmtransfer="http://exist-db.org/apps/restxq/docman-transfer";
@@ -320,12 +321,49 @@ function dmtransfer:delete($user as xs:string*, $display, $tenant as xs:string, 
 };
 
 declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/notes")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("application/xml")
+function dmtransfer:notes($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $body as item()*) {
+	let $text :=
+		if ($body instance of element(Notes)) then
+			string($body)
+		else
+			string(($body/Notes, $body//Notes)[1])
+	return di:notes($main:home-data, $tenant, $year, $document, $text)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/intelligence")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmtransfer:intelligence($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
+	let $ensure := di:ensure($main:home-data, $tenant, $year, $document, '', '')
+	return di:load($main:home-data, $tenant, $year, $document)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/intelligence")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmtransfer:refreshIntelligence($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
+	di:refresh-file($main:home-data, $tenant, $year, $document)
+};
+
+declare
     %rest:POST
     %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/rename")
     %rest:query-param("user", "{$user}", "Guest")
     %rest:query-param("name", "{$name}", "")
     %output:media-type("application/xml")
-function dmtransfer:rename($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
+function dmtransfer:rename($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string*) {
 	transfer:rename($main:home-data, $tenant, $year, $document, $name)
 };
 
@@ -389,7 +427,7 @@ declare
     %rest:query-param("name", "{$name}", "")
     %output:media-type("application/json")
     %output:method("json")
-function dmtransfer:renameJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
+function dmtransfer:renameJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string*) {
 	dmtransfer:rename($user, $tenant, $year, $document, $name)
 };
 

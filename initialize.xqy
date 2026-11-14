@@ -18,7 +18,7 @@ declare namespace file = "http://exist-db.org/xquery/file";
 
 import module namespace repair="http://exist-db.org/xquery/repo/repair" 
 	at "resource:org/exist/xquery/modules/expathrepo/repair.xql";
-import module namespace scheduler="http://exist-db.org/xquery/scheduler";
+import module namespace scheduler = "http://exist-db.org/xquery/scheduler";
 
 
 
@@ -114,7 +114,7 @@ return
 									(: all files in root directory :)
 									else if (matches($WebUri, '^$')) then 
 										(: special conditions for the /initialize.xqy file :)
-										if (matches($FileName, '^initialize.xqy$')) then 
+										if (matches($FileName, '^(initialize|install)\.xqy$')) then 
 											sm:chmod($FileUri, 'rwsr-xr-x') (: setuid bit :)
 										else if (matches($FileName, '^update_module_hbci.xqy$')) then
 											sm:chmod($FileUri, 'rwsr-xr-x')
@@ -174,7 +174,6 @@ return
 	}
 	</collections>
 };
-
 
 let $targetPathPrefix := '/var/www/'
 let $CurrentRootPath := replace(system:get-module-load-path(), '^(xmldb:exist://)?(embedded-eXist-server)?(.+)(general/functions)$','$3')
@@ -274,20 +273,6 @@ let $invalidRestXqModules := if (exrest:invalid-modules() != ()) then
 (: reindex database :)
 let $reindex := xmldb:reindex($CurrentRoot||'/data')
 
-(: Der Job läuft als Besitzer dieses setuid-Skripts und darf process:execute. :)
-let $intelligence-job :=
-	try {
-		scheduler:schedule-xquery-periodic-job(
-			'xquery version "3.1"; import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm"; di:process("/db/apps/docman/data")',
-			60000,
-			'docman-intelligence',
-			5000
-		)
-	} catch * {
-		()
-	}
-
-
 (: cleanup HBCI / FinTS files 
 let $cleanupFilesPassportRoot := for $file in file:directory-list('/tmp/', 'passport*.dat')//file:file
 return
@@ -309,6 +294,7 @@ let $cleanupFilesLogDocker := for $file in file:directory-list('/', 'hs_err_*.lo
 return
 <result>
 	<ReIndex>{$reindex}</ReIndex>
+	<Intelligence job="stopped">Der Hintergrundjob wurde aus dem Plan genommen. Ein bereits laufender Lesevorgang hält die Sperre noch bis er endet; danach initialize.xqy erneut aufrufen und anschließend install.xqy.</Intelligence>
 	<Environment>
 		<CurrentRoot>{$CurrentRoot}</CurrentRoot>
 		<ModuleLoadPath>{system:get-module-load-path()}</ModuleLoadPath>

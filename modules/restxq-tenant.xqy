@@ -18,7 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-(: /rest/db/apps/docman/modules/restxq-tenant.xqy - needs to send accept :) 
+(: /rest/db/apps/docman/modules/restxq-tenant.xqy - needs to send accept :)
+(: Registrierung über /rest/db/apps/docman/initialize.xqy :) 
 xquery version "3.1";
 
 module namespace dmtenant="http://exist-db.org/apps/restxq/docman-tenant";

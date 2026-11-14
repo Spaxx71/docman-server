@@ -18,6 +18,8 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
+(: /rest/db/apps/docman/modules/restxq-hbci.xqy :)
+(: Registrierung über /rest/db/apps/docman/initialize.xqy :)
 xquery version "3.0";
 
 module namespace dmhbci="http://exist-db.org/apps/restxq/docman-hbci";
