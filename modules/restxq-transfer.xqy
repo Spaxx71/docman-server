@@ -338,13 +338,34 @@ function dmtransfer:notes($user as xs:string*, $tenant as xs:string, $year as xs
 
 declare
     %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/intelligence-status")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmtransfer:intelligenceStatus($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	let $home := $main:home-data
+	let $path := $home || '/document-intelligence-status.xml'
+	let $status := if (doc-available($path)) then doc($path)/* else <DocumentIntelligenceStatus state="unknown"/>
+	let $queue := di:queue($home)[@tenant = $tenant][@year = string($year)]
+	return
+		<IntelligenceJob tenant="{$tenant}" year="{$year}">
+			{$status}
+			<Pending count="{count($queue)}">{
+				for $item at $pos in $queue
+				return
+					<Item position="{$pos}" file="{$item/@source}" companion="{$item/@name}" status="{$item/@status}" updated="{$item/@updated}"/>
+			}</Pending>
+		</IntelligenceJob>
+};
+
+declare
+    %rest:GET
     %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/intelligence")
     %rest:query-param("user", "{$user}", "Guest")
     %output:media-type("application/xml")
     %output:method("xml")
 function dmtransfer:intelligence($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
-	let $ensure := di:ensure($main:home-data, $tenant, $year, $document, '', '')
-	return di:load($main:home-data, $tenant, $year, $document)
+	di:load($main:home-data, $tenant, $year, $document)
 };
 
 declare

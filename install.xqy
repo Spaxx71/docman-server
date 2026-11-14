@@ -11,6 +11,8 @@ apt und pip laufen nicht hier. Das macht root mit dem exportierten Skript.
 declare namespace file = "http://exist-db.org/xquery/file";
 
 import module namespace scheduler = "http://exist-db.org/xquery/scheduler";
+import module namespace di = "http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+import module namespace process = "http://exist-db.org/xquery/process";
 
 declare function local:root() as xs:string {
 	let $raw := system:get-module-load-path()
@@ -76,23 +78,41 @@ declare function local:command-present($command as xs:string) as xs:boolean {
 	try { file:exists($command) } catch * { false() }
 };
 
+declare function local:permission($uri as xs:string) as element() {
+	try {
+		let $p := sm:get-permissions(xs:anyURI($uri))/sm:permission
+		return <Permission path="{$uri}" owner="{$p/@owner}" mode="{$p/@mode}"/>
+	} catch * {
+		<Permission path="{$uri}" error="{$err:description}"/>
+	}
+};
+
 let $root := local:root()
+let $home := $root || '/data'
 let $export := '/tmp/docman-intelligence'
 let $files := local:export-sources($root, $export)
 let $script := exists($files[self::file][@path = $export || '/install-linux.sh'])
 let $command := local:command($root)
 let $present := local:command-present($command)
+let $job-uri := $root || '/modules/functions/document_intelligence_process.xqy'
+let $mod-uri := $root || '/modules/module_document-intelligence.xqm'
+let $functions-col := $root || '/modules/functions'
 let $rights :=
 	try {
-		for $uri in (
-			xs:anyURI('/db/apps/docman/modules/module_document-intelligence.xqm'),
-			xs:anyURI('/db/apps/docman/modules/functions/document_intelligence_process.xqy'),
-			xs:anyURI($root || '/install.xqy')
+		let $_ := (
+			sm:chmod(xs:anyURI($functions-col), 'rwxr-xr-x'),
+			for $uri in (
+				xs:anyURI($mod-uri),
+				xs:anyURI($job-uri),
+				xs:anyURI($root || '/install.xqy'),
+				xs:anyURI($root || '/check.xqy')
+			)
+			return (
+				sm:chown($uri, 'admin'),
+				sm:chmod($uri, 'rwsr-xr-x')
+			)
 		)
-		return (
-			sm:chown($uri, 'admin'),
-			sm:chmod($uri, 'rwsrwx--x')
-		)
+		return ()
 	} catch * {
 		<error>setuid nicht gesetzt: {$err:description}</error>
 	}
@@ -101,36 +121,87 @@ let $job :=
 	else
 		try {
 			let $drop := scheduler:delete-scheduled-job('docman-intelligence')
-			(: Viertes Argument ist ein Parameter-Element, kein Benutzer. -1 wiederholt ohne Ende. Der Job startet als guest und erbt über setuid den Besitzer. :)
+			(: unschedule=false: Exception darf den Job nicht aus dem Plan nehmen. :)
 			let $schedule := scheduler:schedule-xquery-periodic-job(
-				'/db/apps/docman/modules/functions/document_intelligence_process.xqy',
+				$job-uri,
 				60000,
 				'docman-intelligence',
 				<parameters/>,
-				5000,
-				-1
+				2000,
+				-1,
+				false()
 			)
-			return true()
+			return $schedule
 		} catch * {
 			false()
 		}
+(: Marker unabhängig von file:exists — die Whitelist lügt oft. Job + exportierte Quellen reichen. :)
+let $marker :=
+	try {
+		if (not($job)) then
+			<marker ok="false"/>
+		else
+			let $path := xmldb:store(
+				$home,
+				'document-intelligence.xml',
+				<DocumentIntelligence command="{$command}" installed="true" installed-at="{current-dateTime()}"/>
+			)
+			return <marker ok="true" path="{$path}"/>
+	} catch * {
+		<marker ok="false">{$err:description}</marker>
+	}
+let $probe :=
+	try {
+		let $run := process:execute(($command, '--version'), <options/>)
+		return
+			<Probe
+				who="{di:who()}"
+				queued="{count(di:queue($home))}"
+				exit="{string($run/@exitCode)}"
+				out="{substring(normalize-space(string-join(($run/stdout/line, $run/stderr/line), ' ')), 1, 200)}"/>
+	} catch * {
+		<Probe who="{di:who()}" queued="{count(di:queue($home))}" error="{substring($err:description, 1, 300)}"/>
+	}
+let $right-errors := $rights[self::error]
+let $root-cmd := 'sudo sh ' || $export || '/install-linux.sh'
+let $version := normalize-space(string(($probe/@out, '')[1]))
+let $version-ok := starts-with($version, '0.1.1') or contains($version, '0.1.1')
 let $hint :=
 	if (not($script)) then
-		'Die Quellen fehlen unter /db/apps/docman/intelligence. Den Ordner intelligence ohne .venv per WebDAV dorthin legen, danach install.xqy erneut aufrufen.'
-	else if (exists($rights/self::error)) then
-		string($rights/self::error[1])
+		'Die Quellen fehlen unter /db/apps/docman/intelligence.'
+	else if (exists($right-errors)) then
+		string($right-errors[1]) || ' Anschließend als root: ' || $root-cmd
 	else if (not($job)) then
-		'Der Hintergrundjob konnte nicht eingetragen werden.'
-	else if (not($present)) then
-		'Job eingetragen. Als root, falls das Programm noch fehlt: sh ' || $export || '/install-linux.sh — die Datei nicht direkt starten.'
+		'Der Hintergrundjob konnte nicht eingetragen werden. Quellen liegen unter ' || $export || '. Als root: ' || $root-cmd
+	else if (exists($probe/@error)) then
+		'Job eingetragen, aber process:execute schlug fehl: ' || string($probe/@error) || ' Als root trotzdem: ' || $root-cmd
+	else if (not($version-ok)) then
+		'Programm-Version ist "' || $version || '" (nötig 0.1.1). Als root ausführen: ' || $root-cmd || ' — die Datei nicht direkt starten (/tmp ist oft noexec).'
+	else if (xs:integer(($probe/@queued, '0')[1]) = 0) then
+		'Job läuft, Programm 0.1.1 ok. Warteschlange leer. Bei Code-Änderungen erneut: ' || $root-cmd
 	else
-		'Das Programm ist installiert. Der Hintergrundjob läuft mit dem setuid-Recht von admin.'
+		'Job läuft, Programm 0.1.1 ok. ' || string($probe/@queued) || ' Datei(en) in der Warteschlange. Bei Code-Änderungen erneut: ' || $root-cmd
 
 return
 <result>
-	<Export path="{$export}" files="{count($files/self::file)}"/>
-	<Command path="{$command}" present="{$present}"/>
+	<Export path="{$export}" files="{count($files[self::file])}"/>
+	<Command path="{$command}" present="{$present}" version="{$version}" version-ok="{$version-ok}"/>
 	<Job scheduled="{$job}"/>
+	<Installed>{exists($marker[@ok = 'true'])}</Installed>
+	{
+		if ($script) then
+			<RootInstall required="{not($version-ok) or exists($probe/@error) or not($present)}">
+				{$root-cmd}
+			</RootInstall>
+		else
+			()
+	}
+	{local:permission($job-uri)}
+	{local:permission($mod-uri)}
+	{local:permission($functions-col)}
+	{$probe}
+	{$marker}
 	<Hint>{$hint}</Hint>
-	{$files/self::error}
+	{$files[self::error]}
+	{$right-errors}
 </result>

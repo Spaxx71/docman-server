@@ -59,123 +59,175 @@ declare function local:set-users($RootCollection as xs:string, $Owner as xs:stri
 
 
 
-declare function local:set-rights($RootCollection as xs:string) as node() {
- (: "u+r,g+r,o+r" :)
-
-	<collections>
-	{
-		for $Collection in (local:list-collections($RootCollection), xs:anyURI($RootCollection))
+declare function local:set-rights($RootCollection as xs:string) as element(SetRights) {
+	(: Rechte setzen; Antwort nur Zähler und Fehler — kein sm:get-permissions-Dump. :)
+	let $collections := (local:list-collections($RootCollection), xs:anyURI($RootCollection))
+	let $results :=
+		for $Collection in $collections
 		return
 			if (starts-with($Collection, 'Error:')) then
-		let $clear := sm:clear-acl($Collection)
-return
-			<error>{$Collection}</error>
+				<error>{$Collection}</error>
 			else
-			<collection name="{$Collection}">
-				{
+				let $_collection :=
 					if (matches($Collection, '^$')) then
 						sm:chmod($Collection, 'rwxr-xr-x')
 					else if (matches($Collection, $RootCollection||'/modules$')) then
+						sm:chmod($Collection, 'rwxr-xr-x')
+					(: guest muss den Job-Pfad übersetzen können, setuid greift erst danach :)
+					else if (matches($Collection, $RootCollection||'/modules/functions$')) then
 						sm:chmod($Collection, 'rwxr-xr-x')
 					else if (starts-with($Collection, $RootCollection||'/data')) then
 						sm:chmod($Collection, 'rwxrwx---')
 					else
 						sm:chmod(xs:anyURI($Collection), 'rwxrwx--x')
-				}
-				{sm:get-permissions($Collection)}
-				<files>
-				{
-					let $WebUri := substring-after($Collection, $RootCollection)
-					for $FileName in xmldb:get-child-resources($Collection)
-					return 
-						let $FileUri := xs:anyURI($Collection||'/'||$FileName)
-						let $clear := sm:clear-acl($FileUri)
-						return
-							<file collection="{$WebUri}" name="{$FileName}">
-							<!-- {sm:chgrp($FileUri,'docman')} -->
-							{
+				let $WebUri := substring-after($Collection, $RootCollection)
+				for $FileName in xmldb:get-child-resources($Collection)
+				let $FileUri := xs:anyURI($Collection||'/'||$FileName)
+				let $_clear := sm:clear-acl($FileUri)
+				return
+					if (matches($FileName, '__contents__.xml$')) then
+						let $_ := xmldb:remove($Collection, $FileName)
+						return ()
+					else if (matches($FileName, '.DS_Store$')) then
+						let $_ := xmldb:remove($Collection, $FileName)
+						return ()
+					else
+						let $error :=
+							if (matches($WebUri, '^$') and matches($FileName, '^controller.xql$')) then
+								let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
+								return ()
+							else if (matches($WebUri, '^$')) then
+								if (matches($FileName, '^(initialize|install|check)\.xqy$')) then
+									let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
+									return ()
+								else if (matches($FileName, '^update_module_hbci.xqy$')) then
+									let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
+									return ()
+								else if (matches($FileName, '\.(ico|txt)$')) then
+									let $_ := sm:chmod($FileUri, 'rwxrwxr-x')
+									return ()
+								else if (matches($FileName, '\.(xml)$')) then
+									let $_ := sm:chmod($FileUri, 'rwxrwxr-x')
+									return ()
+								else
+									let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
+									return <error type="2" weburi="{$WebUri}" file="{$FileName}">File type not supported!</error>
+							else if (matches($WebUri, '^/modules') and matches($FileName, '^(restxq-email\.xqy|module_email\.xqm)$')) then
+								let $_ := sm:chmod($FileUri, 'rwsrwx--x')
+								return ()
+							else if (matches($WebUri, '^/modules') and matches($FileName, '^(module_document-intelligence\.xqm|document_intelligence_process\.xqy)$')) then
+								let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
+								return ()
+							else if (matches($WebUri, '^/modules') and matches($FileName, '^restxq-[a-z\-]+\.xqy$')) then
+								let $_ := sm:chmod($FileUri, 'rwxrwx--x')
+								return ()
+							else if (matches($WebUri, '^/modules') and matches($FileName, '^module_[a-z\-]+\.xqm$')) then
+								let $_ := sm:chmod($FileUri, 'rwxrwxr-x')
+								return ()
+							else if (matches($WebUri, '^/modules')) then
+								let $_ := sm:chmod($FileUri, 'rwxrwx--x')
+								return ()
+							else if (matches($WebUri, '^/views')) then
+								let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
+								return ()
+							else if (matches($WebUri, '^/recources')) then
+								let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
+								return ()
+							else if (matches($WebUri, '^/data') and matches($FileName, '^search.xml$')) then
+								let $_ := sm:chmod($FileUri, 'rw-rw----')
+								return ()
+							else if (matches($WebUri, '^/data')) then
+								let $_ :=
+									if (matches($FileName, '(bank-account_.*|accounts)\.dm\.xml$')) then
+										sm:chmod($FileUri, 'rwxrw----')
+									else if (matches($FileName, '\.(xml)$')) then
+										sm:chmod($FileUri, 'rwxrw----')
+									else
+										sm:chmod($FileUri, 'rwxrw----')
+								return ()
+							else
+								let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
+								return <error type="4" weburi="{$WebUri}" file="{$FileName}">File is not part of list!</error>
+						return ($error, <file/>)
+	let $errors := $results[self::error]
+	let $files := count($results[self::file])
+	let $collections-count := count($collections[not(starts-with(., 'Error:'))])
+	return
+		<SetRights collections="{$collections-count}" files="{$files}" errors="{count($errors)}">
+			{$errors}
+		</SetRights>
+};
 
-								(: cleanup rule for __contents__.xml files :)
-								if (matches($FileName, '__contents__.xml$')) then 
-									xmldb:remove($Collection, $FileName)
-
-								(: cleanup rule for .DS_Store files :)
-								else if (matches($FileName, '.DS_Store$')) then 
-									xmldb:remove($Collection, $FileName)
-
-								else 
-								(
-
-									(: special condition for controller.xql :)
-									if (matches($WebUri, '^$') and matches($FileName, '^controller.xql$')) then 
-										sm:chmod($FileUri, 'rwxr-xr-x')
-
-
-									(: all files in root directory :)
-									else if (matches($WebUri, '^$')) then 
-										(: special conditions for the /initialize.xqy file :)
-										if (matches($FileName, '^(initialize|install)\.xqy$')) then 
-											sm:chmod($FileUri, 'rwsr-xr-x') (: setuid bit :)
-										else if (matches($FileName, '^update_module_hbci.xqy$')) then
-											sm:chmod($FileUri, 'rwsr-xr-x')
-										else if (matches($FileName, '\.(ico|txt)$')) then
-											sm:chmod($FileUri, 'rwxrwxr-x')
-										else if (matches($FileName, '\.(xml)$')) then
-											sm:chmod($FileUri, 'rwxrwxr-x')
-										else
-											(sm:chmod($FileUri, 'rwxr-xr-x'),<error type="2" weburi="{$WebUri}" file="{$FileName}">File type not supported!</error>)
-
-									(: special conditions for all files in /modules/ and sup-directories :)
-									(: email calls process:execute and must run as the owner :)
-									else if (matches($WebUri, '^/modules') and matches($FileName, '^(restxq-email\.xqy|module_email\.xqm|module_document-intelligence\.xqm|document_intelligence_process\.xqy)$')) then
-										sm:chmod($FileUri, 'rwsrwx--x')
-
-									else if (matches($WebUri, '^/modules') and matches($FileName, '^restxq-[a-z\-]+\.xqy$')) then
-										sm:chmod($FileUri, 'rwxrwx--x') 
-
-									else if (matches($WebUri, '^/modules') and matches($FileName, '^module_[a-z\-]+\.xqm$')) then
-										sm:chmod($FileUri, 'rwxrwxr-x') 
-
-									else if (matches($WebUri, '^/modules')) then 
-										sm:chmod($FileUri, 'rwxrwx--x') 
-
-									(: special conditions for all files in /views/ and sup-directories :)
-									else if (matches($WebUri, '^/views')) then 
-										sm:chmod($FileUri, 'rwxr-xr-x') 
-
-									(: special conditions for all files in /resouces/ and sup-directories :)
-									else if (matches($WebUri, '^/recources')) then 
-										sm:chmod($FileUri, 'rwxr-xr-x') 
-
-									else if (matches($WebUri, '^/data') and matches($FileName, '^search.xml$')) then
-										sm:chmod($FileUri, 'rw-rw----')
-
-									else if (matches($WebUri, '^/data')) then 
-										if (matches($FileName, '(bank-account_.*|accounts)\.dm\.xml$')) then
-											sm:chmod($FileUri, 'rwxrw----')
-										else if (matches($FileName, '\.(xml)$')) then
-											sm:chmod($FileUri, 'rwxrw----')
-										else
-											(sm:chmod($FileUri, 'rwxrw----'))
-									else 
-										(sm:chmod($FileUri, 'rwxr-xr-x'),<error type="4" weburi="{$WebUri}" file="{$FileName}">File is not part of list!</error>)
-								
-									,
-										sm:clear-acl($FileUri)
-									,
-										sm:get-permissions($FileUri)
-									
-								)
-							}
-							</file>
-				}
-				</files>
-			</collection>
+(: Nur wenn install.xqy das gesetzt hat. Sonst keinen Job anfassen außer Löschen. :)
+declare function local:intelligence-ready($root as xs:string) as xs:boolean {
+	try {
+		let $config := $root || '/data/document-intelligence.xml'
+		let $job := $root || '/modules/functions/document_intelligence_process.xqy'
+		return
+			doc-available($config)
+			and string(doc($config)/DocumentIntelligence/@installed) = 'true'
+			and (util:binary-doc-available($job) or doc-available($job))
+	} catch * {
+		false()
 	}
-	</collections>
+};
+
+declare function local:intelligence-stop() as xs:boolean {
+	try {
+		scheduler:delete-scheduled-job('docman-intelligence')
+	} catch * {
+		true()
+	}
+};
+
+(: Ein bereits laufender Tick hält /data auch nach delete-scheduled-job. Dann kein reindex. :)
+declare function local:intelligence-busy() as xs:boolean {
+	try {
+		let $jobs := system:get-running-jobs()
+		let $queries := system:get-running-xqueries()
+		return
+			exists($jobs//*:job[
+				contains(lower-case(string-join((@action, @info, @id), ' ')), 'document_intelligence')
+				or contains(lower-case(string-join((@action, @info, @id), ' ')), 'docman-intelligence')
+			])
+			or exists($queries//*[contains(lower-case(string(.)), 'document_intelligence')])
+	} catch * {
+		false()
+	}
+};
+
+declare function local:intelligence-start($root as xs:string) as xs:string {
+	if (not(local:intelligence-ready($root))) then
+		'skipped'
+	else
+		try {
+			let $job-uri := xs:anyURI($root || '/modules/functions/document_intelligence_process.xqy')
+			let $mod-uri := xs:anyURI($root || '/modules/module_document-intelligence.xqm')
+			let $rights := (
+				sm:chown($job-uri, 'admin'),
+				sm:chmod($job-uri, 'rwsr-xr-x'),
+				sm:chown($mod-uri, 'admin'),
+				sm:chmod($mod-uri, 'rwsr-xr-x')
+			)
+			let $ok := scheduler:schedule-xquery-periodic-job(
+				$root || '/modules/functions/document_intelligence_process.xqy',
+				60000,
+				'docman-intelligence',
+				<parameters/>,
+				5000,
+				-1,
+				false()
+			)
+			return if ($ok) then 'scheduled' else 'failed'
+		} catch * {
+			'skipped'
+		}
 };
 
 let $targetPathPrefix := '/var/www/'
+(: Frische Installation: kein Marker, kein Job. Sonst Job aus dem Plan, bevor /data gesperrt wird. :)
+let $stop-intelligence := local:intelligence-stop()
+let $intelligence-busy := local:intelligence-busy()
 let $CurrentRootPath := replace(system:get-module-load-path(), '^(xmldb:exist://)?(embedded-eXist-server)?(.+)(general/functions)$','$3')
 let $CurrentRoot := replace($CurrentRootPath,'/$','') (: /db/apps/docman :) (: xmldb:exist://embedded-eXist-server/ :)
 
@@ -270,8 +322,19 @@ let $invalidRestXqModules := if (exrest:invalid-modules() != ()) then
 		()
 
 
-(: reindex database :)
-let $reindex := xmldb:reindex($CurrentRoot||'/data')
+(: reindex nur wenn kein Intelligence-Lauf mehr /data hält. Sonst wartet initialize bis zum Proxy-Timeout. :)
+let $reindex :=
+	if ($intelligence-busy) then
+		false()
+	else
+		xmldb:reindex($CurrentRoot||'/data')
+
+(: Job nur zurück, wenn install.xqy den Marker gesetzt hat. Nie bei frischer Installation. :)
+let $start-intelligence :=
+	if ($intelligence-busy) then
+		'deferred'
+	else
+		local:intelligence-start($CurrentRoot)
 
 (: cleanup HBCI / FinTS files 
 let $cleanupFilesPassportRoot := for $file in file:directory-list('/tmp/', 'passport*.dat')//file:file
@@ -293,8 +356,19 @@ let $cleanupFilesLogDocker := for $file in file:directory-list('/', 'hs_err_*.lo
 
 return
 <result>
-	<ReIndex>{$reindex}</ReIndex>
-	<Intelligence job="stopped">Der Hintergrundjob wurde aus dem Plan genommen. Ein bereits laufender Lesevorgang hält die Sperre noch bis er endet; danach initialize.xqy erneut aufrufen und anschließend install.xqy.</Intelligence>
+	<ReIndex done="{$reindex}" skipped-because-busy="{$intelligence-busy}"/>
+	<Intelligence status="{$start-intelligence}" was-busy="{$intelligence-busy}">
+		{
+			if ($start-intelligence = 'scheduled') then
+				'Hintergrundjob wieder eingetragen.'
+			else if ($start-intelligence = 'deferred') then
+				'Ein Intelligence-Lauf hält noch /data. Reindex und Job-Neustart übersprungen. Kurz warten und initialize.xqy erneut aufrufen — kein eXist-Neustart nötig.'
+			else if ($start-intelligence = 'failed') then
+				'Installation erkannt, Eintrag in den Plan fehlgeschlagen. install.xqy aufrufen.'
+			else
+				'Document Intelligence ist nicht installiert. Job bleibt aus. Reihenfolge: initialize.xqy, danach install.xqy.'
+		}
+	</Intelligence>
 	<Environment>
 		<CurrentRoot>{$CurrentRoot}</CurrentRoot>
 		<ModuleLoadPath>{system:get-module-load-path()}</ModuleLoadPath>
@@ -305,9 +379,7 @@ return
 	<Tenants>
 		{$tenants}
 	</Tenants>
-	<SetRights>
-		{$resSetRights}
-	</SetRights>
+	{$resSetRights}
 	<RestXq>
 		{$restXqModules}
 		{$invalidRestXqModules}

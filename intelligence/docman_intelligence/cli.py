@@ -70,9 +70,10 @@ def parse_stdin(raw: str) -> tuple[dict, str, str, str, bytes]:
     model = ""
     examples = ""
     file_b64 = []
+    file_path = ""
     section = None
     for line in raw.splitlines():
-        if line in ("META", "ACCOUNTS", "MODEL", "EXAMPLES", "FILE"):
+        if line in ("META", "ACCOUNTS", "MODEL", "EXAMPLES", "FILE", "FILEPATH"):
             section = line
             continue
         if line == "END":
@@ -87,20 +88,46 @@ def parse_stdin(raw: str) -> tuple[dict, str, str, str, bytes]:
             model += line
         elif section == "EXAMPLES":
             examples += line
+        elif section == "FILEPATH":
+            if not file_path:
+                file_path = line.strip()
         elif section == "FILE":
             file_b64.append(line.strip())
-    import base64
-    data = base64.b64decode("".join(file_b64)) if file_b64 else b""
+    if file_path:
+        from pathlib import Path
+        path = Path(file_path)
+        if not path.is_file():
+            raise FileNotFoundError(f"FILEPATH nicht gefunden: {file_path}")
+        data = path.read_bytes()
+        if not data:
+            raise ValueError(f"FILEPATH ist leer: {file_path}")
+    else:
+        import base64
+        data = base64.b64decode("".join(file_b64)) if file_b64 else b""
     return meta, accounts, model, examples, data
 
 
-def run_read(raw: str) -> str:
+def run_read(raw: str, path: str = "") -> str:
     meta, accounts_xml, model_xml, _examples, payload = parse_stdin(raw)
+    if path:
+        from pathlib import Path
+        file_path = Path(path)
+        if not file_path.is_file():
+            return (
+                f'<Intelligence><Source kind="error" pages="0"/>'
+                f"<Error>PDF-Pfad nicht gefunden: {escape(path)}</Error></Intelligence>"
+            )
+        payload = file_path.read_bytes()
     accounts = parse_accounts(accounts_xml)
     from docman_intelligence.train import parse_model
     model = parse_model(model_xml)
     if not payload:
-        return "<Intelligence><Source kind=\"error\" pages=\"0\"/><Error>Keine Datei.</Error></Intelligence>"
+        return (
+            "<Intelligence><Source kind=\"error\" pages=\"0\"/>"
+            "<Error>Keine Datei (Protokoll ohne FILE/FILEPATH und ohne Pfad-Argument). "
+            "Version &gt;= 0.1.1 nötig: sh /tmp/docman-intelligence/install-linux.sh</Error>"
+            "</Intelligence>"
+        )
     words, zugferd, kind = read_document(payload)
     if zugferd:
         zugferd["words"] = words
@@ -127,8 +154,8 @@ def run_train(raw: str) -> str:
 def main() -> None:
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
-        print("docman-intelligence read     liest Protokoll von stdin, schreibt XML")
-        print("docman-intelligence train    schätzt Gewichte aus EXAMPLES")
+        print("docman-intelligence read [pdf]  liest Meta von stdin, optional PDF-Pfad")
+        print("docman-intelligence train         schätzt Gewichte aus EXAMPLES")
         return
     if args[0] == "--version":
         print(__version__)
@@ -138,7 +165,11 @@ def main() -> None:
         sys.exit(2)
     raw = sys.stdin.read()
     try:
-        sys.stdout.write(run_train(raw) if args[0] == "train" else run_read(raw))
+        if args[0] == "train":
+            sys.stdout.write(run_train(raw))
+        else:
+            pdf_path = args[1] if len(args) > 1 else ""
+            sys.stdout.write(run_read(raw, pdf_path))
     except Exception as exc:
         message = escape(str(exc))
         sys.stdout.write(f'<Intelligence><Source kind="error" pages="0"/><Error>{message}</Error></Intelligence>')
