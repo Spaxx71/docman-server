@@ -105,8 +105,8 @@ let $verdict :=
 		'check.xqy hat kein setuid (mode ohne s). initialize.xqy ausführen.'
 	else if (exists($probe/@error)) then
 		'process:execute schlägt fehl: ' || string($probe/@error)
-	else if (not(starts-with($probe-version, '0.1.1')) and not(contains($probe-version, '0.1.1'))) then
-		'Programm-Version ist "' || $probe-version || '", nötig ist 0.1.1 (FILEPATH/Pfad-Argument). install.xqy, dann als root: sh /tmp/docman-intelligence/install-linux.sh — sonst bleibt Fehler Keine Datei.'
+	else if (not(contains($probe-version, '0.1.7')) and not(starts-with($probe-version, '0.1.7'))) then
+		'Programm-Version ist "' || $probe-version || '", nötig ist 0.1.7 (Kreditor/IBAN/Kundennummer). install.xqy, dann als root: sh /tmp/docman-intelligence/install-linux.sh'
 	else if (not($job-setuid-ok)) then
 		'Job-Datei ohne setuid. install.xqy oder initialize.xqy ausführen.'
 	else if (not($installed)) then
@@ -118,7 +118,7 @@ let $verdict :=
 	else if (count($queue) = 0) then
 		'Job und Programm ok, Warteschlange leer.'
 	else
-		'Bereit (0.1.1): ' || count($queue) || ' in der Queue. Status-at=' || string($status/@at)
+		'Bereit (0.1.7): ' || count($queue) || ' in der Queue. Status-at=' || string($status/@at)
 
 return
 <check>

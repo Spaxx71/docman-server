@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <!-- Kanonische Feld-IDs (dotted) für Sidecar, Hints und Prefill -->
+  <xs:simpleType name="FieldId">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="invoice.id"/>
+      <xs:enumeration value="invoice.date"/>
+      <xs:enumeration value="invoice.date.service"/>
+      <xs:enumeration value="invoice.date.due"/>
+      <xs:enumeration value="invoice.date.generic"/>
+      <xs:enumeration value="invoice.customer.id"/>
+      <xs:enumeration value="invoice.amount.brutto"/>
+      <xs:enumeration value="invoice.amount.netto"/>
+      <xs:enumeration value="invoice.amount.payable"/>
+      <xs:enumeration value="invoice.amount.skonto"/>
+      <xs:enumeration value="invoice.amount.discount"/>
+      <xs:enumeration value="invoice.amount.dunning"/>
+      <xs:enumeration value="invoice.skonto.rate"/>
+      <xs:enumeration value="invoice.skonto.until"/>
+      <xs:enumeration value="invoice.tax.rate"/>
+      <xs:enumeration value="invoice.tax.amount"/>
+      <xs:enumeration value="sender.name"/>
+      <xs:enumeration value="sender.address"/>
+      <xs:enumeration value="sender.vat"/>
+      <xs:enumeration value="sender.iban"/>
+      <xs:enumeration value="sender.bic"/>
+      <xs:enumeration value="sender.paymentMethod"/>
+      <xs:enumeration value="party.self"/>
+      <xs:enumeration value="article.position"/>
+      <xs:enumeration value="article.id"/>
+      <xs:enumeration value="article.name"/>
+      <xs:enumeration value="article.count"/>
+      <xs:enumeration value="article.unit"/>
+      <xs:enumeration value="article.price.unit"/>
+      <xs:enumeration value="article.discount"/>
+      <xs:enumeration value="article.amount.brutto"/>
+      <xs:enumeration value="article.tax.rate"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="RegionId">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="invoice.header"/>
+      <xs:enumeration value="invoice.amounts"/>
+      <xs:enumeration value="article.lines"/>
+      <xs:enumeration value="sender.payment"/>
+      <xs:enumeration value="near:invoice.id"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Origin">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="digital"/>
+      <xs:enumeration value="scan"/>
+      <xs:enumeration value="mixed"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SourceKind">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="zugferd"/>
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="ocr"/>
+      <xs:enumeration value="mixed"/>
+      <xs:enumeration value="error"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IntelligenceStatus">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="pending"/>
+      <xs:enumeration value="running"/>
+      <xs:enumeration value="done"/>
+      <xs:enumeration value="error"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="ValueField">
+    <xs:attribute name="id" type="FieldId" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+    <xs:attribute name="quality" type="xs:decimal" use="required"/>
+    <xs:attribute name="page" type="xs:nonNegativeInteger" default="0"/>
+    <xs:attribute name="box" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="DocmanIntelligenceType">
+    <xs:sequence>
+      <xs:element name="Source">
+        <xs:complexType>
+          <xs:attribute name="kind" type="SourceKind"/>
+          <xs:attribute name="origin" type="Origin"/>
+          <xs:attribute name="pages" type="xs:nonNegativeInteger"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Account" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="id" type="xs:string"/>
+          <xs:attribute name="quality" type="xs:decimal"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Fields" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Field" type="ValueField" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Articles" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Article" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="Field" type="ValueField" minOccurs="0" maxOccurs="unbounded"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Text" type="xs:string" minOccurs="0"/>
+      <xs:element name="Notes" type="xs:string" minOccurs="0"/>
+      <xs:element name="Meta" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="from" type="xs:string"/>
+          <xs:attribute name="subject" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Progress" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="step" type="xs:string"/>
+          <xs:attribute name="message" type="xs:string"/>
+          <xs:attribute name="position" type="xs:integer"/>
+          <xs:attribute name="queued" type="xs:integer"/>
+          <xs:attribute name="at" type="xs:dateTime"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Error" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="version" type="xs:string"/>
+    <xs:attribute name="source" type="xs:string"/>
+    <xs:attribute name="status" type="IntelligenceStatus"/>
+    <xs:attribute name="created" type="xs:dateTime"/>
+    <xs:attribute name="updated" type="xs:dateTime"/>
+  </xs:complexType>
+
+  <xs:element name="DocmanIntelligence" type="DocmanIntelligenceType"/>
+  <xs:element name="Intelligence" type="DocmanIntelligenceType"/>
+
+  <!-- Keyword-Katalog: potenzielle Bezeichner auf dem Beleg -->
+  <xs:element name="DocumentIntelligenceVocab">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Field" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Keyword" type="xs:string" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="id" type="FieldId" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!--
+    Prefill-Mapping (Dokumentation):
+    invoice.id -> InvoiceInTask/RefID
+    invoice.date -> Process/@date, Task/@date, Binder
+    invoice.amount.payable | invoice.amount.brutto -> TotalAmount/@value
+    invoice.tax.rate -> Tax-Hinweis
+    Account/@id -> Owner (Kto)
+    Origin digital|scan -> File/@doctype digital|paper
+  -->
+
+</xs:schema>

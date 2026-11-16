@@ -1,5 +1,7 @@
 """Liest eingebettetes ZUGFeRD- oder Factur-X-XML über lokale Elementnamen."""
 
+from __future__ import annotations
+
 import xml.etree.ElementTree as ET
 
 
@@ -115,17 +117,24 @@ def parse_zugferd(xml_bytes: bytes) -> dict | None:
         return {"value": value, "quality": 1.0 if value else 0.0, "page": 0, "box": ""}
     return {
         "source": "zugferd",
+        "origin": "digital",
         "pages": 1,
         "account": {"id": "", "quality": 0.0},
         "invoiceNumber": packed(number),
         "invoiceDate": packed(issued),
         "serviceDate": packed(""),
         "dueDate": packed(""),
+        "customerNumber": packed(""),
         "sellerName": packed(seller),
         "sellerAddress": packed(address),
         "vatId": packed(vat),
         "payable": packed(payable or gross),
         "gross": packed(gross),
+        "skonto": packed(""),
+        "discountAmount": packed(""),
+        "dunning": packed(""),
+        "skontoRate": packed(""),
+        "skontoUntil": packed(""),
         "taxes": taxes,
         "iban": packed(iban.replace(" ", "")),
         "bic": packed(""),

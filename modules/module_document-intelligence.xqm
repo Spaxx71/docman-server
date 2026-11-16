@@ -49,10 +49,10 @@ declare function di:target-name($collection as xs:string, $file as xs:string) as
 
 declare function di:shell($file as xs:string, $from as xs:string, $subject as xs:string) as element() {
 	<DocmanIntelligence version="1.0" source="{$file}" status="pending" created="{current-dateTime()}" updated="{current-dateTime()}">
-		<Source kind="" pages="0"/>
+		<Source kind="" origin="" pages="0"/>
 		<Account id="" quality="0"/>
 		<Fields/>
-		<Lines/>
+		<Articles/>
 		<Text/>
 		<Notes/>
 		<Meta from="{$from}" subject="{$subject}"/>
@@ -121,6 +121,7 @@ declare function di:accounts($home as xs:string, $tenant as xs:string, $year) as
 					<Company>{string($account/Company/Name)}</Company>
 					<Email>{string($account/Contact/Email)}</Email>
 					<VatId>{string($account/VatId)}</VatId>
+					<CustomerID>{string($account/CustomerID)}</CustomerID>
 					<Address>{string($account/Address)}</Address>
 					{ if (normalize-space(string($account/@iban)) != '') then <IBAN>{string($account/@iban)}</IBAN> else () }
 					{
@@ -226,10 +227,14 @@ declare function di:run($home as xs:string, $tenant as xs:string, $year, $file a
 						let $cleanup :=
 							try { file:delete($tmp) } catch * { () }
 						return
-							if (xs:integer($run/@exitCode) != 0 or not(starts-with(normalize-space($out), '<'))) then
+							if (starts-with(normalize-space($out), '<')) then
+								try { parse-xml($out) } catch * {
+									<Error>{substring(string-join(($err, $out, $err:description), ' '), 1, 500)}</Error>
+								}
+							else if (xs:integer($run/@exitCode) != 0) then
 								<Error>{substring(string-join(($err, $out), ' '), 1, 500)}</Error>
 							else
-								parse-xml($out)
+								<Error>{substring(string-join(($err, $out), ' '), 1, 500)}</Error>
 			} catch * {
 				<Error>{substring($err:description, 1, 500)}</Error>
 			}
@@ -240,6 +245,7 @@ declare function di:merge($old as element(), $fresh as element()) as element() {
 		{$fresh/Source}
 		{$fresh/Account}
 		{$fresh/Fields}
+		{$fresh/Articles}
 		{$fresh/Lines}
 		{$fresh/Text}
 		<Notes>{string($old/Notes)}</Notes>
@@ -250,7 +256,7 @@ declare function di:merge($old as element(), $fresh as element()) as element() {
 
 declare function di:fail($old as element(), $message as xs:string) as element() {
 	<DocmanIntelligence version="1.0" source="{$old/@source}" status="error" created="{$old/@created}" updated="{current-dateTime()}">
-		<Source kind="error" pages="0"/>
+		<Source kind="error" origin="" pages="0"/>
 		<Error>{$message}</Error>
 		{$old/Fields}
 		{$old/Lines}
@@ -409,8 +415,12 @@ declare function di:read-one($home as xs:string, $tenant as xs:string, $year, $c
 		try { di:run($home, $tenant, $year, $file, $from, $subject) }
 		catch * { <Error>{$err:description}</Error> }
 	let $next :=
-		if ($fresh/self::Error or $fresh//Error) then
-			di:fail($old, string(($fresh//Error, $fresh)[1]))
+		if ($fresh/self::Error) then
+			di:fail($old, string($fresh))
+		else if ($fresh/Error) then
+			di:fail($old, string($fresh/Error[1]))
+		else if ($fresh//Error) then
+			di:fail($old, string(($fresh//Error)[1]))
 		else
 			di:merge($old, $fresh/*)
 	return xmldb:store($collection, $companion, $next)
@@ -509,21 +519,29 @@ declare function di:summary($home as xs:string, $tenant as xs:string, $year, $fi
 		else
 			let $fields := $doc/Fields
 			let $progress := $doc/Progress
+			let $number := ($fields/Field[@id='invoice.id'], $fields/InvoiceNumber)[1]
+			let $date := ($fields/Field[@id='invoice.date'], $fields/InvoiceDate)[1]
+			let $amount := ($fields/Field[@id='invoice.amount.payable'], $fields/Field[@id='invoice.amount.brutto'], $fields/PayableAmount)[1]
+			let $seller := ($fields/Field[@id='sender.name'], $fields/Seller/Name)[1]
 			return
 				<Intelligence
 					status="{$doc/@status}"
 					updated="{$doc/@updated}"
+					kind="{string($doc/Source/@kind)}"
+					origin="{string($doc/Source/@origin)}"
 					step="{string($progress/@step)}"
 					message="{string(($progress/@message, $doc/Error)[1])}"
 					position="{string($progress/@position)}"
 					queued="{string($progress/@queued)}"
-					number="{$fields/InvoiceNumber/@value}"
-					number-quality="{$fields/InvoiceNumber/@quality}"
-					date="{$fields/InvoiceDate/@value}"
-					date-quality="{$fields/InvoiceDate/@quality}"
-					amount="{$fields/PayableAmount/@value}"
-					amount-quality="{$fields/PayableAmount/@quality}"
-					seller="{$fields/Seller/Name/@value}"
+					account="{string($doc/Account/@id)}"
+					account-quality="{string($doc/Account/@quality)}"
+					number="{string($number/@value)}"
+					number-quality="{string($number/@quality)}"
+					date="{string($date/@value)}"
+					date-quality="{string($date/@quality)}"
+					amount="{string($amount/@value)}"
+					amount-quality="{string($amount/@quality)}"
+					seller="{string($seller/@value)}"
 					note="{string($doc/Notes)}"/>
 };
 

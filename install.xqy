@@ -49,6 +49,8 @@ declare function local:export-sources($root as xs:string, $dest as xs:string) as
 		'docman_intelligence/cli.py',
 		'docman_intelligence/pdf.py',
 		'docman_intelligence/train.py',
+		'docman_intelligence/vocab.py',
+		'docman_intelligence/vocab.xml',
 		'docman_intelligence/xmlout.py',
 		'docman_intelligence/zugferd.py'
 	)
@@ -165,7 +167,7 @@ let $probe :=
 let $right-errors := $rights[self::error]
 let $root-cmd := 'sudo sh ' || $export || '/install-linux.sh'
 let $version := normalize-space(string(($probe/@out, '')[1]))
-let $version-ok := starts-with($version, '0.1.1') or contains($version, '0.1.1')
+let $version-ok := contains($version, '0.1.7')
 let $hint :=
 	if (not($script)) then
 		'Die Quellen fehlen unter /db/apps/docman/intelligence.'
@@ -176,11 +178,11 @@ let $hint :=
 	else if (exists($probe/@error)) then
 		'Job eingetragen, aber process:execute schlug fehl: ' || string($probe/@error) || ' Als root trotzdem: ' || $root-cmd
 	else if (not($version-ok)) then
-		'Programm-Version ist "' || $version || '" (nötig 0.1.1). Als root ausführen: ' || $root-cmd || ' — die Datei nicht direkt starten (/tmp ist oft noexec).'
+		'Programm-Version ist "' || $version || '" (nötig 0.1.7). Als root ausführen: ' || $root-cmd || ' — die Datei nicht direkt starten (/tmp ist oft noexec).'
 	else if (xs:integer(($probe/@queued, '0')[1]) = 0) then
-		'Job läuft, Programm 0.1.1 ok. Warteschlange leer. Bei Code-Änderungen erneut: ' || $root-cmd
+		'Job läuft, Programm 0.1.7 ok. Warteschlange leer. Bei Code-Änderungen erneut: ' || $root-cmd
 	else
-		'Job läuft, Programm 0.1.1 ok. ' || string($probe/@queued) || ' Datei(en) in der Warteschlange. Bei Code-Änderungen erneut: ' || $root-cmd
+		'Job läuft, Programm 0.1.7 ok. ' || string($probe/@queued) || ' Datei(en) in der Warteschlange. Bei Code-Änderungen erneut: ' || $root-cmd
 
 return
 <result>

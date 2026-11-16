@@ -468,6 +468,17 @@ declare function local:moveAttachement($home-data as xs:string, $tenant as xs:st
 						$move
 					else
 						let $transfer-file := replace(string($attachment/@uploadSrc), '.*/', '')
+						let $intel-name := di:locate(di:collection($home-data, $tenant, $year), $transfer-file)
+						let $intel := if ($intel-name = '') then () else doc(di:collection($home-data, $tenant, $year) || '/' || $intel-name)/DocmanIntelligence
+						let $embed :=
+							if (empty($intel)) then ()
+							else (
+								if ($attachment/DocmanIntelligence) then update delete $attachment/DocmanIntelligence else (),
+								update insert $intel into $attachment,
+								if (string($intel/Source/@origin) = 'digital') then update value $attachment/@doctype with 'digital'
+								else if (string($intel/Source/@origin) = 'scan') then update value $attachment/@doctype with 'paper'
+								else ()
+							)
 						let $setSrc := update value $attachment/@src with concat('/', $tenant, '/', $year, '/binders/', $binder, '/', $attachment/@fileName, $attachment/@fileExtension)
 						let $dropUploadSrc := update delete $attachment/@uploadSrc
 						let $archive := di:archive($home-data, $tenant, $year, $transfer-file, $attachment/ancestor::*[local-name() = 'Process'][1])

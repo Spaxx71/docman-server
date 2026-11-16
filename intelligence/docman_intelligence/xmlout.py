@@ -1,73 +1,106 @@
-"""Schreibt das Fields-XML, das eXist in die docman.xml einsetzt."""
+"""Schreibt DocmanIntelligence-XML mit dotted FieldIds und Plain-Text."""
+
+from __future__ import annotations
 
 from xml.sax.saxutils import escape
 
 from docman_intelligence.assign import Word, assign_words
+
+# Ergebnis-Keys (intern) → FieldId
+FIELD_MAP = (
+    ("invoiceNumber", "invoice.id"),
+    ("invoiceDate", "invoice.date"),
+    ("serviceDate", "invoice.date.service"),
+    ("dueDate", "invoice.date.due"),
+    ("customerNumber", "invoice.customer.id"),
+    ("payable", "invoice.amount.payable"),
+    ("gross", "invoice.amount.brutto"),
+    ("skonto", "invoice.amount.skonto"),
+    ("discountAmount", "invoice.amount.discount"),
+    ("dunning", "invoice.amount.dunning"),
+    ("skontoRate", "invoice.skonto.rate"),
+    ("skontoUntil", "invoice.skonto.until"),
+    ("sellerName", "sender.name"),
+    ("sellerAddress", "sender.address"),
+    ("vatId", "sender.vat"),
+    ("iban", "sender.iban"),
+    ("bic", "sender.bic"),
+    ("paymentMethod", "sender.paymentMethod"),
+)
+
+ARTICLE_MAP = (
+    ("position", "article.position"),
+    ("articleNumber", "article.id"),
+    ("description", "article.name"),
+    ("quantity", "article.count"),
+    ("unit", "article.unit"),
+    ("unitPrice", "article.price.unit"),
+    ("discount", "article.discount"),
+    ("amount", "article.amount.brutto"),
+    ("taxRate", "article.tax.rate"),
+)
 
 
 def _attr(value) -> str:
     return escape(str(value if value is not None else ""), {'"': "&quot;"})
 
 
-def _field(name: str, item: dict) -> str:
+def _field_el(field_id: str, item: dict | None) -> str:
+    item = item or {"value": "", "quality": 0, "page": 0, "box": ""}
     return (
-        f'<{name} value="{_attr(item.get("value", ""))}" quality="{_attr(item.get("quality", 0))}"'
+        f'<Field id="{_attr(field_id)}" value="{_attr(item.get("value", ""))}"'
+        f' quality="{_attr(item.get("quality", 0))}"'
         f' page="{_attr(item.get("page", 0))}" box="{_attr(item.get("box", ""))}"/>'
     )
 
 
+def plain_text(words: list) -> str:
+    if not words:
+        return ""
+    parts = []
+    last_page = None
+    for word in words:
+        page = getattr(word, "page", 1)
+        if last_page is not None and page != last_page:
+            parts.append("\n")
+        parts.append(getattr(word, "text", str(word)))
+        last_page = page
+    return escape(" ".join(parts).replace(" \n ", "\n").strip())
+
+
 def render(result: dict) -> str:
-    taxes = "\n".join(
-        f'<Tax rate="{_attr(tax["rate"])}" net="{_attr(tax.get("net", ""))}" amount="{_attr(tax["amount"])}"'
-        f' quality="{_attr(tax["quality"])}" page="{_attr(tax.get("page", 0))}" box="{_attr(tax.get("box", ""))}"/>'
-        for tax in result.get("taxes", [])
-    )
-    lines = []
-    for line in result.get("lines", []):
-        parts = [
-            _field("Position", line["position"]),
-            _field("ArticleNumber", line["articleNumber"]),
-            _field("Description", line["description"]),
-            _field("Quantity", line["quantity"]),
-            _field("Unit", line["unit"]),
-            _field("UnitPrice", line["unitPrice"]),
-            _field("Discount", line["discount"]),
-            _field("Amount", line["amount"]),
-            _field("TaxRate", line["taxRate"]),
-        ]
-        lines.append(f'<Line quality="{_attr(line.get("quality", 0))}">' + "".join(parts) + "</Line>")
-    words = []
-    for word in result.get("words", []):
-        words.append(
-            f'<W page="{word.page}" box="{_attr(f"{word.x0:.0f} {word.y0:.0f} {word.x1:.0f} {word.y1:.0f}")}">{escape(word.text)}</W>'
+    empty = {"value": "", "quality": 0, "page": 0, "box": ""}
+    fields = []
+    for key, fid in FIELD_MAP:
+        fields.append(_field_el(fid, result.get(key) or empty))
+    for tax in result.get("taxes", []):
+        fields.append(
+            _field_el(
+                "invoice.tax.rate",
+                {"value": tax.get("rate", ""), "quality": tax.get("quality", 0), "page": tax.get("page", 0), "box": tax.get("box", "")},
+            )
         )
+        fields.append(
+            _field_el(
+                "invoice.tax.amount",
+                {"value": tax.get("amount", ""), "quality": tax.get("quality", 0), "page": tax.get("page", 0), "box": tax.get("box", "")},
+            )
+        )
+    articles = []
+    for line in result.get("lines", []):
+        parts = [_field_el(fid, line.get(key) or empty) for key, fid in ARTICLE_MAP]
+        articles.append(f'<Article quality="{_attr(line.get("quality", 0))}">{"".join(parts)}</Article>')
     account = result.get("account") or {"id": "", "quality": 0}
+    words = result.get("words") or []
+    text = plain_text(words)
     return (
         "<Intelligence>"
-        f'<Source kind="{_attr(result.get("source", "text"))}" pages="{_attr(result.get("pages", 1))}"/>'
+        f'<Source kind="{_attr(result.get("source", "text"))}" origin="{_attr(result.get("origin", "digital"))}" pages="{_attr(result.get("pages", 1))}"/>'
         f'<Account id="{_attr(account.get("id", ""))}" quality="{_attr(account.get("quality", 0))}"/>'
-        "<Fields>"
-        + _field("InvoiceNumber", result["invoiceNumber"])
-        + _field("InvoiceDate", result["invoiceDate"])
-        + _field("ServiceDate", result["serviceDate"])
-        + _field("DueDate", result["dueDate"])
-        + "<Seller>"
-        + _field("Name", result["sellerName"])
-        + _field("Address", result["sellerAddress"])
-        + _field("VatId", result["vatId"])
-        + "</Seller>"
-        + _field("PayableAmount", result["payable"])
-        + _field("GrossAmount", result["gross"])
-        + f"<Taxes>{taxes}</Taxes>"
-        + "<Payment>"
-        + _field("Method", result["paymentMethod"])
-        + _field("IBAN", result["iban"])
-        + _field("BIC", result["bic"])
-        + "</Payment>"
-        + "</Fields>"
-        + f'<Lines>{"".join(lines)}</Lines>'
-        + f'<Text>{"".join(words)}</Text>'
-        + "</Intelligence>"
+        f'<Fields>{"".join(fields)}</Fields>'
+        f'<Articles>{"".join(articles)}</Articles>'
+        f"<Text>{text}</Text>"
+        "</Intelligence>"
     )
 
 
@@ -80,5 +113,11 @@ def words_from_pairs(pairs: list[tuple]) -> list[Word]:
     return words
 
 
-def assign_and_render(pairs, accounts=None, meta=None) -> str:
-    return render(assign_words(words_from_pairs(pairs), accounts, meta))
+def read_and_assign(data: bytes, accounts: list[dict] | None = None, meta: dict | None = None) -> str:
+    from docman_intelligence.pdf import read_document
+
+    words, _zugferd, kind, origin = read_document(data)
+    result = assign_words(words, accounts, meta)
+    result["source"] = kind
+    result["origin"] = origin
+    return render(result)

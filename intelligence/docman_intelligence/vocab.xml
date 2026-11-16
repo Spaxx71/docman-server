@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocumentIntelligenceVocab version="1">
+  <Field id="invoice.id">
+    <Keyword>rechnungsnummer</Keyword>
+    <Keyword>rechnungsnr</Keyword>
+    <Keyword>rechnungs-nr</Keyword>
+    <Keyword>belegnummer</Keyword>
+    <Keyword>belegnr</Keyword>
+    <Keyword>beleg-nr</Keyword>
+    <Keyword>invoice no</Keyword>
+    <Keyword>invoice number</Keyword>
+  </Field>
+  <Field id="invoice.date">
+    <Keyword>rechnungsdatum</Keyword>
+    <Keyword>invoice date</Keyword>
+    <Keyword>belegdatum</Keyword>
+  </Field>
+  <Field id="invoice.date.generic">
+    <Keyword>datum</Keyword>
+    <Keyword>date</Keyword>
+  </Field>
+  <Field id="invoice.date.service">
+    <Keyword>leistungsdatum</Keyword>
+    <Keyword>lieferdatum</Keyword>
+    <Keyword>leistungszeitraum</Keyword>
+    <Keyword>lieferzeitraum</Keyword>
+  </Field>
+  <Field id="invoice.date.due">
+    <Keyword>faellig</Keyword>
+    <Keyword>faelligkeit</Keyword>
+    <Keyword>zahlbar bis</Keyword>
+    <Keyword>zahlungsziel</Keyword>
+    <Keyword>faellig am</Keyword>
+  </Field>
+  <Field id="invoice.customer.id">
+    <Keyword>kunde</Keyword>
+    <Keyword>kundennr</Keyword>
+    <Keyword>kundennr.</Keyword>
+    <Keyword>kunden-nr</Keyword>
+    <Keyword>kdnr</Keyword>
+    <Keyword>customer no</Keyword>
+    <Keyword>customer number</Keyword>
+  </Field>
+  <Field id="invoice.amount.payable">
+    <Keyword>zahlbetrag</Keyword>
+    <Keyword>zu zahlen</Keyword>
+    <Keyword>rechnungsbetrag</Keyword>
+    <Keyword>endbetrag</Keyword>
+    <Keyword>zahlungsbetrag</Keyword>
+    <Keyword>gesamtbetrag</Keyword>
+    <Keyword>gesamtsumme</Keyword>
+  </Field>
+  <Field id="invoice.amount.brutto">
+    <Keyword>brutto</Keyword>
+    <Keyword>bruttobetrag</Keyword>
+    <Keyword>gesamtbetrag</Keyword>
+    <Keyword>gesamtsumme</Keyword>
+  </Field>
+  <Field id="invoice.amount.netto">
+    <Keyword>netto</Keyword>
+    <Keyword>nettobetrag</Keyword>
+    <Keyword>zwischensumme</Keyword>
+    <Keyword>summe netto</Keyword>
+  </Field>
+  <Field id="invoice.amount.skonto">
+    <Keyword>skonto</Keyword>
+    <Keyword>skontoabzug</Keyword>
+    <Keyword>skontieren</Keyword>
+  </Field>
+  <Field id="invoice.amount.discount">
+    <Keyword>rabatt</Keyword>
+    <Keyword>nachlass</Keyword>
+  </Field>
+  <Field id="invoice.amount.dunning">
+    <Keyword>mahngebuehr</Keyword>
+    <Keyword>mahngebühr</Keyword>
+    <Keyword>mahnung</Keyword>
+    <Keyword>reminder fee</Keyword>
+  </Field>
+  <Field id="invoice.skonto.rate">
+    <Keyword>skontosatz</Keyword>
+    <Keyword>skonto %</Keyword>
+  </Field>
+  <Field id="invoice.skonto.until">
+    <Keyword>skonto bis</Keyword>
+    <Keyword>skontiert bis</Keyword>
+  </Field>
+  <Field id="invoice.tax.rate">
+    <Keyword>mwst</Keyword>
+    <Keyword>umsatzsteuer</Keyword>
+    <Keyword>ust</Keyword>
+    <Keyword>mehrwertsteuer</Keyword>
+  </Field>
+  <Field id="invoice.tax.amount">
+    <Keyword>steuerbetrag</Keyword>
+    <Keyword>mwst-betrag</Keyword>
+  </Field>
+  <Field id="sender.name">
+    <Keyword>lieferant</Keyword>
+    <Keyword>rechnungssteller</Keyword>
+    <Keyword>absender</Keyword>
+  </Field>
+  <Field id="sender.vat">
+    <Keyword>ust-idnr</Keyword>
+    <Keyword>ustid</Keyword>
+    <Keyword>ust-id</Keyword>
+    <Keyword>umsatzsteuer-id</Keyword>
+    <Keyword>vat id</Keyword>
+    <Keyword>ust idnr</Keyword>
+  </Field>
+  <Field id="sender.iban">
+    <Keyword>iban</Keyword>
+  </Field>
+  <Field id="sender.bic">
+    <Keyword>bic</Keyword>
+    <Keyword>swift</Keyword>
+    <Keyword>swift bic</Keyword>
+  </Field>
+  <Field id="article.name">
+    <Keyword>bezeichnung</Keyword>
+    <Keyword>artikel</Keyword>
+    <Keyword>leistung</Keyword>
+    <Keyword>beschreibung</Keyword>
+    <Keyword>leistungsbeschreibung</Keyword>
+  </Field>
+  <Field id="article.count">
+    <Keyword>menge</Keyword>
+    <Keyword>anzahl</Keyword>
+    <Keyword>qty</Keyword>
+  </Field>
+  <Field id="article.unit">
+    <Keyword>einheit</Keyword>
+    <Keyword>eh</Keyword>
+    <Keyword>mengeneinheit</Keyword>
+  </Field>
+  <Field id="article.price.unit">
+    <Keyword>einzelpreis</Keyword>
+    <Keyword>preis</Keyword>
+    <Keyword>ep</Keyword>
+  </Field>
+  <Field id="article.discount">
+    <Keyword>rabatt</Keyword>
+  </Field>
+  <Field id="article.amount.brutto">
+    <Keyword>betrag</Keyword>
+    <Keyword>gesamtpreis</Keyword>
+    <Keyword>summe</Keyword>
+  </Field>
+  <Field id="article.tax.rate">
+    <Keyword>ust</Keyword>
+    <Keyword>mwst</Keyword>
+    <Keyword>steuer</Keyword>
+  </Field>
+  <Field id="article.position">
+    <Keyword>pos</Keyword>
+    <Keyword>position</Keyword>
+  </Field>
+  <Field id="article.id">
+    <Keyword>artikelnr</Keyword>
+    <Keyword>artikelnummer</Keyword>
+    <Keyword>art-nr</Keyword>
+    <Keyword>artnr</Keyword>
+  </Field>
+</DocumentIntelligenceVocab>

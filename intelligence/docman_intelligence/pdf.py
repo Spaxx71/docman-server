@@ -85,20 +85,38 @@ def _embedded_xml(pdf) -> bytes | None:
     return None
 
 
-def read_document(data: bytes) -> tuple[list[Word], dict | None, str]:
+def classify_origin(*, text_pages: int, ocr_pages: int, has_zugferd: bool) -> tuple[str, str]:
+    """Art der Extraktion und Dokumentherkunft.
+
+    kind: zugferd | text | ocr | mixed
+    origin: digital (geboren-digital) | scan (Papier/Scan) | mixed
+    """
+    if has_zugferd:
+        return "zugferd", "digital"
+    if ocr_pages and text_pages:
+        return "mixed", "mixed"
+    if ocr_pages:
+        return "ocr", "scan"
+    return "text", "digital"
+
+
+def read_document(data: bytes) -> tuple[list[Word], dict | None, str, str]:
     import pypdfium2 as pdfium
 
     pdf = pdfium.PdfDocument(data)
     embedded = _embedded_xml(pdf)
     zugferd = parse_zugferd(embedded) if embedded else None
     words: list[Word] = []
-    ocr_used = False
+    text_pages = 0
+    ocr_pages = 0
     for index in range(len(pdf)):
         page = pdf[index]
         page_words = _words_from_page(page, index + 1)
         if len(page_words) < 8:
             page_words = _ocr_page(page, index + 1)
-            ocr_used = True
+            ocr_pages += 1
+        else:
+            text_pages += 1
         words.extend(page_words)
-    kind = "zugferd" if zugferd else ("ocr" if ocr_used else "text")
-    return words, zugferd, kind
+    kind, origin = classify_origin(text_pages=text_pages, ocr_pages=ocr_pages, has_zugferd=bool(zugferd))
+    return words, zugferd, kind, origin

@@ -24,7 +24,7 @@ def parse_accounts(xml_text: str) -> list[dict]:
             continue
         hints = []
         ibans = []
-        name = company = email = vat = address = ""
+        name = company = email = vat = address = customer_id = ""
         for child in list(node):
             kind = _local(child.tag)
             if kind == "Name":
@@ -35,6 +35,8 @@ def parse_accounts(xml_text: str) -> list[dict]:
                 email = (child.text or "").strip()
             elif kind == "VatId":
                 vat = (child.text or "").strip()
+            elif kind == "CustomerID":
+                customer_id = (child.text or "").strip()
             elif kind == "Address":
                 address = (child.text or "").strip()
             elif kind == "IBAN":
@@ -43,10 +45,11 @@ def parse_accounts(xml_text: str) -> list[dict]:
                 for hint in list(child):
                     if _local(hint.tag) != "Hint":
                         continue
+                    from docman_intelligence.vocab import field_id, region_id
                     hints.append({
-                        "field": hint.attrib.get("field", ""),
+                        "field": field_id(hint.attrib.get("field", "")),
                         "label": hint.attrib.get("label", ""),
-                        "region": hint.attrib.get("region", ""),
+                        "region": region_id(hint.attrib.get("region", "")),
                         "pattern": hint.attrib.get("pattern", ""),
                     })
         accounts.append({
@@ -57,6 +60,7 @@ def parse_accounts(xml_text: str) -> list[dict]:
             "company": company,
             "email": email,
             "vat": vat,
+            "customerId": customer_id,
             "address": address,
             "ibans": ibans,
             "hints": hints,
@@ -128,10 +132,11 @@ def run_read(raw: str, path: str = "") -> str:
             "Version &gt;= 0.1.1 nötig: sh /tmp/docman-intelligence/install-linux.sh</Error>"
             "</Intelligence>"
         )
-    words, zugferd, kind = read_document(payload)
+    words, zugferd, kind, origin = read_document(payload)
     if zugferd:
         zugferd["words"] = words
         zugferd["source"] = "zugferd"
+        zugferd["origin"] = "digital"
         if accounts:
             from docman_intelligence.assign import group_lines, mark_roles, match_account
             lines = group_lines(words)
@@ -140,6 +145,7 @@ def run_read(raw: str, path: str = "") -> str:
         return render(zugferd)
     result = assign_words(words, accounts, meta, model)
     result["source"] = kind
+    result["origin"] = origin
     return render(result)
 
 

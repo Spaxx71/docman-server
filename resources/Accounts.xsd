@@ -192,22 +192,40 @@
               <xs:complexType>
                 <xs:attribute name="field" use="required">
                   <xs:simpleType>
-                    <xs:restriction base="xs:NCName">
-                      <xs:enumeration value="invoiceNumber"/>
-                      <xs:enumeration value="invoiceDate"/>
-                      <xs:enumeration value="serviceDate"/>
-                      <xs:enumeration value="dueDate"/>
-                      <xs:enumeration value="payable"/>
-                      <xs:enumeration value="gross"/>
-                      <xs:enumeration value="vat"/>
-                      <xs:enumeration value="iban"/>
-                      <xs:enumeration value="bic"/>
+                    <xs:restriction base="xs:token">
+                      <xs:enumeration value="invoice.id"/>
+                      <xs:enumeration value="invoice.date"/>
+                      <xs:enumeration value="invoice.date.service"/>
+                      <xs:enumeration value="invoice.date.due"/>
+                      <xs:enumeration value="invoice.customer.id"/>
+                      <xs:enumeration value="invoice.amount.payable"/>
+                      <xs:enumeration value="invoice.amount.brutto"/>
+                      <xs:enumeration value="invoice.amount.netto"/>
+                      <xs:enumeration value="invoice.amount.skonto"/>
+                      <xs:enumeration value="invoice.amount.discount"/>
+                      <xs:enumeration value="invoice.amount.dunning"/>
+                      <xs:enumeration value="invoice.skonto.rate"/>
+                      <xs:enumeration value="invoice.skonto.until"/>
+                      <xs:enumeration value="invoice.tax.rate"/>
+                      <xs:enumeration value="sender.name"/>
+                      <xs:enumeration value="sender.vat"/>
+                      <xs:enumeration value="sender.iban"/>
+                      <xs:enumeration value="sender.bic"/>
+                      <xs:enumeration value="party.self"/>
                     </xs:restriction>
                   </xs:simpleType>
                 </xs:attribute>
-                <xs:attribute name="label" type="xs:string"/>
-                <xs:attribute name="region" type="xs:string"/>
-                <xs:attribute name="pattern" type="xs:string"/>
+                <xs:attribute name="label" type="xs:string">
+                  <xs:annotation>
+                    <xs:documentation>Referenztext ODER leer wenn @pattern gesetzt</xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="pattern" type="xs:string">
+                  <xs:annotation>
+                    <xs:documentation>Regex ODER leer wenn @label gesetzt</xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="region" type="xs:token"/>
               </xs:complexType>
             </xs:element>
           </xs:sequence>
