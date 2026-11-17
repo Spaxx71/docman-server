@@ -283,9 +283,8 @@ declare function banking:getAccountBalanceList($home-data as xs:string, $tenant 
         let $daily-balance := round-half-to-even(
           sum(
             for $account in $bankAccounts
-            let $daily-bookings := 
-              $account/Accountings/Accounting[xs:date(ValueDate) = $date]
-            return sum(for $amount in $daily-bookings/Amount/text() return xs:double($amount))
+            for $accounting in $account/Accountings/Accounting[xs:date(ValueDate) = $date]
+            return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
           ) * 100
         ) div 100
         (: Berechne den laufenden Saldo als Startsaldo plus alle Buchungen bis einschließlich dieses Tages :)
@@ -293,7 +292,7 @@ declare function banking:getAccountBalanceList($home-data as xs:string, $tenant 
           for $account in $bankAccounts
           for $accounting in $account/Accountings/Accounting
           where xs:date($accounting/ValueDate) <= $date
-          return xs:double($accounting/Amount/text())
+          return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
         )
         return
           (: Erstelle die Liste der Bankbewegungen mit Details und verknüpfe sie mit den Buchungen :)
@@ -338,7 +337,7 @@ declare function banking:getAccountBalanceList($home-data as xs:string, $tenant 
 				let $daily-balance := round-half-to-even(
 					sum(
 						for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)]
-						return xs:double($accounting/Amount/text())
+						return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
 					) * 100
 				) div 100
 				let $transactions := 
@@ -352,7 +351,10 @@ declare function banking:getAccountBalanceList($home-data as xs:string, $tenant 
 							</Bookings>
 						</Transaction>
 				let $day-of-year := xs:integer((xs:date($date) - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
-				let $daySaldo := $start-saldo + sum($bankAccount/Accountings/Accounting[xs:date(ValueDate) < xs:date($date)]/Amount) + $daily-balance
+				let $daySaldo := $start-saldo + sum(
+					for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) < xs:date($date)]
+					return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
+				) + $daily-balance
 				(: let $daySaldo := $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)][last()]/@saldoAmount :)(: Saldo is given based on booking date order! :)
 				return
 					<Balance date="{$date}" 
@@ -610,8 +612,19 @@ declare function banking:storeBankAccount ($home-data as xs:string, $tenant as x
 		if (not(validation:jaxv($bank-account, $schema))) then
 			error(xs:QName('docman:NotSchemaConform'),'The bank account can not be saved, as it is not schema conform.', validation:jaxv-report($bank-account, $schema))
 		else
-			let $update := update replace collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail with $bank-account/BankAccount/BankAccountDetail
-			let $update := update replace collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/Accountings with $bank-account/BankAccount/Accountings
+			let $stored := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
+			let $incoming := $bank-account/BankAccount/BankAccountDetail
+			let $detail := if ($incoming/OnlineBanking/* or empty($stored/BankAccountDetail/OnlineBanking/*))
+				then $incoming
+				else
+					<BankAccountDetail>
+						{$incoming/@*}
+						{$incoming/*[not(self::OnlineBanking or self::Notes)]}
+						{$stored/BankAccountDetail/OnlineBanking}
+						{$incoming/Notes}
+					</BankAccountDetail>
+			let $update := update replace $stored/BankAccountDetail with $detail
+			let $update := update replace $stored/Accountings with $bank-account/BankAccount/Accountings
 			let $payID := for $accounting in collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/Accountings/Accounting[@id='PAYxxx']
 				return
 					update value $accounting/@id with "PAY"||util:uuid()
