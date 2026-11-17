@@ -26,7 +26,7 @@ xquery version "3.1";
 
 module namespace document = "http://bintellix.com/docman/document";
 
-import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
+(: banking imports document — do not import banking here (circular dependency breaks RESTXQ registration). :)
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
 import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 

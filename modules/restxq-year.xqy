@@ -177,3 +177,72 @@ declare
 function dmyear:dashboardJSON($user as xs:string*, $tenant-id as xs:string, $year as xs:integer) {
 	dmyear:dashboardXML($user, $tenant-id, $year)
 };
+
+
+(:
+	Create a new year from a previous year (default: year-1).
+	POST /api/xml/tenants/{tenant}/years/{year}
+	POST /api/xml/tenants/{tenant}/years/{year}?from=2025
+:)
+declare function local:createYearResult($tenant-id as xs:string, $year as xs:integer, $from-input as xs:string*) {
+	if (not(tenant:existsTenant($main:home-data, $tenant-id))) then
+		(
+			<rest:response>
+				<http:response status="404" message="Invalid data - tenant ID"/>
+			</rest:response>
+			,
+			<error code="TENANT_MISSING">Invalid tenant id '{$tenant-id}'</error>
+		)
+	else
+		let $from-raw := normalize-space(string(($from-input[1], "")[1]))
+		let $from-year :=
+			if ($from-raw castable as xs:integer) then
+				xs:integer($from-raw)
+			else
+				$year - 1
+		let $result := year:createNewYear($main:home-data, $tenant-id, $year, $from-year)
+		return
+			if ($result/self::error) then
+				let $status :=
+					if ($result/@code = "YEAR_EXISTS") then "409"
+					else if ($result/@code = "FROM_YEAR_MISSING") then "404"
+					else "400"
+				return
+					(
+						<rest:response>
+							<http:response status="{$status}" message="{string($result)}"/>
+						</rest:response>
+						,
+						$result
+					)
+			else
+				(
+					<rest:response>
+						<http:response status="201" message="Year created"/>
+					</rest:response>
+					,
+					$result
+				)
+};
+
+declare
+	%rest:POST
+	%rest:path("/docman/xml/tenants/{$tenant-id}/years/{$year}")
+	%rest:query-param("user", "{$user}", "Guest")
+	%rest:query-param("from", "{$from}", "")
+	%output:media-type("text/xml")
+	%output:method("xml")
+function dmyear:createYearXML($user as xs:string*, $tenant-id as xs:string, $year as xs:integer, $from as xs:string*) {
+	local:createYearResult($tenant-id, $year, $from)
+};
+
+declare
+	%rest:POST
+	%rest:path("/docman/json/tenants/{$tenant-id}/years/{$year}")
+	%rest:query-param("user", "{$user}", "Guest")
+	%rest:query-param("from", "{$from}", "")
+	%output:media-type("application/json")
+	%output:method("json")
+function dmyear:createYearJSON($user as xs:string*, $tenant-id as xs:string, $year as xs:integer, $from as xs:string*) {
+	local:createYearResult($tenant-id, $year, $from)
+};

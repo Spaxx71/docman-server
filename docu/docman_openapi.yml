@@ -192,7 +192,51 @@ paths:
                 properties:
                   bankId:
                     type: string
-
+    post:
+      summary: Create a new year from a source year
+      description: |
+        Creates the target year collection, mirrors child folders from the source year,
+        copies accounts.dm.xml / year.dm.xml / bank-account_*.dm.xml, clears prior-year
+        bank movements, and sets saldoInitAmount from the source year closing balance.
+        Source year need not be consecutive (e.g. create 2026 from 2023 via from=2023).
+      tags:
+       - Year
+      operationId: createYear
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          description: Target year to create
+          schema:
+            type: integer
+        - name: from
+          in: query
+          required: false
+          description: Source year (default year-1). May be any existing year, not only the previous calendar year.
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Year created
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: object
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Tenant or source year missing
+        '409':
+          description: Target year already exists
 
   /tenants/{tenant}/years/{year}/accounts:
     get:

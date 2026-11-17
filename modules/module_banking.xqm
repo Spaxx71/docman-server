@@ -51,6 +51,39 @@ declare function banking:passport-secret($bank as element(BankAccount)?) as xs:s
 		if ($configured != '') then $configured else 'geheim'
 };
 
+(:
+	hbci4java:initialize is arity 17 in 0.6 (passport+mode) and arity 15 in older jars still loaded in JVM.
+	Use function-lookup so module_banking compiles against either build.
+:)
+declare function banking:hbci-initialize(
+	$account-key as xs:string,
+	$port,
+	$blz,
+	$bic,
+	$iban,
+	$ktnr,
+	$bank-user-id,
+	$customer-id,
+	$secret as xs:string,
+	$auth-type,
+	$pin,
+	$message-in-url,
+	$message-out-url,
+	$auth-header as xs:string,
+	$passport as xs:string,
+	$mode as xs:string
+) {
+	let $init17 := function-lookup(xs:QName("hbci4java:initialize"), 17)
+	let $init15 := function-lookup(xs:QName("hbci4java:initialize"), 15)
+	return
+		if (exists($init17)) then
+			$init17($account-key, "DE", $port, $blz, $bic, $iban, $ktnr, $bank-user-id, $customer-id, $secret, $auth-type, $pin, $message-in-url, $message-out-url, $auth-header, $passport, $mode)
+		else if (exists($init15)) then
+			$init15($account-key, "DE", $port, $blz, $bic, $iban, $ktnr, $bank-user-id, $customer-id, $secret, $auth-type, $pin, $message-in-url, $message-out-url, $auth-header)
+		else
+			error(xs:QName("docman:HbciMissing"), "hbci4java:initialize is not available (expected arity 17 or 15)")
+};
+
 declare function banking:listBankAccounts ($home-data as xs:string, $tenant as xs:string, $year as xs:integer) {
 	let $bank-accounts := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount
 	return
@@ -591,7 +624,7 @@ declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank
 		else
 			let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
 			
-			let $bank-statement-init := hbci4java:initialize($account-key, "DE", $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, $secret, $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, $mode-eff)
+			let $bank-statement-init := banking:hbci-initialize($account-key, $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, $secret, $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, $mode-eff)
 			let $bank-statement-text := hbci4java:getTransactions($account-key, $start, $end)
 			let $bank-statement-close := hbci4java:close($account-key)
 			
@@ -804,7 +837,7 @@ declare function banking:transferViaFinTS ($home-data as xs:string, $tenant as x
 	let $passport := banking:passport-path($bank-account, $account-key)
 	let $secret := banking:passport-secret($bank-account)
 	let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
-	let $bank-statement-init := hbci4java:initialize($account-key, "DE", $bank-account/BankAccountDetail/OnlineBanking/Port, $bank-account/BankAccountDetail/BLZ, $bank-account/BankAccountDetail/BIC, $bank-account/BankAccountDetail/IBAN, $bank-account/BankAccountDetail/KTNR, $bank-account/BankAccountDetail/BankUserID, $bank-account/BankAccountDetail/CustomerID, $secret, $bank-account/BankAccountDetail/OnlineBanking/Auth/@type, $bank-account/BankAccountDetail/OnlineBanking/Auth/PIN, $bank-account/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank-account/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, 'interactive')
+	let $bank-statement-init := banking:hbci-initialize($account-key, $bank-account/BankAccountDetail/OnlineBanking/Port, $bank-account/BankAccountDetail/BLZ, $bank-account/BankAccountDetail/BIC, $bank-account/BankAccountDetail/IBAN, $bank-account/BankAccountDetail/KTNR, $bank-account/BankAccountDetail/BankUserID, $bank-account/BankAccountDetail/CustomerID, $secret, $bank-account/BankAccountDetail/OnlineBanking/Auth/@type, $bank-account/BankAccountDetail/OnlineBanking/Auth/PIN, $bank-account/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank-account/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, "interactive")
 	let $bank-statement-bankTransfer := hbci4java:arangeBankTransfer($account-key, $RecipientCountry, $RecipientBic, $RecipientIban, $RecipientName, $Date, $CurrencyAmount, $CurrencyUnit, $UsageText)
 	let $bank-statement-close := hbci4java:close($account-key)
 	return
