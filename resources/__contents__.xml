@@ -9,4 +9,7 @@
     <resource type="BinaryResource" name="hbci4java-0.5.xar" owner="admin" group="docman" mode="755" created="2022-06-25T14:08:42+02:00" modified="2022-06-25T14:08:42+02:00" filename="hbci4java-0.5.xar" mimetype="application/expath+xar" blob-id="1228a39c2da9636843cf7128288b90f5a46203e959574bc9eb714f9c3352e36f">
         <acl entries="0" version="1"/>
     </resource>
+    <resource type="BinaryResource" name="hbci4java-0.6.0.xar" owner="admin" group="docman" mode="755" created="2026-11-17T12:00:00+01:00" modified="2026-11-17T12:00:00+01:00" filename="hbci4java-0.6.0.xar" mimetype="application/expath+xar">
+        <acl entries="0" version="1"/>
+    </resource>
 </collection>

@@ -247,3 +247,21 @@ declare
 function dmdocument:deleteDocumentJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
 	dmdocument:deleteDocument($user, $tenant, $year, $binder, $document-id)
 };
+
+(: After-save SEPA transfer for SepaTransferTask :)
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/sepa-transfer")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmdocument:sepaTransfer($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
+	let $_ := request:set-attribute('home-data', $main:home-data)
+	let $_ := request:set-attribute('tenant', $tenant)
+	let $_ := request:set-attribute('year', string($year))
+	let $_ := request:set-attribute('binder', $binder)
+	let $_ := request:set-attribute('process-id', $document-id)
+	let $_ := request:set-attribute('username', ($user, 'Guest')[1])
+	return
+		util:eval(xs:anyURI('/db/apps/docman/modules/functions/banking_sepa_transfer_process.xqy'))
+};

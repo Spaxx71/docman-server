@@ -87,7 +87,18 @@ declare
 function dmhbci:putMessage($user as xs:string*, $tenant as xs:string, $bank-account as xs:string, $body) {
 
 	let $doc := doc(concat($main:home-data,'/','hbci_',$bank-account,'_receive.dm.xml'))
-	let $add := update insert <Message timestamp="{current-dateTime()}">{$body}</Message> into $doc/Messages
+	let $text :=
+		typeswitch ($body)
+			case xs:string return $body
+			case node() return serialize($body)
+			default return string($body)
+	let $type :=
+		if (contains($text, '<Challenge type="flicker"')) then 'flicker'
+		else if (contains($text, '<Challenge type="qr"')) then 'qr'
+		else if (contains($text, '<Challenge type="photo"')) then 'photo'
+		else if (contains($text, '<Challenge')) then 'challenge'
+		else 'text'
+	let $add := update insert <Message timestamp="{current-dateTime()}" type="{$type}">{$text}</Message> into $doc/Messages
 	return
 		"Message accepted"
 };
@@ -118,7 +129,8 @@ function dmhbci:getMessageFromHbci($user as xs:string*, $tenant as xs:string, $b
 			map {
 				"nr": $id,
 				"timestamp": substring($message/@timestamp/data(),1,19),
-				"text": $message/text()
+				"type": string(($message/@type, 'text')[1]),
+				"text": string($message)
 			}
 };
 

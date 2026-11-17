@@ -336,12 +336,8 @@ let $start-intelligence :=
 	else
 		local:intelligence-start($CurrentRoot)
 
-(: cleanup HBCI / FinTS files 
-let $cleanupFilesPassportRoot := for $file in file:directory-list('/tmp/', 'passport*.dat')//file:file
-return
-	<file name="{$file/@name}">
-		{file:delete('/tmp/'||$file/@name)}
-	</file>
+(: Passports are persistent FinTS access media. Do NOT delete them during initialize.
+   Explicit reset: update_module_hbci.xqy?resetPassports=true
 :)
 
 

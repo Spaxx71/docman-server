@@ -1790,6 +1790,78 @@
 	</xsl:template>
 
 
+	<xsl:template name="SepaTransferTask">
+		<div class="tabmenu" style="float:left">
+			<xf:trigger id="tab-SepaTransferTask-1" appearance="minimal" class="TabBase">
+				<xf:label>SEPA-Überweisung</xf:label>
+				<xf:action ev:event="DOMActivate">
+					<xf:toggle case="case-SepaTransferTask-1"/>
+				</xf:action>
+			</xf:trigger>
+		</div>
+		<div style="float:right">
+			<xf:trigger>
+				<xf:label><span style="font-weight:normal; font-size:80%"><xf:output ref="@type"/></span> X</xf:label>
+				<xf:delete nodeset="." ev:event="DOMActivate"/>
+			</xf:trigger>
+		</div>
+		<div style="float:right"><br/>Status <xf:output ref="@status"/> · erstellt <xf:output value="substring(@created,1,10)"/></div>
+		<div style="clear:both">
+			<xf:switch>
+				<xf:case id="case-SepaTransferTask-1" selected="true">
+					<div class="tabbody TabBase">
+						<p>Nach dem Speichern wird die Überweisung interaktiv (TAN) ausgeführt und ein Bestätigungs-PDF am Vorgang ergänzt.</p>
+						<xf:input ref="SourceAccount">
+							<xf:label>Quellkonto (kto):</xf:label>
+						</xf:input>
+						<br/>
+						<xf:input ref="RecipientName">
+							<xf:label>Empfänger:</xf:label>
+						</xf:input>
+						<br/>
+						<xf:input ref="RecipientIban">
+							<xf:label>IBAN:</xf:label>
+						</xf:input>
+						<br/>
+						<xf:input ref="RecipientBic">
+							<xf:label>BIC:</xf:label>
+						</xf:input>
+						<br/>
+						<xf:input ref="RecipientCountry">
+							<xf:label>Land:</xf:label>
+						</xf:input>
+						<br/>
+						<xf:input ref="Amount/@value">
+							<xf:label>Betrag:</xf:label>
+						</xf:input>
+						<xf:select1 ref="Amount/@unit">
+							<xf:item><xf:label>EUR</xf:label><xf:value>EUR</xf:value></xf:item>
+							<xf:item><xf:label>CHF</xf:label><xf:value>CHF</xf:value></xf:item>
+							<xf:item><xf:label>USD</xf:label><xf:value>USD</xf:value></xf:item>
+						</xf:select1>
+						<br/>
+						<xf:input ref="ExecutionDate">
+							<xf:label>Ausführungsdatum:</xf:label>
+						</xf:input>
+						<br/>
+						<xf:textarea ref="UsageText" class="DoubleInputSize">
+							<xf:label>Verwendungszweck:</xf:label>
+						</xf:textarea>
+						<br/>
+						<xf:textarea ref="StatusMessage" class="DoubleInputSize">
+							<xf:label>Statusmeldung:</xf:label>
+						</xf:textarea>
+						<hr/>
+						<xf:textarea ref="Notes" class="DoubleInputSize">
+							<xf:label>Notizen:</xf:label>
+						</xf:textarea>
+					</div>
+				</xf:case>
+			</xf:switch>
+		</div>
+	</xsl:template>
+
+
 	<xsl:template name="TransferVoucherTask">
 		<div class="tabmenu" style="float:left">
 			<xf:trigger id="tab-TransferVoucherTask-1" appearance="minimal" class="TabBase">
@@ -2226,7 +2298,7 @@
 			</xsl:when>
 
 			<xsl:when test="/result/Process/Tasks/InvoiceInTask">
-				<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" readonly="true()" calculate="round(sum(instance('document')/Process/Tasks/*[not(name()='PaymentTask') and not(name()='TransferVoucherTask') and not(name()='DeliveryNoteTask')]/Amount/@value)*100) div 100"/>
+				<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" readonly="true()" calculate="round(sum(instance('document')/Process/Tasks/*[not(name()='PaymentTask') and not(name()='TransferVoucherTask') and not(name()='SepaTransferTask') and not(name()='DeliveryNoteTask')]/Amount/@value)*100) div 100"/>
 				<xsl:choose>
 					<xsl:when test="$is-storno">
 						<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" constraint=". &gt; 0" alert="Amount has to be given as a positive value"/>
@@ -2256,7 +2328,7 @@
 			</xsl:when>
 
 			<xsl:when test="/result/Process/Tasks/InvoiceOutTask">
-				<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" readonly="true()" calculate="sum(instance('document')/Process/Tasks/*[not(name()='PaymentTask') and not(name()='TransferVoucherTask') and not(name()='DeliveryNoteTask')]/Amount/@value)"/>
+				<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" readonly="true()" calculate="sum(instance('document')/Process/Tasks/*[not(name()='PaymentTask') and not(name()='TransferVoucherTask') and not(name()='SepaTransferTask') and not(name()='DeliveryNoteTask')]/Amount/@value)"/>
 				<xsl:choose>
 					<xsl:when test="$is-storno">
 						<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" constraint=". &lt; 0" alert="Amount has to be given as a positive value"/>
@@ -2408,6 +2480,18 @@
 			<xf:bind nodeset="Files/File/@type" readonly="true()" relevant="instance('document')/Process/Tasks/PaymentTask/Files/File"/>
 			<xf:bind nodeset="Files/File/@fileName" calculate="concat({$FilenamePrefix},'_Bezahlung')" relevant="Files/File/@uploadSrc"/>
 			<xf:bind nodeset="Files/File/@fileName" type="xs:string" relevant="instance('document')/Process/Tasks/PaymentTask/Files/File"/>
+		</xf:bind>
+
+		<!-- SepaTransfer -->
+		<xf:bind nodeset="instance('document')/Process/Tasks/SepaTransferTask">
+			<xf:bind nodeset="@type" type="xs:string" required="true()"/>
+			<xf:bind nodeset="@status" type="xs:string" required="false()"/>
+			<xf:bind nodeset="Amount/@value" type="xs:decimal" required="true()"/>
+			<xf:bind nodeset="SourceAccount" type="xs:string" required="true()"/>
+			<xf:bind nodeset="RecipientName" type="xs:string" required="true()"/>
+			<xf:bind nodeset="RecipientIban" type="xs:string" required="true()"/>
+			<xf:bind nodeset="RecipientBic" type="xs:string" required="false()"/>
+			<xf:bind nodeset="ExecutionDate" type="xs:date" required="false()"/>
 		</xf:bind>
 
 		<!-- TransferVoucher -->

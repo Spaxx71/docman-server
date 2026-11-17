@@ -683,6 +683,41 @@ paths:
                     type: string
                   address:
                     type: string
+  /tenants/{tenant}/years/{year}/binders/{binder}/documents/{documentId}/sepa-transfer:
+    post:
+      summary: Execute draft SepaTransferTask after save (FinTS + Eigen-PDF voucher)
+      tags:
+       - Bank
+       - Process
+      operationId: executeSepaTransfer
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transfer result and voucher reference
+          content:
+            application/xml:
+              schema:
+                type: object
   /tenants/{tenant}/years/{year}/messages/{messageId}/send-message-to-hbci.json:
     put:
       summary: Send a message to the outbox (/send)

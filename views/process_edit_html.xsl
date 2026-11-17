@@ -124,7 +124,7 @@
 											<Description/>
 										</DunningFeeTask>
 									</Task>
-									<Task name="Anhang" type="AttachmentTask">								
+									<Task name="Anhang" type="AttachmentTask">
 										<AttachmentTask type="dunning-fee" id="ACCxxx" date="" created="{current-dateTime()}" isMaster="false" user="{$username}" isStorno="false">
 											<Notes/>
 											<Files/>
@@ -136,6 +136,25 @@
 											<RefID/>
 											<Description/>
 										</AttachmentTask>
+									</Task>
+									<Task name="SEPA-Überweisung" type="SepaTransferTask">
+										<SepaTransferTask type="sepa-transfer" id="ACCxxx" date="" created="{current-dateTime()}" isMaster="false" user="{$username}" isStorno="false" status="draft">
+											<Notes/>
+											<Files/>
+											<Bookings/>
+											<Amount value="" unit="EUR"/>
+											<SourceAccount/>
+											<RecipientName/>
+											<RecipientIban/>
+											<RecipientBic/>
+											<RecipientCountry>DE</RecipientCountry>
+											<UsageText/>
+											<ExecutionDate/>
+											<StatusMessage/>
+											<VoucherTaskId/>
+											<RefID/>
+											<Description/>
+										</SepaTransferTask>
 									</Task>
 								</xsl:when>
 								<xsl:when test="$function='InvoiceOut'">
@@ -164,7 +183,7 @@
 											<Description/>
 										</DiscountTask>
 									</Task>
-									<Task name="Anhang" type="AttachmentTask">								
+									<Task name="Anhang" type="AttachmentTask">
 										<AttachmentTask type="dunning-fee" id="ACCxxx" date="" created="{current-dateTime()}" isMaster="false" user="{$username}" isStorno="false">
 											<Notes/>
 											<Files/>
@@ -177,8 +196,27 @@
 											<Description/>
 										</AttachmentTask>
 									</Task>
-								</xsl:when>								
-							</xsl:choose>		
+									<Task name="SEPA-Überweisung" type="SepaTransferTask">
+										<SepaTransferTask type="sepa-transfer" id="ACCxxx" date="" created="{current-dateTime()}" isMaster="false" user="{$username}" isStorno="false" status="draft">
+											<Notes/>
+											<Files/>
+											<Bookings/>
+											<Amount value="" unit="EUR"/>
+											<SourceAccount/>
+											<RecipientName/>
+											<RecipientIban/>
+											<RecipientBic/>
+											<RecipientCountry>DE</RecipientCountry>
+											<UsageText/>
+											<ExecutionDate/>
+											<StatusMessage/>
+											<VoucherTaskId/>
+											<RefID/>
+											<Description/>
+										</SepaTransferTask>
+									</Task>
+								</xsl:when>
+							</xsl:choose>
 						</data>
 					</xf:instance>
 
@@ -487,6 +525,12 @@
 									<xsl:call-template name="DunningFeeTask"/>
 								</div>
 							</xf:group>
+
+							<xf:group ref=".[name(.)='SepaTransferTask']">
+								<div class="AttachTask">
+									<xsl:call-template name="SepaTransferTask"/>
+								</div>
+							</xf:group>
 		
 							<xf:group ref=".[name(.)='PaymentTask']">
 								<div class="AttachTask">
@@ -533,6 +577,37 @@
 							<xf:label>Speichern</xf:label>
 						</xf:submit>
 						<br/>
+						<div id="sepa-transfer-panel" style="display:none; margin-top:1rem; padding:.75rem; border:1px solid #666; background:#f7f7f7;">
+							<h4>SEPA-Überweisung</h4>
+							<p>Nach dem Speichern erscheint hier die TAN-Freigabe und das Ergebnis.</p>
+							<div id="hbci-message-container" style="min-height:8rem; max-height:16rem; overflow:auto; border:1px solid #444; padding:6px; background:#eee;"/>
+						</div>
+						<script type="text/javascript" src="{$home-web-gui}/resources/active.js"> </script>
+						<xsl:if test="not($new-document) and /result/Process/Tasks/SepaTransferTask[not(@status) or @status='' or @status='draft' or @status='pending']">
+							<script type="text/javascript">
+								<xsl:text>window.setTimeout(function(){</xsl:text>
+								<xsl:text>var panel=document.getElementById('sepa-transfer-panel'); if(panel){panel.style.display='block';}</xsl:text>
+								<xsl:text>var kto='</xsl:text>
+								<xsl:value-of select="/result/Process/Tasks/SepaTransferTask[1]/SourceAccount"/>
+								<xsl:text>';</xsl:text>
+								<xsl:text>if(kto){window.setInterval(function(){listMessages('</xsl:text>
+								<xsl:value-of select="$home-web-api"/>
+								<xsl:text>/tenants/</xsl:text>
+								<xsl:value-of select="$tenant"/>
+								<xsl:text>/messages/'+kto+'/get-messages-from-hbci.json','hbci-message-container');},1000);}</xsl:text>
+								<xsl:text>executeSepaTransferAfterSave({apiBase:'</xsl:text>
+								<xsl:value-of select="$home-web-api"/>
+								<xsl:text>',tenant:'</xsl:text>
+								<xsl:value-of select="$tenant"/>
+								<xsl:text>',year:</xsl:text>
+								<xsl:value-of select="$year"/>
+								<xsl:text>,processId:'</xsl:text>
+								<xsl:value-of select="/result/Process/@id"/>
+								<xsl:text>',binder:'</xsl:text>
+								<xsl:value-of select="/result/Process/@binder"/>
+								<xsl:text>'});},800);</xsl:text>
+							</script>
+						</xsl:if>
 					</div>
 		
 					<div>
@@ -785,6 +860,15 @@ Body: </xf:label>
 		<xf:action if="name(instance('document')/Process/Tasks/*[last()])='DiscountTask'">
 			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/@date" value="instance('document')/Process/Tasks/InvoiceInTask/@date"/>
 			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/Bookings/Booking/@date" value="instance('document')/Process/Tasks/InvoiceInTask/@date"/>
+		</xf:action>
+
+		<!-- SepaTransferTask init -->
+		<xf:action if="name(instance('document')/Process/Tasks/*[last()])='SepaTransferTask'">
+			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/@status" value="'draft'"/>
+			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/@date" value="substring(now(),1,10)"/>
+			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/ExecutionDate" value="substring(now(),1,10)"/>
+			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/Amount/@value" value="instance('document')/Process/TotalAmount/@value"/>
+			<xf:setvalue ref="instance('document')/Process/Tasks/*[last()]/UsageText" value="concat('Rechnung ', instance('document')/Process/@name)"/>
 		</xf:action>
 
 		<!-- PaymentTask init -->

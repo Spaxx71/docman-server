@@ -679,6 +679,54 @@
           </xs:complexContent>
         </xs:complexType>
       </xs:element>
+      <xs:element name="SepaTransferTask" maxOccurs="1" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Optionale SEPA-Überweisung aus dem Vorgang (Auftrag). Nach Erfolg wird ein TransferVoucherTask mit Eigen-PDF ergänzt.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:extension base="Task">
+              <xs:sequence>
+                <xs:element name="Files">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="File" maxOccurs="1" minOccurs="0" type="FileType"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+                <xs:element name="Bookings"/>
+                <xs:element name="Amount">
+                  <xs:complexType>
+                    <xs:attribute ref="value"/>
+                    <xs:attribute ref="unit"/>
+                  </xs:complexType>
+                </xs:element>
+                <xs:element name="SourceAccount" type="xs:string"/>
+                <xs:element name="RecipientName" type="xs:string"/>
+                <xs:element name="RecipientIban" type="xs:string"/>
+                <xs:element name="RecipientBic" type="xs:string" minOccurs="0"/>
+                <xs:element name="RecipientCountry" type="xs:string" minOccurs="0" default="DE"/>
+                <xs:element name="UsageText" type="xs:string" minOccurs="0"/>
+                <xs:element name="ExecutionDate" type="xs:date" minOccurs="0"/>
+                <xs:element name="StatusMessage" type="xs:string" minOccurs="0"/>
+                <xs:element name="VoucherTaskId" type="xs:string" minOccurs="0"/>
+                <xs:element name="RefID" type="xs:string" minOccurs="0"/>
+                <xs:element name="Description" type="xs:string" minOccurs="0"/>
+              </xs:sequence>
+              <xs:attribute name="status" use="optional">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="draft"/>
+                    <xs:enumeration value="pending"/>
+                    <xs:enumeration value="sent"/>
+                    <xs:enumeration value="failed"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:attribute>
+            </xs:extension>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
       <xs:element name="TransferVoucherTask" maxOccurs="1" minOccurs="1">
         <xs:annotation>
           <xs:documentation>Bezahlung</xs:documentation>

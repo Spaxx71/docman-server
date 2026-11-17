@@ -41,7 +41,12 @@
 	
 				<div xmlns="http://www.w3.org/1999/xhtml" id="post-section" style="background-color: #eee;">
 					<h3>HBCI+/FinTS Meldungen:</h3><a href="{concat($home-web-api,'/tenants/',$tenant,'/messages/',$resource-id,'/get-messages-from-hbci.json')}" target="_blank">Liste aller Meldugen</a>
-					<div id="hbci-message-container" style="height:10rem; overflow-y: scroll; border: 1px solid #444; padding: 5px;"/>
+					<div id="hbci-message-container" style="height:14rem; overflow-y: scroll; border: 1px solid #444; padding: 5px;"/>
+					<style type="text/css">
+						.tan-challenge { margin: .5rem 0; }
+						.tan-challenge svg { max-width: 280px; background: #111; }
+						.tan-block { margin: .35rem 0; padding: .35rem; background: #fff; border: 1px solid #ccc; }
+					</style>
 					
 					<!-- <script>
 						function setFocusOnDivWithId(elementId) {
