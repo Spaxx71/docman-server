@@ -77,6 +77,19 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Dokumentenart (Klassifikation in XQuery, nicht Extraktionsquelle) -->
+  <xs:simpleType name="DocumentType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="invoice.in"/>
+      <xs:enumeration value="invoice.out"/>
+      <xs:enumeration value="bank.statement"/>
+      <xs:enumeration value="bank.transfer"/>
+      <xs:enumeration value="tax.filing"/>
+      <xs:enumeration value="income.report"/>
+      <xs:enumeration value="unknown"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:complexType name="ValueField">
     <xs:attribute name="id" type="FieldId" use="required"/>
     <xs:attribute name="value" type="xs:string" use="required"/>
@@ -92,6 +105,12 @@
           <xs:attribute name="kind" type="SourceKind"/>
           <xs:attribute name="origin" type="Origin"/>
           <xs:attribute name="pages" type="xs:nonNegativeInteger"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Document" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="type" type="DocumentType" use="required"/>
+          <xs:attribute name="quality" type="xs:decimal"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="Account" minOccurs="0">
@@ -168,6 +187,7 @@
 
   <!--
     Prefill-Mapping (Dokumentation):
+    Document/@type invoice.in|invoice.out -> Prefill Kreditor/Rechnung
     invoice.id -> InvoiceInTask/RefID
     invoice.date -> Process/@date, Task/@date, Binder
     invoice.amount.payable | invoice.amount.brutto -> TotalAmount/@value

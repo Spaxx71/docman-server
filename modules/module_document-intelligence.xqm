@@ -50,6 +50,7 @@ declare function di:target-name($collection as xs:string, $file as xs:string) as
 declare function di:shell($file as xs:string, $from as xs:string, $subject as xs:string) as element() {
 	<DocmanIntelligence version="1.0" source="{$file}" status="pending" created="{current-dateTime()}" updated="{current-dateTime()}">
 		<Source kind="" origin="" pages="0"/>
+		<Document type="unknown" quality="0"/>
 		<Account id="" quality="0"/>
 		<Fields/>
 		<Articles/>
@@ -240,18 +241,116 @@ declare function di:run($home as xs:string, $tenant as xs:string, $year, $file a
 			}
 };
 
-declare function di:merge($old as element(), $fresh as element()) as element() {
-	<DocmanIntelligence version="1.0" source="{$old/@source}" status="done" created="{$old/@created}" updated="{current-dateTime()}">
-		{$fresh/Source}
-		{$fresh/Account}
-		{$fresh/Fields}
-		{$fresh/Articles}
-		{$fresh/Lines}
-		{$fresh/Text}
-		<Notes>{string($old/Notes)}</Notes>
-		{$old/Meta}
-		{di:progress('done', 'Fertig.', 0, 0)}
-	</DocmanIntelligence>
+(: Normiert Text für Keyword-Treffer (Umlaute, Kleinbuchstaben). :)
+declare function di:norm-text($text as xs:string) as xs:string {
+	let $lower := lower-case(normalize-space($text))
+	let $ae := replace($lower, 'ä', 'ae')
+	let $oe := replace($ae, 'ö', 'oe')
+	let $ue := replace($oe, 'ü', 'ue')
+	return replace($ue, 'ß', 'ss')
+};
+
+declare function di:keyword-hits($hay as xs:string, $keywords as xs:string*) as xs:integer {
+	sum(
+		for $word in $keywords
+		let $needle := di:norm-text($word)
+		where string-length($needle) >= 3 and contains($hay, $needle)
+		return 1
+	)
+};
+
+(: Dokumentenart aus Python-Sidecar (Text/Source/Felder), optional Accounts für invoice.in vs invoice.out. :)
+declare function di:classify-document($intel as element(), $accounts as element()?) as element() {
+	let $kind := string($intel/Source/@kind)
+	let $text := di:norm-text(string-join(($intel/Text, $intel/Meta/@subject, $intel/Meta/@from), ' '))
+	let $has-invoice-field :=
+		exists($intel/Fields/Field[@id = ('invoice.id', 'invoice.amount.payable', 'invoice.amount.brutto')][normalize-space(@value) != ''])
+	let $score-invoice :=
+		(if ($kind = 'zugferd') then 5 else 0)
+		+ di:keyword-hits($text, ('rechnung', 'rechnungsnummer', 'rechnungsnr', 'invoice', 'mwst', 'ust-id', 'ust id', 'netto', 'brutto', 'zahlbetrag', 'rechnungsbetrag'))
+		+ (if ($has-invoice-field) then 2 else 0)
+	let $score-statement := di:keyword-hits($text, ('kontoauszug', 'kontostand', 'anfangssaldo', 'endsaldo', 'buchungstag', 'valuta', 'auszug nr', 'kontoauszugsnummer', 'kontobewegung'))
+	let $score-transfer := di:keyword-hits($text, ('ueberweisung', 'sepa-ueberweisung', 'sepa ueberweisung', 'zahlungsauftrag', 'auftraggeber', 'zahlungsempfaenger', 'verwendungszweck', 'ueberweisungsbeleg'))
+	let $score-tax := di:keyword-hits($text, ('umsatzsteuervoranmeldung', 'ustva', 'elster', 'finanzamt', 'steuernummer', 'steueranmeldung', 'lohnsteueranmeldung', 'steuerbescheid'))
+	let $score-income := di:keyword-hits($text, ('lohnsteuerbescheinigung', 'entgeltabrechnung', 'gehaltsabrechnung', 'lohnabrechnung', 'einkommenssteuerbescheid', 'einkommensteuerbescheid', 'verdienstabrechnung'))
+	let $best := (
+		<score type="invoice" value="{$score-invoice}"/>,
+		<score type="bank.statement" value="{$score-statement}"/>,
+		<score type="bank.transfer" value="{$score-transfer}"/>,
+		<score type="tax.filing" value="{$score-tax}"/>,
+		<score type="income.report" value="{$score-income}"/>
+	)
+	let $ordered :=
+		for $row in $best
+		order by xs:integer($row/@value) descending, string($row/@type)
+		return $row
+	let $top := $ordered[1]
+	let $top-value := xs:integer($top/@value)
+	let $second := xs:integer(($ordered[2]/@value, 0)[1])
+	let $quality :=
+		if ($top-value <= 0) then 0
+		else if ($kind = 'zugferd' and string($top/@type) = 'invoice') then 0.95
+		else if ($top-value >= 4 and $top-value > $second) then min((0.92, 0.55 + $top-value * 0.08))
+		else if ($top-value >= 2) then min((0.75, 0.4 + $top-value * 0.08))
+		else 0.35
+	let $base-type :=
+		if ($top-value <= 0) then 'unknown'
+		else if (string($top/@type) = 'invoice') then
+			di:invoice-direction($intel, $accounts)
+		else
+			string($top/@type)
+	return <Document type="{$base-type}" quality="{$quality}"/>
+};
+
+declare function di:invoice-direction($intel as element(), $accounts as element()?) as xs:string {
+	let $seller := di:norm-text(string(($intel/Fields/Field[@id = 'sender.name']/@value)[1]))
+	let $self-names :=
+		for $account in $accounts/Account
+		let $classes := tokenize(normalize-space(string-join(($account/@classes, $account/@type), ' ')), '\s+')
+		where $classes = 'self'
+		return (
+			di:norm-text(string($account/Name)),
+			di:norm-text(string($account/Company)),
+			for $hint in $account/Hints/Hint[@field = 'party.self']
+			return di:norm-text(string($hint/@label))
+		)
+	let $self-hit :=
+		some $name in $self-names[string-length(.) >= 4]
+		satisfies ($seller != '' and contains($seller, $name)) or ($seller != '' and contains($name, $seller))
+	return
+		if ($self-hit) then 'invoice.out'
+		else 'invoice.in'
+};
+
+declare function di:merge($old as element(), $fresh as element(), $accounts as element()?) as element() {
+	let $meta := ($fresh/Meta, $old/Meta)[1]
+	let $document :=
+		if ($fresh/Document) then $fresh/Document
+		else
+			di:classify-document(
+				<Intelligence>
+					{$fresh/Source}
+					{$fresh/Account}
+					{$fresh/Fields}
+					{$fresh/Articles}
+					{$fresh/Text}
+					{$meta}
+				</Intelligence>,
+				$accounts
+			)
+	return
+		<DocmanIntelligence version="1.0" source="{$old/@source}" status="done" created="{$old/@created}" updated="{current-dateTime()}">
+			{$fresh/Source}
+			{$document}
+			{$fresh/Account}
+			{$fresh/Fields}
+			{$fresh/Articles}
+			{$fresh/Lines}
+			{$fresh/Text}
+			<Notes>{string($old/Notes)}</Notes>
+			{$meta}
+			{di:progress('done', 'Fertig.', 0, 0)}
+		</DocmanIntelligence>
 };
 
 declare function di:fail($old as element(), $message as xs:string) as element() {
@@ -414,6 +513,7 @@ declare function di:read-one($home as xs:string, $tenant as xs:string, $year, $c
 	let $fresh :=
 		try { di:run($home, $tenant, $year, $file, $from, $subject) }
 		catch * { <Error>{$err:description}</Error> }
+	let $accounts := di:accounts($home, $tenant, $year)
 	let $next :=
 		if ($fresh/self::Error) then
 			di:fail($old, string($fresh))
@@ -422,7 +522,7 @@ declare function di:read-one($home as xs:string, $tenant as xs:string, $year, $c
 		else if ($fresh//Error) then
 			di:fail($old, string(($fresh//Error)[1]))
 		else
-			di:merge($old, $fresh/*)
+			di:merge($old, $fresh/*, $accounts)
 	return xmldb:store($collection, $companion, $next)
 };
 
@@ -529,6 +629,8 @@ declare function di:summary($home as xs:string, $tenant as xs:string, $year, $fi
 					updated="{$doc/@updated}"
 					kind="{string($doc/Source/@kind)}"
 					origin="{string($doc/Source/@origin)}"
+					doctype="{string($doc/Document/@type)}"
+					doctype-quality="{string($doc/Document/@quality)}"
 					step="{string($progress/@step)}"
 					message="{string(($progress/@message, $doc/Error)[1])}"
 					position="{string($progress/@position)}"
@@ -649,4 +751,110 @@ declare function di:learn($home as xs:string, $tenant as xs:string) as item()* {
 	} catch * {
 		()
 	}
+};
+
+(: Prüft, ob ein Hint-Feld mit gleichem field(+label/pattern) schon existiert. :)
+declare function di:hint-exists($hints as element()*, $field as xs:string, $label as xs:string, $pattern as xs:string) as xs:boolean {
+	some $hint in $hints
+	satisfies string($hint/@field) = $field
+		and (
+			($label != '' and normalize-space(string($hint/@label)) = normalize-space($label))
+			or ($pattern != '' and normalize-space(string($hint/@pattern)) = normalize-space($pattern))
+			or ($label = '' and $pattern = '' and true())
+		)
+};
+
+(: Leitet aus beobachteten Rechnungsnummern ein grobes Regex-Muster ab. :)
+declare function di:invoice-id-pattern($values as xs:string*) as xs:string? {
+	let $clean :=
+		for $value in $values
+		let $trimmed := normalize-space($value)
+		where string-length($trimmed) >= 3 and string-length($trimmed) <= 40
+		return $trimmed
+	let $sample := $clean[1]
+	return
+		if (empty($clean) or count(distinct-values($clean)) < 2) then ()
+		else if (every $value in $clean satisfies matches($value, '^\d+$')) then
+			let $lens := distinct-values(for $value in $clean return string-length($value))
+			return
+				if (count($lens) = 1) then '^\d{' || $lens[1] || '}$'
+				else '^\d{' || min($lens) || ',' || max($lens) || '}$'
+		else if (matches($sample, '^[A-Za-z]+[-/]?\d+$')) then
+			let $prefix := replace($sample, '^([A-Za-z]+).*$', '$1')
+			return
+				if (every $value in $clean satisfies starts-with($value, $prefix)) then
+					'^' || $prefix || '[-/]?\d+$'
+				else ()
+		else ()
+};
+
+declare function di:propose-hint($field as xs:string, $label as xs:string, $pattern as xs:string, $source as xs:string, $existing as element()*) as element()? {
+	if (($label = '' and $pattern = '') or di:hint-exists($existing, $field, $label, $pattern)) then ()
+	else
+		<Hint field="{$field}" label="{$label}" pattern="{$pattern}" region="" source="{$source}" status="proposed"/>
+};
+
+(: Einmalige Hint-Vorschläge für Kreditoren — schreibt accounts.hint-proposals.xml, ändert accounts.dm.xml nicht. :)
+declare function di:propose-creditor-hints($home as xs:string, $tenant as xs:string, $year) as element() {
+	let $path := $home || '/' || $tenant || '/' || $year || '/accounts.dm.xml'
+	let $accounts := if (doc-available($path)) then doc($path)/Accounts else ()
+	let $examples := $home || '/' || $tenant || '/intelligence/examples'
+	let $example-docs :=
+		if (xmldb:collection-available($examples)) then collection($examples)/DocmanIntelligence
+		else ()
+	let $transfer := di:collection($home, $tenant, $year)
+	let $transfer-docs :=
+		if (xmldb:collection-available($transfer)) then
+			collection($transfer)/DocmanIntelligence[@status = 'done']
+		else ()
+	let $intel-docs := ($example-docs, $transfer-docs)
+	let $proposals :=
+		<AccountHintProposals tenant="{$tenant}" year="{$year}" created="{current-dateTime()}" note="Vorschläge zur manuellen Übernahme in FieldHints. accounts.dm.xml bleibt unverändert.">{
+			for $account in $accounts/Account
+			let $classes := tokenize(normalize-space(string-join(($account/@classes, $account/@type), ' ')), '\s+')
+			where $classes = 'creditor' or string($account/@type) = 'creditor'
+			let $existing := $account/FieldHints/Hint
+			let $name := normalize-space(string($account/Name))
+			let $company := normalize-space(string(($account/Company/Name, $account/Company)[1]))
+			let $vat := normalize-space(string($account/VatId))
+			let $customer := normalize-space(string($account/CustomerID))
+			let $ibans := distinct-values((
+				normalize-space(string($account/@iban))[normalize-space(.) != ''],
+				for $bank in $account/BankAccounts/BankAccount
+				let $iban := normalize-space(string($bank/@iban))
+				where $iban != ''
+				return $iban
+			))
+			let $invoice-ids :=
+				for $doc in $intel-docs[string(Account/@id) = string($account/@id)]
+				let $value := normalize-space(string(($doc/Fields/Field[@id = 'invoice.id']/@value)[1]))
+				where $value != ''
+				return $value
+			let $id-pattern := di:invoice-id-pattern($invoice-ids)
+			let $hints := (
+				di:propose-hint('party.self', $name, '', 'account.name', $existing),
+				di:propose-hint('party.self', $company, '', 'account.company', $existing),
+				di:propose-hint('sender.vat', $vat, '', 'account.vat', $existing),
+				di:propose-hint('invoice.customer.id', $customer, '', 'account.customerId', $existing),
+				for $iban in $ibans
+				return di:propose-hint('sender.iban', $iban, '', 'account.iban', $existing),
+				if (empty($id-pattern)) then ()
+				else di:propose-hint('invoice.id', '', $id-pattern, 'intelligence.pattern', $existing)
+			)
+			where exists($hints)
+			return
+				<Account id="{$account/@id}" kto="{string($account/@kto)}" name="{$name}">
+					<FieldHints>{$hints}</FieldHints>
+					{
+						if (exists($existing)) then
+							<ExistingHints count="{count($existing)}"/>
+						else ()
+					}
+				</Account>
+		}</AccountHintProposals>
+	let $target := $home || '/' || $tenant || '/' || $year
+	let $stored :=
+		if (empty($accounts)) then ()
+		else xmldb:store($target, 'accounts.hint-proposals.xml', $proposals)
+	return $proposals
 };
