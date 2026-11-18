@@ -35,14 +35,33 @@ declare namespace docman = "http://docman.bintellix.com";
 
 (: declare decimal-format local:EU decimal-separator = "," grouping-separator = "."; :)
 
-(: Persistent passport path: configured URL or stable EXIST_HOME/docman-passports :)
+(: Persistent passport path: absolute Passport/@url or EXIST_HOME/docman-passports.
+   Relative placeholders like passport_123456789.dat are ignored – they resolve to the
+   JVM cwd and break PinTan instantiation. :)
 declare function banking:passport-path($bank as element(BankAccount)?, $account-id as xs:string) as xs:string {
-	let $configured := normalize-space(string($bank/BankAccountDetail/OnlineBanking/Passport/@url))
+	let $configured := normalize-space(string(($bank/BankAccountDetail/OnlineBanking/Passport/@url)[1]))
+	let $default := system:get-exist-home() || '/docman-passports/passport_' || $account-id || '.dat'
+	(: /tmp/passport*.dat is a legacy placeholder, not a stable store. :)
+	let $legacy-tmp := matches($configured, '^/tmp/passport.*\.dat$')
+	let $absolute :=
+		not($legacy-tmp)
+		and (
+			starts-with($configured, '/')
+			or matches($configured, '^[A-Za-z]:[/\\]')
+			or starts-with($configured, 'file:')
+		)
 	return
-		if ($configured != '') then
-			$configured
+		if ($configured != '' and $absolute) then
+			if (starts-with($configured, 'file:')) then
+				substring-after($configured, 'file:')
+			else
+				$configured
 		else
-			system:get-exist-home() || '/docman-passports/passport_' || $account-id || '.dat'
+			$default
+};
+
+declare function banking:as-string($value) as xs:string {
+	string-join($value ! string(.), '')
 };
 
 declare function banking:passport-secret($bank as element(BankAccount)?) as xs:string {
@@ -147,16 +166,26 @@ declare function banking:getBankAccount ($home-data as xs:string, $tenant as xs:
 :)
 declare function banking:getBankAccountDetail ($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:integer) {
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
+	let $detail := $bank-account/BankAccountDetail
+	let $online := $detail/OnlineBanking
 	return
-		<BankAccount version="1.0" kto="{$bank-account-id}" hasOnlineBanking="{exists($bank-account/BankAccountDetail/OnlineBanking/*)}">
+		<BankAccount version="1.0" kto="{$bank-account-id}" hasOnlineBanking="{exists($online/*)}">
 			<BankAccountDetail>
-				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/@*}
-				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/*[name()!='OnlineBanking' and name()!='Notes']}
+				{$detail/@*}
+				{$detail/*[name()!='OnlineBanking' and name()!='Notes']}
 				<OnlineBanking>
-					{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/OnlineBanking/@*}
-					{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/OnlineBanking/*[name() != 'auth']}
+					{$online/@*}
+					{
+						(: Auth-Typ für die Oberfläche, PIN nur maskiert. :)
+						if (exists($online/Auth)) then
+							<Auth type="{$online/Auth/@type}">
+								<PIN>{if (normalize-space(string($online/Auth/PIN)) = '') then '' else '********'}</PIN>
+							</Auth>
+						else ()
+					}
+					{$online/*[not(self::Auth)]}
 				</OnlineBanking>
-				{collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/BankAccountDetail/Notes}
+				{$detail/Notes}
 			</BankAccountDetail>
 		</BankAccount>
 };
@@ -451,7 +480,7 @@ declare function banking:importStatementCSV($home-data, $tenant as xs:string, $c
 			<Hostname/>
 			<Port>443</Port>
 			<Mesages url="/db/apps/docman/data/bintellix/2019/hbci4java_123456789.xml"/>
-			<Passport url="passport_123456789.dat"/>
+			<Passport url=""/>
 		</OnlineBanking>
 		<Notes/>
 	</BankAccountDetail>
@@ -611,83 +640,172 @@ declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank
 declare function banking:updateViaFinTS ($home-data, $tenant as xs:string, $bank-account as xs:string, $year as xs:integer, $from as xs:date?, $till as xs:date?, $doImport as xs:boolean?, $mode as xs:string) {
 	let $start := if ($from castable as xs:date) then xs:date($from) else format-date(current-dateTime()-xs:dayTimeDuration('P90D'),'[Y0000]-[M00]-[D00]') 
 	let $end := if ($till castable as xs:date) then xs:date($till) else format-date(current-dateTime()-xs:dayTimeDuration('P1D'),'[Y0000]-[M00]-[D00]')
-	let $bank := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account]
+	let $bank := (collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account])[1]
 	let $usedIDs := banking:listAccountingIDs ($home-data, $tenant, $bank-account, xs:integer(format-date($till,'[Y0000]')))
-	let $account-key := string($bank/BankAccountDetail/CustomerID)
+	let $detail := $bank/BankAccountDetail
+	let $online := $detail/OnlineBanking
+	(: Session key must be unique per Docman account; shared CustomerIDs collide otherwise.
+	   Keep filename-safe (no '#') because hbci4j writes passport_<key>.dat.
+	   Deutsche Bank Bank-ID: CustomerID is often empty – fall back to BankUserID. :)
+	let $account-key-id :=
+		if (normalize-space(banking:as-string($detail/CustomerID)) != '') then banking:as-string($detail/CustomerID)
+		else if (normalize-space(banking:as-string($detail/BankUserID)) != '') then banking:as-string($detail/BankUserID)
+		else $bank-account
+	let $account-key := $account-key-id || '_' || $bank-account
 	let $passport := banking:passport-path($bank, $account-key)
 	let $secret := banking:passport-secret($bank)
 	let $mode-eff := if ($mode = 'auto') then 'auto' else 'interactive'
+	(: Java signatures need typed atoms; as-string is only for text fields / return values. :)
+	let $port := if (banking:as-string($online/Port) castable as xs:integer) then xs:integer(banking:as-string($online/Port)) else 443
+	let $blz := xs:long(banking:as-string($detail/BLZ))
+	let $bic := banking:as-string($detail/BIC)
+	let $iban := banking:as-string($detail/IBAN)
+	let $ktnr := xs:long(banking:as-string($detail/KTNR))
+	let $bank-user-id := banking:as-string($detail/BankUserID)
+	let $customer-id := banking:as-string($detail/CustomerID)
+	let $auth-type := xs:integer(banking:as-string($online/Auth/@type))
+	let $pin := banking:as-string($online/Auth/PIN)
+	let $message-in-url := banking:as-string($online/MessageIn/@url)
+	let $message-out-url := banking:as-string($online/MessageOut/@url)
 
 	return
-		if (not($bank/BankAccountDetail)) then
+		if (not($detail)) then
 			error(xs:QName('docman:NoValidBankAccount'),'The bank account &apos;'||$bank-account||'&apos; for year &apos;'||$year||'&apos; within '||$from||' and '||$till||' is not valid.')
 		else
 			let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
 			
-			let $bank-statement-init := banking:hbci-initialize($account-key, $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/BIC, $bank/BankAccountDetail/IBAN, $bank/BankAccountDetail/KTNR, $bank/BankAccountDetail/BankUserID, $bank/BankAccountDetail/CustomerID, $secret, $bank/BankAccountDetail/OnlineBanking/Auth/@type, $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, $mode-eff)
-			let $bank-statement-text := hbci4java:getTransactions($account-key, $start, $end)
-			let $bank-statement-close := hbci4java:close($account-key)
-			
-			(:
-			let $bank-statement-text := hbci4java:getAccountActivity("DE", $bank/BankAccountDetail/BLZ, $bank/BankAccountDetail/OnlineBanking/Port, $bank/BankAccountDetail/CustomerName, $bank/BankAccountDetail/CustomerID, $start, $end, "geheim", $bank/BankAccountDetail/OnlineBanking/Auth/PIN, $bank/BankAccountDetail/OnlineBanking/Passport/@url, $bank/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader)
-			:)
-			return
-				if (starts-with($bank-statement-text,"<BankAccount")) then
-					let $bank-statement-fints := parse-xml($bank-statement-text)
-					let $bank-statement := local:updateAccountingID($bank/BankAccountDetail/IBAN, (), $bank-statement-fints)
-					let $schema := doc('/db/apps/docman/resources/Bank.xsd')
-					return
-					(
-						(: if (not(validation:jaxv($bank-statement, $schema))) then
-							error(xs:QName('docman:NotSchemaConform'),'The HBCI/FinTS update can not be handled, as it is not schema conform.', validation:jaxv-report($bank-statement, $schema))
-						else :)
-						if ($doImport) then
-							for $accounting in $bank-statement//Accountings/Accounting[xs:date(ValueDate) >= $start and xs:date(ValueDate) <= $end]
-							order by $accounting/ValueDate
-							return
-								if ($accounting/@id = $usedIDs/UsedID) then
-									<update status="fine">{update replace $bank//Accountings/Accounting[@id = $accounting/@id] with $accounting}</update>
-								else
-									<insert status="fine">{update insert $accounting into $bank//Accountings}</insert>
-						else
-							()
-					,
-						$bank-statement
-					)
-				else if (contains(string($bank-statement-text), 'SCA_REQUIRED')) then
-					<error code="SCA_REQUIRED" mode="{$mode-eff}" passport="{$passport}">
-						<bank-statement-init>{$bank-statement-init}</bank-statement-init>
-						<bank-statement-text>{$bank-statement-text}</bank-statement-text>
-						<bank-statement-close>{$bank-statement-close}</bank-statement-close>
-					</error>
+			let $bank-statement-init := banking:hbci-initialize($account-key, $port, $blz, $bic, $iban, $ktnr, $bank-user-id, $customer-id, $secret, $auth-type, $pin, $message-in-url, $message-out-url, $authHeader, $passport, $mode-eff)
+			let $init-text := banking:as-string($bank-statement-init)
+			(: Defensive: older hbci4java builds returned "already exist" for stale sessions. :)
+			let $bank-statement-init :=
+				if (contains($init-text, 'already exist')) then
+					let $closed := hbci4java:close($account-key)
+					return banking:hbci-initialize($account-key, $port, $blz, $bic, $iban, $ktnr, $bank-user-id, $customer-id, $secret, $auth-type, $pin, $message-in-url, $message-out-url, $authHeader, $passport, $mode-eff)
 				else
-					<error url="{concat('hbci4java:getTransactions(',$account-key,',',$start,',',$end,')')}" passport="{$passport}" mode="{$mode-eff}">
-						<bank-statement-init>{$bank-statement-init}</bank-statement-init>
-						<bank-statement-text>{$bank-statement-text}</bank-statement-text>
-						<bank-statement-close>{$bank-statement-close}</bank-statement-close>
-					</error>
+					$bank-statement-init
+			let $init-text := banking:as-string($bank-statement-init)
+			return
+				if (contains($init-text, 'SCA_REQUIRED')) then
+					let $closed := try { hbci4java:close($account-key) } catch * { () }
+					return
+						<error code="SCA_REQUIRED" mode="{$mode-eff}" passport="{$passport}">
+							<bank-statement-init>{$init-text}</bank-statement-init>
+						</error>
+				else if (contains($init-text, 'unerwarteter Fehler')
+					or contains($init-text, 'initialize failed')
+					or contains($init-text, 'kann kein Passport')
+					or contains($init-text, 'already exist')) then
+					let $closed := try { hbci4java:close($account-key) } catch * { () }
+					return
+						<error url="hbci4java:initialize" passport="{$passport}" mode="{$mode-eff}">
+							<bank-statement-init>{$init-text}</bank-statement-init>
+						</error>
+				else
+					let $bank-statement-text := hbci4java:getTransactions($account-key, $start, $end)
+					let $bank-statement-close := hbci4java:close($account-key)
+					return
+						if (starts-with($bank-statement-text,"<BankAccount")) then
+							let $bank-statement-fints := parse-xml($bank-statement-text)
+							let $bank-statement := local:updateAccountingID($bank/BankAccountDetail/IBAN, (), $bank-statement-fints)
+							let $schema := doc('/db/apps/docman/resources/Bank.xsd')
+							return
+							(
+								(: if (not(validation:jaxv($bank-statement, $schema))) then
+									error(xs:QName('docman:NotSchemaConform'),'The HBCI/FinTS update can not be handled, as it is not schema conform.', validation:jaxv-report($bank-statement, $schema))
+								else :)
+								if ($doImport) then
+									for $accounting in $bank-statement//Accountings/Accounting[xs:date(ValueDate) >= $start and xs:date(ValueDate) <= $end]
+									order by $accounting/ValueDate
+									return
+										if ($accounting/@id = $usedIDs/UsedID) then
+											<update status="fine">{update replace $bank//Accountings/Accounting[@id = $accounting/@id] with $accounting}</update>
+										else
+											<insert status="fine">{update insert $accounting into $bank//Accountings}</insert>
+								else
+									()
+							,
+								$bank-statement
+							)
+						else if (contains(string($bank-statement-text), 'SCA_REQUIRED')) then
+							<error code="SCA_REQUIRED" mode="{$mode-eff}" passport="{$passport}">
+								<bank-statement-init>{$bank-statement-init}</bank-statement-init>
+								<bank-statement-text>{$bank-statement-text}</bank-statement-text>
+								<bank-statement-close>{$bank-statement-close}</bank-statement-close>
+							</error>
+						else
+							<error url="{concat('hbci4java:getTransactions(',$account-key,',',$start,',',$end,')')}" passport="{$passport}" mode="{$mode-eff}">
+								<bank-statement-init>{$bank-statement-init}</bank-statement-init>
+								<bank-statement-text>{$bank-statement-text}</bank-statement-text>
+								<bank-statement-close>{$bank-statement-close}</bank-statement-close>
+							</error>
 };
 
 
+declare function local:mergeOnlineBanking($incoming as element(OnlineBanking)?, $stored as element(OnlineBanking)?) as element(OnlineBanking)? {
+	if (empty($incoming) or empty($incoming/*)) then
+		$stored
+	else if (empty($stored) or empty($stored/*)) then
+		$incoming
+	else
+		let $pin-raw := normalize-space(string($incoming/Auth/PIN))
+		(: Leer oder nur Sternchen (Maske aus GET /detail) → hinterlegte PIN behalten. :)
+		let $keep-pin := $pin-raw = '' or matches($pin-raw, '^\*+$')
+		let $auth-type :=
+			if (normalize-space(string($incoming/Auth/@type)) != '') then string($incoming/Auth/@type)
+			else string($stored/Auth/@type)
+		let $pin := if ($keep-pin) then string($stored/Auth/PIN) else $pin-raw
+		return
+			<OnlineBanking>
+				{$incoming/@*}
+				<Auth type="{$auth-type}">
+					<PIN>{$pin}</PIN>
+				</Auth>
+				{$incoming/*[not(self::Auth)]}
+				{
+					if (empty($incoming/Parameters) and exists($stored/Parameters)) then $stored/Parameters else ()
+				}
+			</OnlineBanking>
+};
+
 declare function banking:storeBankAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $bank-account) {
 	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
+	let $stored := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
+	let $root := if ($bank-account/self::BankAccount) then $bank-account else $bank-account/BankAccount
+	let $incoming := $root/BankAccountDetail
+	let $online := local:mergeOnlineBanking($incoming/OnlineBanking, $stored/BankAccountDetail/OnlineBanking)
+	let $detail :=
+		<BankAccountDetail>
+			{$incoming/@*}
+			{$incoming/*[not(self::OnlineBanking or self::Notes)]}
+			{$online}
+			{
+				if (exists($incoming/Notes)) then $incoming/Notes
+				else if (exists($stored/BankAccountDetail/Notes)) then $stored/BankAccountDetail/Notes
+				else <Notes/>
+			}
+		</BankAccountDetail>
+	(: Connection-Save darf ohne Accountings kommen; für Schema und Persistenz Bestand übernehmen. :)
+	let $accountings :=
+		if (exists($root/Accountings)) then $root/Accountings
+		else if (exists($stored/Accountings)) then $stored/Accountings
+		else <Accountings saldoInitAmount="0"/>
+	let $candidate :=
+		<BankAccount kto="{$bank-account-id}">
+			{$detail}
+			{$accountings}
+		</BankAccount>
 	return
-		if (not(validation:jaxv($bank-account, $schema))) then
-			error(xs:QName('docman:NotSchemaConform'),'The bank account can not be saved, as it is not schema conform.', validation:jaxv-report($bank-account, $schema))
+		if (empty($stored)) then
+			error(xs:QName('docman:BankMissing'), concat('Bank account ', $bank-account-id, ' does not exist.'))
+		else if (not(validation:jaxv($candidate, $schema))) then
+			error(xs:QName('docman:NotSchemaConform'),'The bank account can not be saved, as it is not schema conform.', validation:jaxv-report($candidate, $schema))
 		else
-			let $stored := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
-			let $incoming := $bank-account/BankAccount/BankAccountDetail
-			let $detail := if ($incoming/OnlineBanking/* or empty($stored/BankAccountDetail/OnlineBanking/*))
-				then $incoming
-				else
-					<BankAccountDetail>
-						{$incoming/@*}
-						{$incoming/*[not(self::OnlineBanking or self::Notes)]}
-						{$stored/BankAccountDetail/OnlineBanking}
-						{$incoming/Notes}
-					</BankAccountDetail>
 			let $update := update replace $stored/BankAccountDetail with $detail
-			let $update := update replace $stored/Accountings with $bank-account/BankAccount/Accountings
+			let $update :=
+				if (exists($root/Accountings) and exists($root/Accountings/Accounting)) then
+					update replace $stored/Accountings with $root/Accountings
+				else
+					()
 			let $payID := for $accounting in collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/Accountings/Accounting[@id='PAYxxx']
 				return
 					update value $accounting/@id with "PAY"||util:uuid()
@@ -831,20 +949,42 @@ declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as
 
 declare function banking:transferViaFinTS ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $RecipientCountry as xs:string, $RecipientBic as xs:string, $RecipientIban as xs:string, $RecipientName as xs:string, $Date as xs:date, $CurrencyAmount as xs:double, $CurrencyUnit as xs:string, $UsageText as xs:string) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
-	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
-
-	let $account-key := string($bank-account/BankAccountDetail/CustomerID)
+	let $bank-account := (collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id])[1]
+	let $detail := $bank-account/BankAccountDetail
+	let $online := $detail/OnlineBanking
+	let $account-key-id :=
+		if (normalize-space(banking:as-string($detail/CustomerID)) != '') then banking:as-string($detail/CustomerID)
+		else if (normalize-space(banking:as-string($detail/BankUserID)) != '') then banking:as-string($detail/BankUserID)
+		else $bank-account-id
+	let $account-key := $account-key-id || '_' || $bank-account-id
 	let $passport := banking:passport-path($bank-account, $account-key)
 	let $secret := banking:passport-secret($bank-account)
 	let $authHeader := "Basic " || util:base64-encode('bix-accounting'||':'||'bix-acc')
-	let $bank-statement-init := banking:hbci-initialize($account-key, $bank-account/BankAccountDetail/OnlineBanking/Port, $bank-account/BankAccountDetail/BLZ, $bank-account/BankAccountDetail/BIC, $bank-account/BankAccountDetail/IBAN, $bank-account/BankAccountDetail/KTNR, $bank-account/BankAccountDetail/BankUserID, $bank-account/BankAccountDetail/CustomerID, $secret, $bank-account/BankAccountDetail/OnlineBanking/Auth/@type, $bank-account/BankAccountDetail/OnlineBanking/Auth/PIN, $bank-account/BankAccountDetail/OnlineBanking/MessageIn/@url, $bank-account/BankAccountDetail/OnlineBanking/MessageOut/@url, $authHeader, $passport, "interactive")
+	let $bank-statement-init := banking:hbci-initialize(
+		$account-key,
+		if (banking:as-string($online/Port) castable as xs:integer) then xs:integer(banking:as-string($online/Port)) else 443,
+		xs:long(banking:as-string($detail/BLZ)),
+		banking:as-string($detail/BIC),
+		banking:as-string($detail/IBAN),
+		xs:long(banking:as-string($detail/KTNR)),
+		banking:as-string($detail/BankUserID),
+		banking:as-string($detail/CustomerID),
+		$secret,
+		xs:integer(banking:as-string($online/Auth/@type)),
+		banking:as-string($online/Auth/PIN),
+		banking:as-string($online/MessageIn/@url),
+		banking:as-string($online/MessageOut/@url),
+		$authHeader,
+		$passport,
+		"interactive"
+	)
 	let $bank-statement-bankTransfer := hbci4java:arangeBankTransfer($account-key, $RecipientCountry, $RecipientBic, $RecipientIban, $RecipientName, $Date, $CurrencyAmount, $CurrencyUnit, $UsageText)
 	let $bank-statement-close := hbci4java:close($account-key)
 	return
 		<result>
-			<init>{$bank-statement-init}</init>
-			<transfer>{$bank-statement-bankTransfer}</transfer>
-			<close>{$bank-statement-close}</close>
+			<init>{banking:as-string($bank-statement-init)}</init>
+			<transfer>{banking:as-string($bank-statement-bankTransfer)}</transfer>
+			<close>{banking:as-string($bank-statement-close)}</close>
 			<passport>{$passport}</passport>
 		</result>
 };
