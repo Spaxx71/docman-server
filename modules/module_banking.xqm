@@ -830,6 +830,29 @@ declare function banking:storeAccountings ($home-data as xs:string, $tenant as x
 				</Accountings>
 };
 
+(: Setzt nur Accounting/@budgetCategory – ohne Full-Rewrite der Accountings-Tabelle. :)
+declare function banking:setAccountingBudgetCategory (
+	$home-data as xs:string,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$bank-account-id as xs:string,
+	$accounting-id as xs:string,
+	$category-id as xs:string
+) {
+	let $node := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]/Accountings/Accounting[@id=$accounting-id]
+	return
+		if (empty($node)) then
+			error(xs:QName('docman:AccountingMissing'), concat('Accounting ', $accounting-id, ' not found on bank ', $bank-account-id, '.'))
+		else
+			let $update :=
+				if (exists($node/@budgetCategory)) then
+					update value $node/@budgetCategory with $category-id
+				else
+					update insert attribute budgetCategory { $category-id } into $node
+			return
+				<BudgetCategory id="{$category-id}" kto="{$bank-account-id}" accounting="{$accounting-id}"/>
+};
+
 
 
 (:
@@ -865,12 +888,49 @@ declare function banking:getPeriodicPayments ($home-data as xs:string, $tenant a
 	for $PeriodicPayment in $Accountings/PeriodicPayments/PeriodicPayment
 	return
 		if ($date) then
-			if ($PeriodicPayment/Period/@valid-from <= $date and $PeriodicPayment/Periodic/@valid-till >= $date) then
-				$PeriodicPayment
-			else
-				()
+			let $from := $PeriodicPayment/Period/@valid-from
+			let $till := $PeriodicPayment/Period/@valid-till
+			return
+				if ($from castable as xs:date and xs:date($from) <= $date
+					and (not($till castable as xs:date) or xs:date($till) >= $date)) then
+					$PeriodicPayment
+				else
+					()
 		else
 			$PeriodicPayment
+};
+
+declare function banking:payment-rule-matches($rule as element(PaymentRule), $Movement as element()) as xs:boolean {
+	let $text := normalize-space(string($rule))
+	let $details := string-join($Movement/PaymentDetails/PaymentDetail | $Movement/PaymentDetail | $Movement/Usage, '')
+	let $iban := normalize-space(string(($Movement/IBAN, $Movement/Counterpart/IBAN)[1]))
+	return
+		if ($text = '') then
+			false()
+		else if ($rule/@type = ('SEPA_DIRECT-DEBIT_IBAN', 'SEPA_CREDIT-TRANSFER_IBAN')) then
+			upper-case(replace($iban, '\s', '')) = upper-case(replace($text, '\s', ''))
+		else if ($rule/@type = 'SEPA_DIRECT-DEBIT_CREDITOR-ID') then
+			contains(upper-case(string(($Movement/CreditorID, $Movement/Mandate/CreditorID, '')[1])), upper-case($text))
+		else if ($rule/@type = 'SEPA_PAYMENT-DETAILS_REGEX') then
+			matches($details, $text)
+		else if ($rule/@type = 'PAYER_BANK-ACCOUNT_CONCERNED') then
+			true()
+		else
+			contains(upper-case($details), upper-case($text))
+};
+
+declare function banking:amount-in-range($PeriodicPayment as element(PeriodicPayment), $amount as xs:double) as xs:boolean {
+	let $min := $PeriodicPayment/Period/@amount-min
+	let $max := $PeriodicPayment/Period/@amount-max
+	let $exact := $PeriodicPayment/DocumentTemplate/TotalAmount/@value
+	return
+		if ($min castable as xs:double or $max castable as xs:double) then
+			(not($min castable as xs:double) or $amount ge xs:double($min))
+			and (not($max castable as xs:double) or $amount le xs:double($max))
+		else if ($exact castable as xs:double) then
+			$amount eq xs:double($exact)
+		else
+			true()
 };
 
 (:
@@ -881,20 +941,30 @@ declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
 	let $Movement := $bank-account/Accountings/Accounting[@id=$payment-id]
 	let $PeriodicPayments := banking:getPeriodicPayments($home-data, $tenant, $year, ())
-	for $PeriodicPayment in $PeriodicPayments[PaymentOptions/PaymentOption/IBAN = $Movement/IBAN]
+	let $amount-node := ($Movement/Amount[@type='DEBIT'], $Movement/Amount[@type='CREDIT'], $Movement/Amount)[1]
+	let $amount := if ($amount-node castable as xs:double) then abs(xs:double($amount-node)) else 0
+	for $PeriodicPayment in $PeriodicPayments
+	let $rules := $PeriodicPayment/PaymentRules/PaymentRule
+	let $legacy-iban := $PeriodicPayment/PaymentOptions/PaymentOption/IBAN
+	let $matched :=
+		if (exists($rules)) then
+			every $rule in $rules satisfies banking:payment-rule-matches($rule, $Movement)
+		else if (exists($legacy-iban)) then
+			upper-case(replace(string(($Movement/IBAN)[1]), '\s', '')) = upper-case(replace(string($legacy-iban[1]), '\s', ''))
+		else
+			false()
+	where $matched
 	return
-		if ($PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/@type='TEXT' and not(contains(string-join($Movement/PaymentDetails/PaymentDetail,''), $PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail))) then
-			<error>The Payment Detail '{$Movement/PaymentDetails/PaymentDetail/text()}' does not contain the text '{$PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/text()}'</error>
-		else if ($PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/@type='REGEX' and not(matches(string-join($Movement/PaymentDetails/PaymentDetail,''), $PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail))) then
-			<error>The Payment Detail '{$Movement/PaymentDetails/PaymentDetail/text()}' RegEx does not match with '{$PeriodicPayment/PaymentOptions/PaymentOption/PaymentDetail/text()}'</error>
-		else if (not($Movement/CurrencyUnit/text() = $PeriodicPayment/DocumentTemplate/TotalAmount/@unit)) then
+		if (exists($PeriodicPayment/DocumentTemplate/TotalAmount/@unit)
+			and normalize-space(string($Movement/CurrencyUnit)) != ''
+			and not(string($Movement/CurrencyUnit) = string($PeriodicPayment/DocumentTemplate/TotalAmount/@unit))) then
 			<error>The Payment Unit '{$Movement/CurrencyUnit/text()}' does not match with '{$PeriodicPayment/DocumentTemplate/TotalAmount/@unit/data()}'</error>
-		else if (not(xs:double($Movement/Amount[@type='DEBIT']) eq xs:double($PeriodicPayment/DocumentTemplate/TotalAmount/@value))) then
-			<error>The Payment Amount '{$Movement/Amount[@type='DEBIT']/text()}' does not match with '{$PeriodicPayment/DocumentTemplate/TotalAmount/@value/data()}'</error>
-		else if ($PeriodicPayment/@valid-from != '' and not((xs:date($PeriodicPayment/@valid-from) le xs:date($Movement/ValueDate)))) then
-			<error>Template is future (valid from '{$PeriodicPayment/@valid-from/data()}'</error>
-		else if ($PeriodicPayment/@valid-till != '' and not((xs:date($PeriodicPayment/@valid-till) ge xs:date($Movement/ValueDate)))) then
-			<error>Template is outdated (valid till '{$PeriodicPayment/@valid-till/data()}'</error>
+		else if (not(banking:amount-in-range($PeriodicPayment, $amount))) then
+			<error>The Payment Amount '{$amount}' is outside cost range / expected amount for '{$PeriodicPayment/Name/text()}'</error>
+		else if ($PeriodicPayment/Period/@valid-from castable as xs:date and not((xs:date($PeriodicPayment/Period/@valid-from) le xs:date($Movement/ValueDate)))) then
+			<error>Template is future (valid from '{$PeriodicPayment/Period/@valid-from/data()}'</error>
+		else if ($PeriodicPayment/Period/@valid-till castable as xs:date and not((xs:date($PeriodicPayment/Period/@valid-till) ge xs:date($Movement/ValueDate)))) then
+			<error>Template is outdated (valid till '{$PeriodicPayment/Period/@valid-till/data()}'</error>
 		else
 			let $binder := format-date($Movement/ValueDate,'[M00]')
 			let $document-filename := concat($Movement/ValueDate,'_Dauerbezug_(',$PeriodicPayment/../../@id/data(),')_(',replace(translate($PeriodicPayment/DocumentTemplate/RefID,' ','_'),'[^A-Za-z0-9_\-]','-'),')_(',replace(translate($PeriodicPayment/DocumentTemplate/TransactionID,' ','_'),'[^A-Za-z0-9_\-]','-'),')_PeriodicPayment')

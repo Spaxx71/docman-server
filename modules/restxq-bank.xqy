@@ -342,13 +342,78 @@ declare
 
 function dmbank:putAccountings($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
     try {
-		banking:storeBankAccount($main:home-data, $tenant, $year, $bank-account, $body)
+		(: Schmale Kategorie-Zuordnung: <BudgetCategory id="CAT" accounting="PAY…"/> :)
+		let $category :=
+			if ($body/self::BudgetCategory) then $body
+			else if ($body/BudgetCategory) then $body/BudgetCategory
+			else ()
+		return
+			if (exists($category) and normalize-space(string($category/@accounting)) != '') then
+				banking:setAccountingBudgetCategory(
+					$main:home-data,
+					$tenant,
+					$year,
+					$bank-account,
+					normalize-space(string($category/@accounting)),
+					string($category/@id)
+				)
+			else
+				banking:storeBankAccount($main:home-data, $tenant, $year, $bank-account, $body)
 	}
 	catch * {
 		<rest:response>
 			<http:response status="400" message="Invalid syntax for data">
 				<http:header name="Content-Language" value="en"/>
 				<http:header name="Content-Type" value="text/html; charset=utf-8"/>
+			</http:response>
+		</rest:response>
+		,
+		<error>{$err:code, $err:value, $err:description, " module: ", $err:module, "(", $err:line-number, ",", $err:column-number, ")"}</error>
+	}
+};
+
+(:
+PUT /api/xml/tenants/{t}/years/{y}/banks/{kto}/budget-category
+Body: <BudgetCategory id="CAT" accounting="PAY…"/>  (leere id = Attribut leeren)
+:)
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/budget-category")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("text/xml")
+    %output:method("xml")
+
+function dmbank:putAccountingBudgetCategory(
+	$user as xs:string*,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$bank-account as xs:string,
+	$body
+) {
+	try {
+		let $category :=
+			if ($body/self::BudgetCategory) then $body
+			else if ($body/BudgetCategory) then $body/BudgetCategory
+			else ()
+		let $accounting-id :=
+			if (exists($category)) then normalize-space(string($category/@accounting))
+			else ""
+		let $category-id :=
+			if (exists($category)) then string($category/@id)
+			else normalize-space(string($body))
+		return
+			if ($accounting-id = '') then
+				error(xs:QName('docman:AccountingMissing'), 'BudgetCategory/@accounting is required.')
+			else
+				banking:setAccountingBudgetCategory($main:home-data, $tenant, $year, $bank-account, $accounting-id, $category-id)
+	}
+	catch * {
+		<rest:response>
+			<http:response status="400" message="Invalid budget category update">
+				<http:header name="Content-Language" value="en"/>
+				<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
 			</http:response>
 		</rest:response>
 		,
