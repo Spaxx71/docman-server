@@ -121,7 +121,7 @@ declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $t
 	document:listDocumentsForBinder($dm-home-data, $tenant, $year, $binder, true())
 };
 
-(: $details=false() liefert nur Binders/Binder/Process. Die Tabellenspalten stehen als Attribute am Process, ohne Tasks, Buchungen oder Document Intelligence. :)
+(: $details=false() = Outline: nur Process/Tasks/Task, Tasks ohne Kind-Elemente. Tabellenfelder als Attribute. :)
 declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:boolean) {
 	<Binders version="1.0" tenantId="{$tenant}" details="{if ($details) then 'true' else 'false'}">
 		<Binder name="{$binder}" tenantId="{$tenant}" year="{$year}" binder="{$binder}">
@@ -156,7 +156,6 @@ declare function document:processOutline($doc as element(Process)?) as element(P
 		)
 		let $notes := normalize-space(string-join(($doc/Notes/text(), $master/Notes/text()), ' '))
 		let $files := string-join($doc//File/@type, ' ')
-		let $task := if (empty($master)) then replace(string($doc/@mainTask), 'Task$', '') else replace(local-name($master), 'Task$', '')
 		let $type := normalize-space(string(($doc/@type, $master/@type)[normalize-space(string(.)) != ''][1]))
 		return
 			<Process
@@ -168,17 +167,30 @@ declare function document:processOutline($doc as element(Process)?) as element(P
 				created="{$doc/@created}"
 				mainTask="{$doc/@mainTask}"
 				type="{$type}"
-				owner="{normalize-space(string($master/Owner))}"
-				description="{normalize-space(string($master/Description))}"
-				refID="{normalize-space(string($master/RefID))}"
-				transactionID="{normalize-space(string($master/TransactionID))}"
 				amount="{string($amount/@value)}"
 				unit="{string($amount/@unit)}"
 				notes="{$notes}"
-				task="{$task}"
 				paid="{$paid}"
 				files="{$files}"
-				outline="true"/>
+				outline="true">
+				<Tasks>
+				{
+					for $task in $doc/Tasks/*
+					return
+						element { node-name($task) } {
+							$task/@*,
+							attribute owner { normalize-space(string($task/Owner)) },
+							attribute description { normalize-space(string($task/Description)) },
+							attribute refID { normalize-space(string($task/RefID)) },
+							attribute transactionID { normalize-space(string($task/TransactionID)) },
+							attribute notes { normalize-space(string($task/Notes)) },
+							attribute amount { string($task/Amount/@value) },
+							attribute unit { string($task/Amount/@unit) },
+							attribute files { string-join($task/Files/File/@type, ' ') }
+						}
+				}
+				</Tasks>
+			</Process>
 };
 
 

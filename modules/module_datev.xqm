@@ -161,7 +161,7 @@ declare function datev:row($booking as element()) as xs:string* {
 				<Belegdatum>{$booking/@date/data()}</Belegdatum>
 				<Belegfeld1>{
 					if ($booking/@refID/data() = '#') then ''
-					else substring(replace($booking/@refID/data(), '[^A-Za-z0-9$&%*+\-/]', '-'), 1, 36)
+					else substring(replace($booking/@refID/data(), '[^A-Za-z0-9$&amp;%*+\-/]', '-'), 1, 36)
 				}</Belegfeld1>
 				<Skonto/>
 				<Buchungstext>{datev:bookingText($booking)}</Buchungstext>

@@ -84,6 +84,78 @@ declare function transfer:toTrash($home-data as xs:string, $tenant as xs:string,
 	return <result from="{$document}" to="trash" status="{$move}"/>
 };
 
+declare function local:unique-name($collection as xs:string, $name as xs:string) as xs:string {
+	if (empty(index-of(xmldb:get-child-resources($collection), $name))) then
+		$name
+	else
+		let $stem := replace($name, '\.[^.]+$', '')
+		let $ext := if (contains($name, '.')) then '.' || replace($name, '^.*\.', '') else ''
+		let $free :=
+			(
+				for $i in 1 to 99
+				let $candidate := $stem || '_' || $i || $ext
+				where empty(index-of(xmldb:get-child-resources($collection), $candidate))
+				return $candidate
+			)[1]
+		return
+			if ($free) then $free
+			else error(xs:QName('transfer:NameClash'), concat('Kein freier Name für: ', $name))
+};
+
+(: Datei inkl. Intelligence-Sidecar in den Transfer eines anderen Jahres verschieben. :)
+declare function transfer:moveToYear(
+	$home-data as xs:string,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$document as xs:string,
+	$to-year as xs:integer
+) {
+	let $name := normalize-space($document)
+	let $from-col := $home-data || '/' || $tenant || '/' || $year || '/transfer'
+	let $to-year-col := $home-data || '/' || $tenant || '/' || $to-year
+	let $to-col := $to-year-col || '/transfer'
+	return
+		if ($name = '' or di:is-sidecar($name)) then
+			error(xs:QName('transfer:InvalidFile'), concat('Ungültige Datei: ', $name))
+		else if ($year = $to-year) then
+			error(xs:QName('transfer:SameYear'), 'Zieljahr ist identisch mit dem aktuellen Jahr.')
+		else if (not(xmldb:collection-available($from-col))) then
+			error(xs:QName('transfer:Missing'), 'Transfer-Ordner fehlt.')
+		else if (empty(index-of(xmldb:get-child-resources($from-col), $name))) then
+			error(xs:QName('transfer:FileMissing'), concat('Datei fehlt: ', $name))
+		else if (not(xmldb:collection-available($to-year-col))) then
+			error(xs:QName('transfer:YearMissing'), concat('Zieljahr fehlt: ', $to-year))
+		else
+			let $ensure :=
+				if (xmldb:collection-available($to-col)) then ()
+				else xmldb:create-collection($to-year-col, 'transfer')
+			let $target := local:unique-name($to-col, $name)
+			let $sidecar := di:locate($from-col, $name)
+			let $prepare :=
+				if ($target = $name) then ()
+				else if (exists(index-of(xmldb:get-child-resources($from-col), $target))) then
+					error(xs:QName('transfer:NameClash'), concat('Temporärer Zielname belegt: ', $target))
+				else
+					xmldb:rename($from-col, $name, $target)
+			let $moved := xmldb:move($from-col, $to-col, $target)
+			let $sidecar-move :=
+				if ($sidecar = '') then
+					di:ensure($home-data, $tenant, $to-year, $target, '', '')
+				else
+					let $new-side := di:stem($target) || '.dm.xml'
+					let $moved-side := xmldb:move($from-col, $to-col, $sidecar)
+					let $side-rename :=
+						if ($sidecar = $new-side) then ()
+						else if (doc-available($to-col || '/' || $new-side)) then ()
+						else xmldb:rename($to-col, $sidecar, $new-side)
+					let $final-side := if (doc-available($to-col || '/' || $new-side)) then $new-side else $sidecar
+					let $node := doc($to-col || '/' || $final-side)/DocmanIntelligence
+					let $src := if (exists($node/@source)) then update value $node/@source with $target else ()
+					return $moved-side
+			return
+				<result from="{$name}" to="{$target}" fromYear="{$year}" toYear="{$to-year}" status="{$moved}"/>
+};
+
 declare function transfer:trashIndex($home-data as xs:string, $tenant as xs:string) {
 	let $trash-collection := $home-data||'/'||$tenant||'/trash'
 	return

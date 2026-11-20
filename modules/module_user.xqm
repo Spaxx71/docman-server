@@ -30,6 +30,16 @@ declare function user:isDba() as xs:boolean {
 	sm:id()/sm:id/sm:real/sm:groups/sm:group = 'dba'
 };
 
+(: sm:is-account-enabled is only allowed for a DBA or the account itself. :)
+declare function user:accountEnabled($username as xs:string) as xs:boolean? {
+	let $name := normalize-space($username)
+	return
+		if ($name = '' or not(user:isDba() or $name = user:currentUsername())) then
+			()
+		else
+			try { sm:user-exists($name) and sm:is-account-enabled($name) } catch * { () }
+};
+
 declare function user:accessNode($dm-home-data as xs:string, $tenant as xs:string) as element(Access)? {
 	doc($dm-home-data || '/' || $tenant || '/tenant.dm.xml')/Tenant/Access
 };
@@ -107,14 +117,14 @@ declare function user:serializePermissions($permissions as element(Permissions)?
 		<Permissions>{
 			for $p in $permissions/Permission
 			let $rights := user:normalizeRights(string($p/@rights))
+			let $id := normalize-space(string($p/@id))
 			where $rights != ''
 			return
-				<Permission type="{normalize-space(string($p/@type))}" rights="{$rights}">{
-					{
-						if (normalize-space(string($p/@id)) != '') then attribute id { normalize-space(string($p/@id)) }
-						else ()
-					}
-				</Permission>
+				element Permission {
+					attribute type { normalize-space(string($p/@type)) },
+					attribute rights { $rights },
+					if ($id != '') then attribute id { $id } else ()
+				}
 		}</Permissions>
 };
 
@@ -177,9 +187,11 @@ declare function user:listTenantUsers($dm-home-data as xs:string, $tenant as xs:
 		<Users version="1.0" tenant="{$tenant}" group="{$group-id}">
 		{
 			for $u in $users
+			let $enabled := user:accountEnabled(string($u/@id))
 			order by string($u/@id)
 			return
-				<User id="{string($u/@id)}" enabled="{sm:user-exists(string($u/@id)) and sm:is-account-enabled(string($u/@id))}">
+				<User id="{string($u/@id)}">
+					{if (exists($enabled)) then attribute enabled { $enabled } else ()}
 					<Name>{string($u/@id)}</Name>
 					{user:serializePermissions($u/Permissions)}
 				</User>

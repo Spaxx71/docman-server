@@ -63,26 +63,35 @@ function dmbinder:listBindersJSON($user as xs:string*, $tenant as xs:string, $ye
 	binder:listBinders($main:home-data,$tenant,$year)
 };
 
+(: Basis = Outline. Volle Tasks/Files nur mit ?extended=true (Alias: ?details=true). :)
+declare function local:binder-extended($extended as xs:string*, $details as xs:string*) as xs:boolean {
+	let $ext := lower-case(normalize-space(string(($extended[1], "")[1])))
+	let $det := lower-case(normalize-space(string(($details[1], "")[1])))
+	return $ext = ("true", "1", "yes") or $det = ("true", "1", "yes")
+};
+
 declare
     %rest:GET
     %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}")
     %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("extended", "{$extended}", "")
     %rest:query-param("details", "{$details}", "false")
     %output:media-type("text/xml")
     %output:method("xml")
-function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:string*) {
-	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder, $details[1] = "true")
+function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $extended as xs:string*, $details as xs:string*) {
+	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder, local:binder-extended($extended, $details))
 };
 
 declare
     %rest:GET
     %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}")
     %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("extended", "{$extended}", "")
     %rest:query-param("details", "{$details}", "false")
     %output:media-type("application/json")
     %output:method("json")
-function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:string*) {
-	dmbinder:getBinderXML($user, $tenant, $year, $binder, $details)
+function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $extended as xs:string*, $details as xs:string*) {
+	dmbinder:getBinderXML($user, $tenant, $year, $binder, $extended, $details)
 };
 
 (:
@@ -161,6 +170,83 @@ function dmbinder:deleteBinderXML($user as xs:string*, $tenant as xs:string, $ye
 		(
 			<rest:response>
 				<http:response status="400" message="Binder delete failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+GET /xml/tenants/{tenant}/years/{year}/binders/{binder}/files
+Dateien im Archivordner (ohne .dm.xml-Sidecars).
+:)
+declare
+	%rest:GET
+	%rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/files")
+	%rest:query-param("user", "{$user}", "Guest")
+	%output:media-type("text/xml")
+	%output:method("xml")
+function dmbinder:listArchiveFilesXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	try {
+		binder:listArchiveFiles($main:home-data, $tenant, string($year), $binder)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Binder files failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+POST /xml/tenants/{tenant}/years/{year}/binders/{binder}/files/{file}/transfer
+Eine Datei nach Transfer; zugehörige .dm.xml werden gelöscht.
+:)
+declare
+	%rest:POST
+	%rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/files/{$file}/transfer")
+	%rest:query-param("user", "{$user}", "Guest")
+	%output:media-type("text/xml")
+	%output:method("xml")
+function dmbinder:moveFileToTransferXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $file as xs:string) {
+	try {
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'CHANGE')
+		return binder:moveFileToTransfer($main:home-data, $tenant, string($year), $binder, $file)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Move to transfer failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+POST /xml/tenants/{tenant}/years/{year}/binders/{binder}/move-to-transfer
+Alle Dateien nach Transfer; verbleibende .dm.xml werden gelöscht.
+:)
+declare
+	%rest:POST
+	%rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/move-to-transfer")
+	%rest:query-param("user", "{$user}", "Guest")
+	%output:media-type("text/xml")
+	%output:method("xml")
+function dmbinder:moveAllToTransferXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	try {
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'CHANGE')
+		return binder:moveAllToTransfer($main:home-data, $tenant, string($year), $binder)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Move all to transfer failed"/>
 			</rest:response>
 			,
 			<error>{$err:code, $err:description}</error>

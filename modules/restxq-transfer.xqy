@@ -397,6 +397,37 @@ function dmtransfer:trash($user as xs:string*, $tenant as xs:string, $year as xs
 	transfer:toTrash($main:home-data, $tenant, $year, $document)
 };
 
+(:
+POST /xml/tenants/{tenant}/years/{year}/transfer/{document}/move-year?year=2024
+Datei in den Transfer eines anderen Jahres verschieben.
+:)
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/transfer/{$document}/move-year")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("year", "{$to-year}", "")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmtransfer:moveYear($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $to-year as xs:string*) {
+	try {
+		let $target := normalize-space(string(($to-year[1], "")[1]))
+		return
+			if (not($target castable as xs:integer)) then
+				error(xs:QName('transfer:YearMissing'), 'Zieljahr fehlt oder ist ungültig.')
+			else
+				transfer:moveToYear($main:home-data, $tenant, $year, $document, xs:integer($target))
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Move to year failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
 declare
     %rest:GET
     %rest:path("/docman/xml/tenants/{$tenant}/trash")
@@ -460,6 +491,17 @@ declare
     %output:method("json")
 function dmtransfer:trashJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string) {
 	dmtransfer:trash($user, $tenant, $year, $document)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/transfer/{$document}/move-year")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("year", "{$to-year}", "")
+    %output:media-type("application/json")
+    %output:method("json")
+function dmtransfer:moveYearJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $document as xs:string, $to-year as xs:string*) {
+	dmtransfer:moveYear($user, $tenant, $year, $document, $to-year)
 };
 
 declare
