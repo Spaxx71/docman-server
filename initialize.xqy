@@ -285,19 +285,20 @@ let $tenants :=
 			}
 			<Name>{$Access/../Name}</Name>
 			<Access>
-				<Group id="{$Access/Group/@id}"/>
-				{	(: add user to group :)
-					for $User at $pos in $Access/Users/User
+				<Group id="{$Access/Group/@id}">
+				{	(: add user to group — Users under Group or legacy flat Access/Users :)
+					for $User in ($Access/Group/Users/User, $Access/Users/User)
 					return
 						if (sm:get-group-members($Access/Group/@id) = $User/@id) then () else sm:add-group-member($Access/Group/@id, $User/@id)
 				}
-				<Users>
-				{
-					for $group-member in sm:get-group-members($Access/Group/@id)
-					return 
-						<User id="{$group-member}"/>
-				}
-				</Users>
+					<Users>
+					{
+						for $group-member in sm:get-group-members($Access/Group/@id)
+						return
+							<User id="{$group-member}"/>
+					}
+					</Users>
+				</Group>
 			</Access>
 		</Tenant>
 

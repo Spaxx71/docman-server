@@ -26,6 +26,7 @@ module namespace dmbank="http://exist-db.org/apps/restxq/docman-bank";
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
+import module namespace user="http://bintellix.com/docman/user" at "/db/apps/docman/modules/module_user.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -225,7 +226,8 @@ declare
     %output:method("xml")
 function dmbank:createBankAccountXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
 	try {
-		banking:createBankAccount($main:home-data, $tenant, $year, $body)
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'ADD')
+		return banking:createBankAccount($main:home-data, $tenant, $year, $body)
 	}
 	catch * {
 		(
@@ -249,7 +251,8 @@ declare
     %output:method("xml")
 function dmbank:deleteBankAccountXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
 	try {
-		banking:deleteBankAccount($main:home-data, $tenant, $year, $bank-account)
+		let $_ := user:requirePermission($main:home-data, $tenant, 'bankdetails', $bank-account, 'DELETE')
+		return banking:deleteBankAccount($main:home-data, $tenant, $year, $bank-account)
 	}
 	catch * {
 		(
@@ -339,7 +342,8 @@ declare
 
 function dmbank:putBankAccountDetail($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
     try {
-		banking:storeBankAccount($main:home-data, $tenant, $year, $bank-account, $body)
+		let $_ := user:requirePermission($main:home-data, $tenant, 'bankdetails', $bank-account, 'CHANGE')
+		return banking:storeBankAccount($main:home-data, $tenant, $year, $bank-account, $body)
 	}
 	catch * {
 		<rest:response>
@@ -393,6 +397,7 @@ declare
 
 function dmbank:putAccountings($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
     try {
+		let $_ := user:requirePermission($main:home-data, $tenant, 'bankmovements', $bank-account, 'CHANGE')
 		(: Schmale Kategorie-Zuordnung: <BudgetCategory id="CAT" accounting="PAY…"/> :)
 		let $category :=
 			if ($body/self::BudgetCategory) then $body

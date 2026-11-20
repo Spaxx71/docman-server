@@ -27,6 +27,7 @@ module namespace dmbinder="http://exist-db.org/apps/restxq/docman-binder";
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace binder="http://bintellix.com/docman/binder" at "/db/apps/docman/modules/module_binder.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
+import module namespace user="http://bintellix.com/docman/user" at "/db/apps/docman/modules/module_user.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -95,6 +96,7 @@ declare
     %output:method("xml")
 function dmbinder:createBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
 	try {
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'ADD')
 		let $name :=
 			if ($body/self::Binder) then string($body/@name)
 			else if ($body/Binder) then string($body/Binder/@name)
@@ -124,7 +126,8 @@ declare
     %output:method("xml")
 function dmbinder:renameBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $name as xs:string*) {
 	try {
-		binder:renameArchive($main:home-data, $tenant, string($year), $binder, string(($name[1], $binder)[1]))
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'CHANGE')
+		return binder:renameArchive($main:home-data, $tenant, string($year), $binder, string(($name[1], $binder)[1]))
 	}
 	catch * {
 		(
@@ -148,7 +151,8 @@ declare
     %output:method("xml")
 function dmbinder:deleteBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
 	try {
-		binder:deleteArchive($main:home-data, $tenant, string($year), $binder)
+		let $_ := user:requirePermission($main:home-data, $tenant, 'year_settings', (), 'DELETE')
+		return binder:deleteArchive($main:home-data, $tenant, string($year), $binder)
 	}
 	catch * {
 		(

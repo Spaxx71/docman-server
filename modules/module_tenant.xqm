@@ -24,6 +24,7 @@ xquery version "3.1";
 
 module namespace tenant = "http://bintellix.com/docman/tenant";
 
+import module namespace user = "http://bintellix.com/docman/user" at "/db/apps/docman/modules/module_user.xqm";
 
 declare function tenant:existsTenant($dm-home-data as xs:string, $tenant-id as xs:string) as xs:boolean {
 	let $collection := $dm-home-data
@@ -107,7 +108,19 @@ declare function tenant:getTenant($dm-home-data as xs:string, $tenant-id as xs:s
 			return
 				<CompanyPaperFile>{$folder}</CompanyPaperFile>
 		}
-		</CompanyPaperFiles>	
+		</CompanyPaperFiles>
+		{
+			let $access := $tenant-details/Tenant/Access
+			return
+				if (empty($access)) then ()
+				else if (exists($access/Group/Users)) then $access
+				else
+					<Access>
+						<Group id="{if (normalize-space(string($access/Group/@id)) != '') then string($access/Group/@id) else $tenant-id}">
+							<Users>{$access/Users/User}</Users>
+						</Group>
+					</Access>
+		}
 	</Tenant>
 };
 
@@ -140,6 +153,9 @@ declare function tenant:storeTenant($dm-home-data as xs:string, $tenant-id as xs
 					if ($raw castable as xs:integer) then $raw
 					else if ($tls = 'tls') then '993'
 					else '143'
+			let $email-guard :=
+				if (empty($incoming/EmailAccount)) then ()
+				else user:requirePermission($dm-home-data, $tenant-id, 'email', (), 'CHANGE')
 			let $email :=
 				if (empty($incoming/EmailAccount)) then
 					$stored/EmailAccount
