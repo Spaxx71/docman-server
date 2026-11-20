@@ -105,6 +105,43 @@ function dmtenant:getTenantJSON($user as xs:string*, $tenant-id as xs:string) {
 };
 
 
+(:
+PUT /api/xml/tenants/{tenant}
+Body: Tenant-XML (E-Mail-Passwort leer/******** = unverändert)
+:)
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant-id}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmtenant:putTenantXML($user as xs:string*, $tenant-id as xs:string, $body) {
+	try {
+		if (not(tenant:existsTenant($main:home-data, $tenant-id))) then
+			(
+				<rest:response>
+					<http:response status="404" message="Invalid data - tenant ID"/>
+				</rest:response>
+				,
+				<error>Invalid tenant id '{$tenant-id}'</error>
+			)
+		else
+			tenant:storeTenant($main:home-data, $tenant-id, $body)
+	}
+	catch * {
+		<rest:response>
+			<http:response status="400" message="Invalid tenant data">
+				<http:header name="Content-Language" value="en"/>
+				<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
+			</http:response>
+		</rest:response>
+		,
+		<error>{$err:code, $err:value, $err:description}</error>
+	}
+};
+
 (: 
     DELETE http://localhost:8080/exist/restxq/docman/tenants/test
     DELETE /api/tenants/test

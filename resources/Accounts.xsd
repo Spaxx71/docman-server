@@ -90,6 +90,8 @@
                         <xs:attribute name="interval" use="required" type="xs:NCName"/>
                         <xs:attribute name="max" use="required" type="xs:integer"/>
                         <xs:attribute name="min" use="required" type="xs:integer"/>
+                        <xs:attribute name="amount-min" use="optional" type="xs:decimal"/>
+                        <xs:attribute name="amount-max" use="optional" type="xs:decimal"/>
                         <xs:attribute name="valid-from" use="required"/>
                         <xs:attribute name="valid-till" use="optional"/>
                       </xs:complexType>

@@ -767,6 +767,10 @@ declare function local:mergeOnlineBanking($incoming as element(OnlineBanking)?, 
 			</OnlineBanking>
 };
 
+declare function local:valid-bank-kto($kto as xs:string) as xs:boolean {
+	matches($kto, '^[A-Za-z0-9]{5,15}$')
+};
+
 declare function banking:storeBankAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string, $bank-account) {
 	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
 	let $stored := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto=$bank-account-id]
@@ -812,6 +816,61 @@ declare function banking:storeBankAccount ($home-data as xs:string, $tenant as x
 			return
 				<BankAccount kto="{$bank-account-id}">
 				</BankAccount>
+};
+
+(: Neues Bankkonto als bank-account_{kto}.dm.xml anlegen. :)
+declare function banking:createBankAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account) {
+	let $schema := doc('/db/apps/docman/resources/Bank.xsd')
+	let $root := if ($bank-account/self::BankAccount) then $bank-account else $bank-account/BankAccount
+	let $kto := normalize-space(string(($root/@kto, '')[1]))
+	let $col := $home-data || '/' || $tenant || '/' || $year
+	let $nick := normalize-space(string($root/BankAccountDetail/AccountNick))
+	let $name := normalize-space(string($root/BankAccountDetail/AccountName))
+	let $bank := normalize-space(string($root/BankAccountDetail/BankName))
+	let $label := if ($nick != '') then $nick else if ($name != '') then $name else $kto
+	let $currency :=
+		let $raw := normalize-space(string($root/BankAccountDetail/CurrencyUnit))
+		return if ($raw != '') then $raw else 'EUR'
+	let $candidate :=
+		<BankAccount kto="{$kto}">
+			<BankAccountDetail>
+				<BankName>{if ($bank != '') then $bank else $label}</BankName>
+				<AccountName>{if ($name != '') then $name else $label}</AccountName>
+				<AccountNick>{if ($nick != '') then $nick else $label}</AccountNick>
+				<KTNR>{normalize-space(string($root/BankAccountDetail/KTNR))}</KTNR>
+				<BLZ>{normalize-space(string($root/BankAccountDetail/BLZ))}</BLZ>
+				<IBAN>{normalize-space(string($root/BankAccountDetail/IBAN))}</IBAN>
+				<BIC>{normalize-space(string($root/BankAccountDetail/BIC))}</BIC>
+				<CurrencyUnit>{$currency}</CurrencyUnit>
+				<Notes>{string($root/BankAccountDetail/Notes)}</Notes>
+			</BankAccountDetail>
+			<Accountings saldoInitAmount="0"/>
+		</BankAccount>
+	return
+		if (not(local:valid-bank-kto($kto))) then
+			error(xs:QName('docman:BankInvalid'), concat('Ungültige Konto-ID: ', $kto))
+		else if (not(xmldb:collection-available($col))) then
+			error(xs:QName('docman:YearMissing'), concat('Jahr fehlt: ', $year))
+		else if (exists(collection($col)/BankAccount[@kto=$kto])) then
+			error(xs:QName('docman:BankExists'), concat('Bankkonto existiert bereits: ', $kto))
+		else if (not(validation:jaxv($candidate, $schema))) then
+			error(xs:QName('docman:NotSchemaConform'), 'Bankkonto ist nicht schema-konform.', validation:jaxv-report($candidate, $schema))
+		else
+			let $store := xmldb:store($col, concat('bank-account_', $kto, '.dm.xml'), $candidate)
+			return banking:getBankAccountDetail($home-data, $tenant, $kto, $year)
+};
+
+declare function banking:deleteBankAccount ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string) {
+	let $kto := normalize-space($bank-account-id)
+	let $stored := collection($home-data || '/' || $tenant || '/' || $year)/BankAccount[@kto=$kto]
+	return
+		if (empty($stored)) then
+			error(xs:QName('docman:BankMissing'), concat('Bankkonto fehlt: ', $kto))
+		else if (exists($stored/Accountings/Accounting)) then
+			error(xs:QName('docman:BankNotEmpty'), concat('Bankkonto hat noch Bewegungen und kann nicht gelöscht werden: ', $kto))
+		else
+			let $removed := xmldb:remove(util:collection-name($stored), util:document-name($stored))
+			return <deleted kto="{$kto}" year="{$year}" tenant="{$tenant}"/>
 };
 
 

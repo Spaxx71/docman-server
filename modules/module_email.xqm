@@ -23,6 +23,7 @@ xquery version "3.1";
 module namespace email = "http://bintellix.com/docman/email";
 
 import module namespace process="http://exist-db.org/xquery/process";
+import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 
 declare namespace mail = "http://exist-db.org/xquery/mail";
 
@@ -76,14 +77,76 @@ declare function local:cleanupNamespace($n as node()) as node() {
 	)
 };
 
+(: Liest IMAP-Zugang aus tenant.dm.xml/EmailAccount; Fallback für bisher hartcodierte Mandanten. :)
 declare function local:mailbox($tenant as xs:string) as element()? {
-	(: Crypto - created by util:base64-encode("abc"):)
-	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
+	let $email := doc($main:home-data||'/'||$tenant||'/tenant.dm.xml')/Tenant/EmailAccount
+	let $host := normalize-space(string($email/Hostname))
+	let $user := normalize-space(string($email/Username))
+	let $password := string($email/Password)
+	let $tls :=
+		let $mode := lower-case(normalize-space(string($email/TlsMode)))
+		return
+			if ($mode = ('tls', 'starttls', 'none')) then $mode
+			else 'tls'
+	let $port :=
+		let $raw := normalize-space(string($email/Port))
+		return
+			if ($raw castable as xs:integer) then $raw
+			else if ($tls = 'tls') then '993'
+			else '143'
+	let $protocol := if ($tls = 'tls') then 'imaps' else 'imap'
 	return
-		if ($tenant = ('bintellix', 'intersecurity')) then
-			<mailbox host="imap.bintellix.com" user="accounting@bintellix.com" password="{util:base64-decode($CryptoValue)}" protocol="imaps"/>
+		if ($host != '' and $user != '' and normalize-space($password) != '') then
+			<mailbox host="{$host}" port="{$port}" user="{$user}" password="{$password}" protocol="{$protocol}" tls="{$tls}"/>
+		else if ($tenant = ('bintellix', 'intersecurity')) then
+			(: Legacy-Fallback bis die Einstellungen gespeichert sind :)
+			let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
+			return
+				<mailbox host="imap.bintellix.com" port="993" user="accounting@bintellix.com" password="{util:base64-decode($CryptoValue)}" protocol="imaps" tls="tls"/>
 		else
 			()
+};
+
+declare function local:mail-properties($tenant as xs:string) as element(properties)? {
+	let $box := local:mailbox($tenant)
+	return
+		if (empty($box)) then
+			()
+		else
+			let $tls := string($box/@tls)
+			let $proto := string($box/@protocol)
+			let $port := string($box/@port)
+			return
+				<properties>
+					<property name="mail.debug" value="false"/>
+					<property name="mail.store.protocol" value="{$proto}"/>
+					{
+						if ($tls = 'tls') then (
+							<property name="mail.imaps.host" value="{string($box/@host)}"/>,
+							<property name="mail.imaps.port" value="{$port}"/>,
+							<property name="mail.imaps.user" value="{string($box/@user)}"/>,
+							<property name="mail.imaps.password" value="{string($box/@password)}"/>,
+							<property name="mail.imaps.ssl.enable" value="true"/>
+						)
+						else if ($tls = 'starttls') then (
+							<property name="mail.imap.host" value="{string($box/@host)}"/>,
+							<property name="mail.imap.port" value="{$port}"/>,
+							<property name="mail.imap.user" value="{string($box/@user)}"/>,
+							<property name="mail.imap.password" value="{string($box/@password)}"/>,
+							<property name="mail.imap.ssl.enable" value="false"/>,
+							<property name="mail.imap.starttls.enable" value="true"/>,
+							<property name="mail.imap.starttls.required" value="true"/>
+						)
+						else (
+							<property name="mail.imap.host" value="{string($box/@host)}"/>,
+							<property name="mail.imap.port" value="{$port}"/>,
+							<property name="mail.imap.user" value="{string($box/@user)}"/>,
+							<property name="mail.imap.password" value="{string($box/@password)}"/>,
+							<property name="mail.imap.ssl.enable" value="false"/>,
+							<property name="mail.imap.starttls.enable" value="false"/>
+						)
+					}
+				</properties>
 };
 
 declare function local:folder-name($folder as xs:string?) as xs:string {
@@ -139,10 +202,16 @@ declare function local:needs-selected-mailbox($command as xs:string) as xs:boole
 };
 
 declare function local:imap-url($box as element(mailbox), $mailbox as xs:string?) as xs:string {
-	if (normalize-space(string($mailbox)) = '') then
-		concat('imaps://', string($box/@host), '/')
-	else
-		concat('imaps://', string($box/@host), '/', $mailbox)
+	let $scheme := if (string($box/@protocol) = 'imap') then 'imap' else 'imaps'
+	let $port := normalize-space(string($box/@port))
+	let $authority :=
+		if ($port = '') then string($box/@host)
+		else concat(string($box/@host), ':', $port)
+	return
+		if (normalize-space(string($mailbox)) = '') then
+			concat($scheme, '://', $authority, '/')
+		else
+			concat($scheme, '://', $authority, '/', $mailbox)
 };
 
 (:
@@ -235,41 +304,7 @@ declare function email:read-emails($tenant as xs:string) as item() {
 };
 
 declare function email:read-emails($tenant as xs:string, $folder as xs:string) as item() {
-
-	(: Crypto - created by util:base64-encode("abc"):)
-	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
-	
-
-	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
-	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
-
-
-	let $MailProperties :=
-  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.bintellix.com"/>
-				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
-				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-
-		<!--
-		<property name="mail.imap.port" value="993"/>
-		<property name="mail.imap.ssl.enable" value="true"/>
-		<property name="mail.imap.ssl.checkserveridentity" value="true"/>
-		<property name="mail.imap.socketFactory.class" value="javax.net.ssl.SSLSocketFactory"/>
-		<property name="mail.imap.socketFactory.fallback" value="993"/>
-		<property name="mail.imap.socketFactory.port" value="false"/>
-		<property name="mail.imaps.ssl.enable" value="true"/>
-		<property name="mail.imaps.ssl.checkserveridentity" value="true"/>
-		props.setProperty("mail.imap.connectiontimeout", "5000");
-		props.setProperty("mail.imap.timeout", "5000");
-		-->
-	   		</properties>
-		else 
-			()
-        
+	let $MailProperties := local:mail-properties($tenant)
 	return
 		if (empty($MailProperties)) then
 			<error>Kein Postfach für Mandant {$tenant} konfiguriert.</error>
@@ -354,26 +389,7 @@ declare function email:read-message($tenant as xs:string, $id as xs:integer) as 
 };
 
 declare function email:read-message($tenant as xs:string, $id as xs:integer, $folder as xs:string) as item() {
-
-	(: Crypto - created by util:base64-encode("abc"):)
-	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
-
-	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
-	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
-	let $MailProperties :=
-  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.bintellix.com"/>
-				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
-				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-	   		</properties>
-		else 
-			()
-
-        
+	let $MailProperties := local:mail-properties($tenant)
 	return
 		if (empty($MailProperties)) then
 			<error>Kein Postfach für Mandant {$tenant} konfiguriert.</error>
@@ -407,26 +423,7 @@ declare function email:read-attachment($tenant as xs:string, $mail-id as xs:inte
 };
 
 declare function email:read-attachment($tenant as xs:string, $mail-id as xs:integer, $att-number as xs:integer, $folder as xs:string) as item() {
-
-	(: Crypto - created by util:base64-encode("abc"):)
-	let $CryptoValue := "dTNqS0x1M2ozaDNmbjJqbjNKa2wx"
-
-	(: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html :)
-	(: https://www.tutorialspoint.com/javamail_api/javamail_api_imap_servers.htm :)
-	let $MailProperties :=
-  		if ($tenant = 'bintellix' or $tenant = 'intersecurity') then
-	   		<properties>
-				<property name="mail.debug" value="false"/>
-				<property name="mail.imaps.host" value="imap.bintellix.com"/>
-				<property name="mail.imaps.user" value="accounting@bintellix.com"/>
-				<property name="mail.imaps.password" value="{util:base64-decode($CryptoValue)}"/>
-				<property name="mail.store.protocol" value="imaps"/>
-				<property name="mail.imaps.ssl.enable" value="true"/>
-	   		</properties>
-		else 
-			()
-
-        
+	let $MailProperties := local:mail-properties($tenant)
 	return
 		if (empty($MailProperties)) then
 			<error>Kein Postfach für Mandant {$tenant} konfiguriert.</error>

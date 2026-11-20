@@ -82,8 +82,10 @@ declare function local:accountAsJson($node as node(), $pos as xs:integer) {
                             "Name": $node/PeriodicPayments/PeriodicPayment/Name/text(),
                             "Period": map {
                                 "interval": $period/Period/@interval/data(),
-                                "max": xs:integer($period/Period/@min),
-                                "min": xs:integer($period/Period/@max),
+                                "min": xs:integer($period/Period/@min),
+                                "max": xs:integer($period/Period/@max),
+                                "amount-min": string(($period/Period/@amount-min, "")[1]),
+                                "amount-max": string(($period/Period/@amount-max, "")[1]),
                                 "valid-from": $period/Period/@valid-from/data(),
                                 "valid-till": $period/Period/@valid-till/data()
                             }

@@ -81,3 +81,83 @@ function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year
 	dmbinder:getBinderXML($user, $tenant, $year, $binder)
 };
 
+(:
+POST /xml/tenants/{tenant}/years/{year}/binders
+Body: <Binder name="Vertraege" type="ARCHIVE"/>
+:)
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbinder:createBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
+	try {
+		let $name :=
+			if ($body/self::Binder) then string($body/@name)
+			else if ($body/Binder) then string($body/Binder/@name)
+			else string($body)
+		return binder:createArchive($main:home-data, $tenant, string($year), $name)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Binder create failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+PUT /xml/tenants/{tenant}/years/{year}/binders/{binder}?name=Neu
+:)
+declare
+    %rest:PUT
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("name", "{$name}", "")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbinder:renameBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $name as xs:string*) {
+	try {
+		binder:renameArchive($main:home-data, $tenant, string($year), $binder, string(($name[1], $binder)[1]))
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Binder rename failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+DELETE /xml/tenants/{tenant}/years/{year}/binders/{binder}
+:)
+declare
+    %rest:DELETE
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbinder:deleteBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	try {
+		binder:deleteArchive($main:home-data, $tenant, string($year), $binder)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Binder delete failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+

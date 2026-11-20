@@ -211,6 +211,57 @@ function dmbank:listBankAccountsJSON($user as xs:string*, $tenant as xs:string, 
 	banking:listBankAccounts($main:home-data, $tenant, $year)
 };
 
+(:
+POST /api/xml/tenants/{t}/years/{y}/banks
+Body: <BankAccount kto="..."><BankAccountDetail>...</BankAccountDetail></BankAccount>
+:)
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbank:createBankAccountXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
+	try {
+		banking:createBankAccount($main:home-data, $tenant, $year, $body)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Bank create failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+DELETE /api/xml/tenants/{t}/years/{y}/banks/{kto}
+:)
+declare
+    %rest:DELETE
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("text/xml")
+    %output:method("xml")
+function dmbank:deleteBankAccountXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
+	try {
+		banking:deleteBankAccount($main:home-data, $tenant, $year, $bank-account)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Bank delete failed"/>
+			</rest:response>
+			,
+			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
 
 declare function local:bankAccountings($tenant as xs:string, $year as xs:integer, $bank-account as xs:string) {
 	let $bankAccount := banking:getBankAccount($main:home-data, $tenant, $bank-account, $year)
