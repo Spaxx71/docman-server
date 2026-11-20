@@ -285,7 +285,7 @@ function dmbinder:datevExport($user as xs:string*, $tenant as xs:string, $year a
 	} catch * {
 		(
 			<rest:response>
-				<http:response status="422" message="DATEV export failed"/>
+				<http:response status="400" message="DATEV export failed"/>
 			</rest:response>,
 			string-join(($err:description, $err:value), ' ')
 		)
