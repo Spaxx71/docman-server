@@ -7,7 +7,7 @@
 		<Column nr="2" name="Version" headline="" type="integer" default="700" regex="^(700)$"/>
  
 		<!-- C: "Formatkategorie" (16 = Debitoren/Kreditoren, 20 = Sachkontenbeschriftungen, 21 = Buchungsstapel, 46 = Zahlungsbedingungen, 48 = Diverse Adressen, 65 = Wiederkehrende Buchungen, 67 = Buchungstextkonstanten,) -->
-		<Column nr="3" name="ExportType" headline="" type="integer" regex="^(16|20|21|46|48|65)$"/>
+		<Column nr="3" name="ExportType" headline="" type="integer" regex="^(16|20|21|46|48|65|67)$"/>
  
 		<!-- D: "Formatname" (Buchungsstapel, Buchungstextkonstanten, Debitoren/Kreditoren, Kontenbeschriftungen usw.) -->
 		<Column nr="4" name="ExportName" headline="" type="string" regex="^[&#34;](Buchungsstapel|Wiederkehrende Buchungen|Debitoren/Kreditoren|Kontenbeschriftungen|Zahlungsbedingungen|Diverse Adressen)[&#34;]$"/>
@@ -70,25 +70,25 @@
 		<Column nr="23" name="Unknown" headline="" type="char" regex="^$"/>
 
 		<!-- "Derivatskennzeichen" -->
-		<Column nr="24" name="Unkonwn" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
+		<Column nr="24" name="DerivativeFlag" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
 
 		<!-- RESERVIERT -->
-		<Column nr="25" name="Unkonwn" headline="" type="char" regex="^$"/>
+		<Column nr="25" name="Reserved25" headline="" type="char" regex="^$"/>
 
 		<!-- RESERVIERT -->
-		<Column nr="26" name="Unkonwn" headline="" type="char" regex="^$"/>
+		<Column nr="26" name="Reserved26" headline="" type="char" regex="^$"/>
 
 		<!-- "Sachkonten-rahmen" 03 = SKR03 04 = SKR04-->
 		<Column nr="27" name="AccountSystem" headline="" type="string" regex="^[&#34;](\d{2}){0,2}[&#34;]$"/>
 
 		<!-- "ID der Branchen-lösung" -->
-		<Column nr="28" name="Unkonwn" headline="" type="integer" regex="^\d{0,4}$"/>
+		<Column nr="28" name="IndustrySolutionId" headline="" type="integer" regex="^\d{0,4}$"/>
 
 		<!-- RESERVIERT -->
-		<Column nr="29" name="Unkonwn" headline="" type="integer" regex="^$"/>
+		<Column nr="29" name="Reserved29" headline="" type="integer" regex="^$"/>
 
 		<!-- RESERVIERT -->
-		<Column nr="30" name="Unkonwn" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
+		<Column nr="30" name="Reserved30" headline="" type="string" regex="^([&#34;][&#34;]){0,1}$"/>
 
 		<!-- Anwendungsinformation -->
 		<Column nr="31" name="ApplicationInfo" headline="" type="string" regex="^([&#34;](.){1,16}[&#34;]){0,1}$"/>
@@ -148,42 +148,42 @@
 		<Column nr="47" name="BU49Funktionsergaenzung" headline="BU 49 Funktionsergänzung" type="integer" regex="^\d{0,3}$"/>
 		<Column nr="48" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 1" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
 		<Column nr="49" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 1" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="50" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 2" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="51" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 2" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="52" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 3" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="53" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 3" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="54" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 4" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="55" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 4" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="56" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 5" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="57" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 5" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="58" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 6" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="59" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 6" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="60" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 7" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="61" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 7" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="62" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 8" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="63" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 8" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="64" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 9" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="65" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 9" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="66" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 10" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="67" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 10" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="68" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 11" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="69" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 11" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="70" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 12" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="71" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 12" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="72" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 13" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="73" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 13" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="47" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 14" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="75" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 14" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="76" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 15" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="77" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 15" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="78" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 16" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="79" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 16" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="80" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 17" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="81" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 17" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="82" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 18" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="83" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 18" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
-		<Column nr="84" name="ZusatzinformationArt1" headline="Zusatzinformation - Art 19" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
-		<Column nr="85" name="ZusatzinformationInhalt1" headline="Zusatzinformation- Inhalt 19" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="50" name="ZusatzinformationArt2" headline="Zusatzinformation - Art 2" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="51" name="ZusatzinformationInhalt2" headline="Zusatzinformation- Inhalt 2" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="52" name="ZusatzinformationArt3" headline="Zusatzinformation - Art 3" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="53" name="ZusatzinformationInhalt3" headline="Zusatzinformation- Inhalt 3" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="54" name="ZusatzinformationArt4" headline="Zusatzinformation - Art 4" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="55" name="ZusatzinformationInhalt4" headline="Zusatzinformation- Inhalt 4" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="56" name="ZusatzinformationArt5" headline="Zusatzinformation - Art 5" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="57" name="ZusatzinformationInhalt5" headline="Zusatzinformation- Inhalt 5" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="58" name="ZusatzinformationArt6" headline="Zusatzinformation - Art 6" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="59" name="ZusatzinformationInhalt6" headline="Zusatzinformation- Inhalt 6" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="60" name="ZusatzinformationArt7" headline="Zusatzinformation - Art 7" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="61" name="ZusatzinformationInhalt7" headline="Zusatzinformation- Inhalt 7" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="62" name="ZusatzinformationArt8" headline="Zusatzinformation - Art 8" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="63" name="ZusatzinformationInhalt8" headline="Zusatzinformation- Inhalt 8" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="64" name="ZusatzinformationArt9" headline="Zusatzinformation - Art 9" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="65" name="ZusatzinformationInhalt9" headline="Zusatzinformation- Inhalt 9" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="66" name="ZusatzinformationArt10" headline="Zusatzinformation - Art 10" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="67" name="ZusatzinformationInhalt10" headline="Zusatzinformation- Inhalt 10" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="68" name="ZusatzinformationArt11" headline="Zusatzinformation - Art 11" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="69" name="ZusatzinformationInhalt11" headline="Zusatzinformation- Inhalt 11" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="70" name="ZusatzinformationArt12" headline="Zusatzinformation - Art 12" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="71" name="ZusatzinformationInhalt12" headline="Zusatzinformation- Inhalt 12" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="72" name="ZusatzinformationArt13" headline="Zusatzinformation - Art 13" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="73" name="ZusatzinformationInhalt13" headline="Zusatzinformation- Inhalt 13" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="74" name="ZusatzinformationArt14" headline="Zusatzinformation - Art 14" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="75" name="ZusatzinformationInhalt14" headline="Zusatzinformation- Inhalt 14" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="76" name="ZusatzinformationArt15" headline="Zusatzinformation - Art 15" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="77" name="ZusatzinformationInhalt15" headline="Zusatzinformation- Inhalt 15" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="78" name="ZusatzinformationArt16" headline="Zusatzinformation - Art 16" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="79" name="ZusatzinformationInhalt16" headline="Zusatzinformation- Inhalt 16" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="80" name="ZusatzinformationArt17" headline="Zusatzinformation - Art 17" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="81" name="ZusatzinformationInhalt17" headline="Zusatzinformation- Inhalt 17" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="82" name="ZusatzinformationArt18" headline="Zusatzinformation - Art 18" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="83" name="ZusatzinformationInhalt18" headline="Zusatzinformation- Inhalt 18" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
+		<Column nr="84" name="ZusatzinformationArt19" headline="Zusatzinformation - Art 19" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
+		<Column nr="85" name="ZusatzinformationInhalt19" headline="Zusatzinformation- Inhalt 19" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
 		<Column nr="86" name="ZusatzinformationArt20" headline="Zusatzinformation - Art 20" type="string" regex="^([&#34;].{0,20}[&#34;]){0,1}$"/>
 		<Column nr="87" name="ZusatzinformationInhalt20" headline="Zusatzinformation- Inhalt 20" type="string" regex="^([&#34;].{0,210}[&#34;]){0,1}$"/>
 		<Column nr="88" name="Stueck" headline="Stück" type="integer" regex="^\d{0,8}$"/>
@@ -226,7 +226,7 @@
 		<Column nr="121" name="Abrechnungsreferenz" headline="Abrechnungsreferenz" type="string" regex="^([&#34;].{0,50}[&#34;]){0,1}$"/>
 		<Column nr="122" name="BVV-Position" headline="BVV-Position (Betriebsvermögensvergleich)" type="integer" regex="^([1|2|3|4|5]){0,1}$"/>
 		<Column nr="123" name="EU-Mitgliedstaat" headline="EU-Mitgliedstaat u. UStID (Ursprung)" type="string" regex="^([&#34;].{0,15}[&#34;]){0,1}$"/>
-		<Column nr="124" name="EU-Steuersatz" headline="EU-Steuersatz (Ursprung)" type="integer" regex="^(\d{1,2}[,]\d{1,2}){0,1}$"/>
+		<Column nr="124" name="EU-SteuersatzUrsprung" headline="EU-Steuersatz (Ursprung)" type="integer" regex="^(\d{1,2}[,]\d{1,2}){0,1}$"/>
 
 	</Part>
 

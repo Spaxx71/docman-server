@@ -1,6 +1,7 @@
 (:
 Document Intelligence.
-di:ensure legt nur eine docman.xml mit status="pending" an.
+di:ensure legt nur eine .dm.xml mit status="pending" an.
+Bestehende .docman.xml werden beim Zugriff nach .dm.xml umbenannt.
 di:process liest sie im Hintergrund und ersetzt die Felder. Notes bleibt.
 :)
 
@@ -26,24 +27,43 @@ declare function di:stem($name as xs:string) as xs:string {
 	replace($name, '\.[^.]+$', '')
 };
 
+declare function di:is-sidecar($name as xs:string) as xs:boolean {
+	ends-with($name, '.dm.xml') or ends-with($name, '.docman.xml')
+};
+
+declare function di:prefer($collection as xs:string, $name as xs:string) as xs:string {
+	if ($name = '' or not(ends-with($name, '.docman.xml'))) then $name
+	else
+		let $next := replace($name, '\.docman\.xml$', '.dm.xml')
+		return
+			if (doc-available($collection || '/' || $next)) then $name
+			else
+				let $_ := xmldb:rename($collection, $name, $next)
+				return $next
+};
+
 declare function di:locate($collection as xs:string, $file as xs:string) as xs:string {
-	let $plain := di:stem($file) || '.docman.xml'
-	let $full := $file || '.docman.xml'
-	let $plain-source :=
-		if (doc-available($collection || '/' || $plain)) then string(doc($collection || '/' || $plain)/*/@source)
-		else ''
-	return
-		if ($plain-source = $file) then $plain
-		else if (doc-available($collection || '/' || $full) and string(doc($collection || '/' || $full)/*/@source) = $file) then $full
-		else ''
+	let $names := (
+		di:stem($file) || '.dm.xml',
+		$file || '.dm.xml',
+		di:stem($file) || '.docman.xml',
+		$file || '.docman.xml'
+	)
+	let $found := (
+		for $name in $names
+		where doc-available($collection || '/' || $name)
+		where string(doc($collection || '/' || $name)/*/@source) = $file
+		return $name
+	)[1]
+	return di:prefer($collection, string($found))
 };
 
 declare function di:target-name($collection as xs:string, $file as xs:string) as xs:string {
 	let $found := di:locate($collection, $file)
-	let $plain := di:stem($file) || '.docman.xml'
+	let $plain := di:stem($file) || '.dm.xml'
 	return
 		if ($found != '') then $found
-		else if (doc-available($collection || '/' || $plain)) then $file || '.docman.xml'
+		else if (doc-available($collection || '/' || $plain)) then $file || '.dm.xml'
 		else $plain
 };
 
@@ -383,7 +403,8 @@ declare function di:queue($home as xs:string) as element()* {
 	where matches($year, '^\d{4}$')
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
-	for $name in xmldb:get-child-resources($collection)[ends-with(., '.docman.xml')]
+	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
+	let $name := di:prefer($collection, $stored)
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence
@@ -415,7 +436,8 @@ declare function di:active-runs($home as xs:string) as element()* {
 	where matches($year, '^\d{4}$')
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
-	for $name in xmldb:get-child-resources($collection)[ends-with(., '.docman.xml')]
+	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
+	let $name := di:prefer($collection, $stored)
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence
@@ -441,7 +463,8 @@ declare function di:requeue-stale($home as xs:string) as item()* {
 	where matches($year, '^\d{4}$')
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
-	for $name in xmldb:get-child-resources($collection)[ends-with(., '.docman.xml')]
+	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
+	let $name := di:prefer($collection, $stored)
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence
@@ -654,10 +677,10 @@ declare function di:follow($home as xs:string, $tenant as xs:string, $year, $fro
 		if ($old-name = '') then ()
 		else
 			let $new-name :=
-				if (di:stem($to) || '.docman.xml' = $old-name or not(doc-available($collection || '/' || di:stem($to) || '.docman.xml'))) then
-					di:stem($to) || '.docman.xml'
+				if (di:stem($to) || '.dm.xml' = $old-name or not(doc-available($collection || '/' || di:stem($to) || '.dm.xml'))) then
+					di:stem($to) || '.dm.xml'
 				else
-					$to || '.docman.xml'
+					$to || '.dm.xml'
 			let $rename := if ($old-name = $new-name) then () else xmldb:rename($collection, $old-name, $new-name)
 			let $node := doc($collection || '/' || $new-name)/DocmanIntelligence
 			return update value $node/@source with $to
@@ -696,7 +719,7 @@ declare function di:archive($home as xs:string, $tenant as xs:string, $year, $fi
 			let $make-examples := if (xmldb:collection-available($examples)) then () else xmldb:create-collection($intel, 'examples')
 			let $clash :=
 				if (doc-available($examples || '/' || $name)) then
-					xmldb:rename($examples, $name, di:stem($name) || '-' || format-dateTime(current-dateTime(), '[Y0001][M01][D01][H01][m01][s01]') || '.docman.xml')
+					xmldb:rename($examples, $name, di:stem($name) || '-' || format-dateTime(current-dateTime(), '[Y0001][M01][D01][H01][m01][s01]') || '.dm.xml')
 				else ()
 			let $moved := xmldb:move($collection, $examples, $name)
 			let $stored := di:remember($examples, $name, $process)

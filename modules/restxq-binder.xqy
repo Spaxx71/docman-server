@@ -27,6 +27,7 @@ module namespace dmbinder="http://exist-db.org/apps/restxq/docman-binder";
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace binder="http://bintellix.com/docman/binder" at "/db/apps/docman/modules/module_binder.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
+import module namespace datev="http://bintellix.com/docman/datev" at "/db/apps/docman/modules/module_datev.xqm";
 import module namespace user="http://bintellix.com/docman/user" at "/db/apps/docman/modules/module_user.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
@@ -66,20 +67,22 @@ declare
     %rest:GET
     %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}")
     %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("details", "{$details}", "false")
     %output:media-type("text/xml")
     %output:method("xml")
-function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
-	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder)
+function dmbinder:getBinderXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:string*) {
+	document:listDocumentsForBinder($main:home-data, $tenant, $year, $binder, $details[1] = "true")
 };
 
 declare
     %rest:GET
     %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}")
     %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("details", "{$details}", "false")
     %output:media-type("application/json")
     %output:method("json")
-function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
-	dmbinder:getBinderXML($user, $tenant, $year, $binder)
+function dmbinder:getBinderJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:string*) {
+	dmbinder:getBinderXML($user, $tenant, $year, $binder, $details)
 };
 
 (:
@@ -161,6 +164,44 @@ function dmbinder:deleteBinderXML($user as xs:string*, $tenant as xs:string, $ye
 			</rest:response>
 			,
 			<error>{$err:code, $err:description}</error>
+		)
+	}
+};
+
+(:
+GET /xml/tenants/{tenant}/years/{year}/binders/{month}/datev-export
+Liegt in diesem Modul, weil eXist nur bereits registrierte restxq-Module
+beim Start neu lädt. Eine neue Datei bleibt unsichtbar und der
+RestXqServlet antwortet dann mit HTTP 405.
+:)
+declare
+	%rest:GET
+	%rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/datev-export")
+	%rest:query-param("user", "{$user}", "Guest")
+	%output:method("text")
+	%output:media-type("text/plain")
+function dmbinder:datevExport($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
+	try {
+		let $_ := user:requirePermission($main:home-data, $tenant, 'bookings', (), 'SEE')
+		let $month :=
+			if (matches($binder, '^(0[1-9]|1[0-2])$')) then xs:integer($binder)
+			else error(xs:QName('datev:month'), 'Der DATEV-Export gilt für einen Monatsordner.')
+		let $fileName := datev:fileName($year, $month)
+		return (
+			<rest:response>
+				<http:response status="200">
+					<http:header name="Content-Type" value="text/csv; charset=ISO-8859-15"/>
+					<http:header name="Content-Disposition" value="{concat('attachment; filename=&quot;', $fileName, '&quot;')}"/>
+				</http:response>
+			</rest:response>,
+			datev:csv($main:home-data, $tenant, $year, $month)
+		)
+	} catch * {
+		(
+			<rest:response>
+				<http:response status="422" message="DATEV export failed"/>
+			</rest:response>,
+			string-join(($err:description, $err:value), ' ')
 		)
 	}
 };

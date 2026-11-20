@@ -118,22 +118,67 @@ declare function document:listDocumentsForOwner ($dm-home-data as xs:string, $te
 :)
 
 declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string) {
-	<Binders version="1.0" tenantId="{$tenant}">
+	document:listDocumentsForBinder($dm-home-data, $tenant, $year, $binder, true())
+};
+
+(: $details=false() liefert nur Binders/Binder/Process. Die Tabellenspalten stehen als Attribute am Process, ohne Tasks, Buchungen oder Document Intelligence. :)
+declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:boolean) {
+	<Binders version="1.0" tenantId="{$tenant}" details="{if ($details) then 'true' else 'false'}">
 		<Binder name="{$binder}" tenantId="{$tenant}" year="{$year}" binder="{$binder}">
-		{ 
+		{
 			let $document-collection := $dm-home-data||'/'||$tenant||'/'||$year||'/'||$binder
 			for $document in xmldb:get-child-resources($document-collection)
 			where ends-with($document,'.dm.xml')
 			let $doc := doc($document-collection||'/'||$document)/Process
 			order by $doc/@date, $doc/@name
 			return
-				<Process>
-					{$doc/@*}
-					{$doc/*}
-				</Process>
+				if ($details) then
+					<Process>
+						{$doc/@*}
+						{$doc/*}
+					</Process>
+				else
+					document:processOutline($doc)
 		}
 		</Binder>
 	</Binders>
+};
+
+declare function document:processOutline($doc as element(Process)?) as element(Process)? {
+	if (empty($doc)) then ()
+	else
+		let $master := ($doc/Tasks/*[@isMaster = 'true'], $doc/Tasks/*[1])[1]
+		let $amount := $doc/TotalAmount
+		let $paid := sum(
+			for $value in $doc//PaymentTask/Amount/@value
+			where $value castable as xs:double
+			return xs:double($value)
+		)
+		let $notes := normalize-space(string-join(($doc/Notes/text(), $master/Notes/text()), ' '))
+		let $files := string-join($doc//File/@type, ' ')
+		let $task := if (empty($master)) then replace(string($doc/@mainTask), 'Task$', '') else replace(local-name($master), 'Task$', '')
+		let $type := normalize-space(string(($doc/@type, $master/@type)[normalize-space(string(.)) != ''][1]))
+		return
+			<Process
+				id="{$doc/@id}"
+				name="{$doc/@name}"
+				date="{$doc/@date}"
+				binder="{$doc/@binder}"
+				user="{$doc/@user}"
+				created="{$doc/@created}"
+				mainTask="{$doc/@mainTask}"
+				type="{$type}"
+				owner="{normalize-space(string($master/Owner))}"
+				description="{normalize-space(string($master/Description))}"
+				refID="{normalize-space(string($master/RefID))}"
+				transactionID="{normalize-space(string($master/TransactionID))}"
+				amount="{string($amount/@value)}"
+				unit="{string($amount/@unit)}"
+				notes="{$notes}"
+				task="{$task}"
+				paid="{$paid}"
+				files="{$files}"
+				outline="true"/>
 };
 
 

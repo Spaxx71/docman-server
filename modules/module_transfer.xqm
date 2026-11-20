@@ -36,7 +36,7 @@ declare function transfer:index ($home-data as xs:string, $tenant as xs:string, 
 		<Files>
 		{ 
 		for $document in $documents
-		where not(ends-with($document, '.docman.xml'))
+		where not(di:is-sidecar($document))
 		let $ready := if (di:is-document($document)) then di:ensure($home-data, $tenant, $year, $document, '', '') else ()
 		let $meta := if (di:is-document($document)) then di:load($home-data, $tenant, $year, $document) else ()
 		order by $document
@@ -92,7 +92,7 @@ declare function transfer:trashIndex($home-data as xs:string, $tenant as xs:stri
 			{
 				if (xmldb:collection-available($trash-collection)) then
 					for $document in xmldb:get-child-resources($trash-collection)
-					where not(ends-with($document, '.docman.xml'))
+					where not(di:is-sidecar($document))
 					order by $document
 					return
 						<File name="{$document}"
