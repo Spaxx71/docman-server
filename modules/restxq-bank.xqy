@@ -385,6 +385,89 @@ function dmbank:listAccountingsJSON($user as xs:string*, $tenant as xs:string, $
 };
 
 
+(:
+GET /api/xml/tenants/{tenant}/years/{year}/banks/{kto}/accountings/{PAY-id}.pdf
+GET /exist/restxq/docman/xml/tenants/{tenant}/years/{year}/banks/{kto}/accountings/{PAY-id}.pdf
+:)
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}.pdf")
+    %rest:query-param("user", "{$user}", "Guest")
+
+function dmbank:getAccountingPdf(
+	$user as xs:string*,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$bank-account as xs:string,
+	$accounting-id as xs:string
+) {
+	try {
+		let $found := banking:getAccountingById($main:home-data, $tenant, $bank-account, $year, $accounting-id)
+		return
+			if (exists($found/self::error) or exists($found/error)) then
+				(
+					<rest:response>
+						<http:response status="404" message="Accounting not found">
+							<http:header name="Content-Language" value="en"/>
+							<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
+						</http:response>
+					</rest:response>
+					,
+					$found
+				)
+			else
+				let $pdf := banking:getAccountingByIdAsPDF(
+					$main:home-data,
+					$main:home-web-gui,
+					$tenant,
+					$bank-account,
+					$year,
+					$accounting-id
+				)
+				return
+					if ($pdf instance of xs:base64Binary) then
+						(
+							<rest:response>
+								<output:serialization-parameters>
+									<output:method value="binary"/>
+									<output:media-type value="application/pdf"/>
+								</output:serialization-parameters>
+								<http:response status="200">
+									<http:header name="Content-Type" value="application/pdf"/>
+									<http:header name="Content-Disposition" value="inline; filename=&quot;{$accounting-id}.pdf&quot;"/>
+								</http:response>
+							</rest:response>
+							,
+							$pdf
+						)
+					else
+						(
+							<rest:response>
+								<http:response status="400" message="PDF generation failed">
+									<http:header name="Content-Language" value="en"/>
+									<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
+								</http:response>
+							</rest:response>
+							,
+							if ($pdf instance of element()) then $pdf
+							else <error>PDF generation returned unexpected type</error>
+						)
+	}
+	catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="PDF generation failed">
+					<http:header name="Content-Language" value="en"/>
+					<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
+				</http:response>
+			</rest:response>
+			,
+			<error>{$err:code, $err:value, $err:description, " module: ", $err:module, "(", $err:line-number, ",", $err:column-number, ")"}</error>
+		)
+	}
+};
+
+
 (: 
 PUT	http://localhost:8080/exist/restxq/docman/tenants/test/years/2000/banks/12345678/accountings
 PUT /api/(xml|json)/tenants/test/years/200012345678/accountings

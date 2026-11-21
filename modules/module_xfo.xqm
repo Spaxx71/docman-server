@@ -26,33 +26,52 @@ declare namespace xslfo="http://exist-db.org/xquery/xslfo";
 
 
 declare function xfo:createPDF($xmlFoDocument as node()) {
+	(: Font-Embedding schreibt unter .fop; ohne Schreibrecht oder fehlende TTFs schlägt das fehl.
+	   Daher: zuerst mit Fonts, bei Fehler ohne Custom-Config rendern. :)
+	let $font-regular := '/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-regular-400.ttf'
+	let $font-solid := '/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-solid-900.ttf'
+	let $font-brands := '/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-brands-400.ttf'
+	let $fonts-available :=
+		util:binary-doc-available($font-regular)
+		and util:binary-doc-available($font-solid)
+		and util:binary-doc-available($font-brands)
 	let $fopConf :=
-	<fop version="1.0">
-		<strict-configuration>true</strict-configuration>
-		<strict-validation>true</strict-validation>
-		<base>./</base>
-		<renderers>
-			<renderer mime="application/pdf">
-				<fonts>
-					<!-- /db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/abc.ttf -->
-					<!-- file:/tmp/fonts/abc.ttf -->
-					<font kerning="yes" embed-url="/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-regular-400.ttf">
-						<font-triplet name="FontAwesomeRegular" style="normal" weight="normal"/>
-					</font>
-					<font embed-url="/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-solid-900.ttf">
-						<font-triplet name="FontAwesomeSolid" style="normal" weight="normal"/>
-					</font>
-					<font embed-url="/db/apps/com_bintellix_www/global/fonts/font-awesome/webfonts/fa-brands-400.ttf">
-						<font-triplet name="FontAwesomeBrand" style="normal" weight="normal"/>
-					</font>
-				</fonts>
-			</renderer>
-		</renderers>
-	</fop>
-
-	return 
+		if ($fonts-available) then
+			<fop version="1.0">
+				<strict-configuration>false</strict-configuration>
+				<strict-validation>false</strict-validation>
+				<base>file:///tmp/</base>
+				<font-base>file:///tmp/</font-base>
+				<renderers>
+					<renderer mime="application/pdf">
+						<fonts>
+							<font kerning="yes" embed-url="{$font-regular}">
+								<font-triplet name="FontAwesomeRegular" style="normal" weight="normal"/>
+							</font>
+							<font embed-url="{$font-solid}">
+								<font-triplet name="FontAwesomeSolid" style="normal" weight="normal"/>
+							</font>
+							<font embed-url="{$font-brands}">
+								<font-triplet name="FontAwesomeBrand" style="normal" weight="normal"/>
+							</font>
+						</fonts>
+					</renderer>
+				</renderers>
+			</fop>
+		else
+			()
+	return
 	try {
-		xslfo:render($xmlFoDocument, "application/pdf", (), $fopConf)
+		if (exists($fopConf)) then
+			try {
+				xslfo:render($xmlFoDocument, "application/pdf", (), $fopConf)
+			}
+			catch * {
+				(: z. B. .fop ohne Schreibrecht – Fallback ohne Font-Config :)
+				xslfo:render($xmlFoDocument, "application/pdf", ())
+			}
+		else
+			xslfo:render($xmlFoDocument, "application/pdf", ())
 	}
 	catch * {
 		<error> The given xslfo document could not be generated... Caught error "{$err:code}": "{$err:description}". Data: "{$err:value}"</error>

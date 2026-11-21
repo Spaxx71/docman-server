@@ -295,29 +295,29 @@ declare function banking:getAccountingById($home-data as xs:string, $tenant as x
 
 declare function banking:getAccountingByIdAsPDF($home-data as xs:string, $home-web-gui as xs:string, $tenant as xs:string, $bank-account as xs:string, $year as xs:integer, $record) {
 
-	if ($bank-account = '' or $year = '' or $record = '') then
+	if ($bank-account = '' or $year = 0 or string($record) = '') then
 		error(xs:QName('docman:getAccountingByIdAsPDF'), "Mandatory parameter missing")
 	else
 		let $xml := 	<result resource-id="{$record}">
-					{banking:getBankAccount ($home-data, $tenant, $bank-account, $year)}
+					{banking:getBankAccountDetail($home-data, $tenant, $bank-account, $year)}
 					{banking:getAccountingById($home-data, $tenant, $bank-account, $year, $record)}
 				</result>
-		let $xsl := doc(concat('../views/','banking_details_html.xsl'))
+		let $xsl := doc('/db/apps/docman/views/banking_details_html.xsl')
 
 		let $xslParam :=   <parameters>
-					<param name="home-web-gui" value="$home-web-gui"/>
-					<param name="tenant" value="$tenant"/>
-					<param name="year" value="$year"/>
-					<param name="resource-id" value="$record"/>
+					<param name="home-web-gui" value="{$home-web-gui}"/>
+					<param name="tenant" value="{$tenant}"/>
+					<param name="year" value="{$year}"/>
+					<param name="resource-id" value="{$record}"/>
 					<param name="environment" value="'docman'"/>
 				</parameters>
 		let $xmlPage := transform:transform($xml, $xsl, $xslParam)
 
-		let $xsl2 := doc('../views/templates/taglib-pdf.xsl')
+		let $xsl2 := doc('/db/apps/docman/views/templates/taglib-pdf.xsl')
 
 		let $xmlFoPart := transform:transform($xmlPage, $xsl2, $xslParam)
 
-		let $xsl3 := doc('../views/templates/generate-pdf.xsl')
+		let $xsl3 := doc('/db/apps/docman/views/templates/generate-pdf.xsl')
 
 		let $xmlFo := transform:transform($xmlFoPart, $xsl3, $xslParam)
 
