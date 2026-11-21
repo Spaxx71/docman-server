@@ -19,6 +19,7 @@ declare namespace file = "http://exist-db.org/xquery/file";
 import module namespace repair="http://exist-db.org/xquery/repo/repair" 
 	at "resource:org/exist/xquery/modules/expathrepo/repair.xql";
 import module namespace scheduler = "http://exist-db.org/xquery/scheduler";
+import module namespace user = "http://bintellix.com/docman/user" at "xmldb:exist:///db/apps/docman/modules/module_user.xqm";
 
 
 
@@ -264,42 +265,23 @@ let $resSetRights := local:set-rights($CurrentRoot)
 
 let $userAccess	:= local:set-users($CurrentRoot||'/','admin','docman')
 
-(: add users to the access groups :)
-(: sm:add-group-manager :)
-(: sm:remove-group-member :)
+(: Access normalisieren (Group/Users) und SM-Gruppe per user:syncGroupMembers abgleichen — kein Leeren der Gruppe. :)
 let $tenants := 
 	for $Tenant in (xmldb:get-child-collections($CurrentRoot || '/data/'))
-	let $Access := doc($CurrentRoot || '/data/' || $Tenant || '/tenant.dm.xml')/Tenant/Access
-	let $userAccess	:= local:set-users($CurrentRoot||'/data/'||$Tenant, 'admin', $Access/Group/@id)
+	let $tenant-doc := doc($CurrentRoot || '/data/' || $Tenant || '/tenant.dm.xml')/Tenant
+	let $Access := $tenant-doc/Access
+	let $group-id := user:groupId($Access, $Tenant)
+	let $userAccess := local:set-users($CurrentRoot||'/data/'||$Tenant, 'admin', $group-id)
+	let $normalized :=
+		if (empty($Access)) then
+			()
+		else
+			user:storeAccess($CurrentRoot || '/data', $Tenant, $Access)
 	return 
 		<Tenant id="{$Tenant}">
-			{	(: remove all current given members :)
-				for $group-member in sm:get-group-members($Access/Group/@id)
-				return
-					try {
-						sm:remove-group-member($Access/Group/@id, $group-member)
-					}
-					catch * {
-						()
-					}
-			}
-			<Name>{$Access/../Name}</Name>
-			<Access>
-				<Group id="{$Access/Group/@id}">
-				{	(: add user to group — Users under Group or legacy flat Access/Users :)
-					for $User in ($Access/Group/Users/User, $Access/Users/User)
-					return
-						if (sm:get-group-members($Access/Group/@id) = $User/@id) then () else sm:add-group-member($Access/Group/@id, $User/@id)
-				}
-					<Users>
-					{
-						for $group-member in sm:get-group-members($Access/Group/@id)
-						return
-							<User id="{$group-member}"/>
-					}
-					</Users>
-				</Group>
-			</Access>
+			<Name>{$tenant-doc/Name}</Name>
+			{$normalized}
+			<smMembers>{string-join(sm:get-group-members($group-id), ', ')}</smMembers>
 		</Tenant>
 
 

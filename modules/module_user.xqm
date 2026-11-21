@@ -163,6 +163,8 @@ declare function user:storeAccess($dm-home-data as xs:string, $tenant as xs:stri
 	let $stored := doc($path || '/tenant.dm.xml')/Tenant
 	let $group-id := user:groupId($access, $tenant)
 	let $users := user:accessUsers($access)
+	(: Namen vor xmldb:store sichern — danach sind die alten Knoten ungültig. :)
+	let $usernames := for $u in $users return string($u/@id)
 	let $normalized := user:buildAccess($group-id, $users)
 	let $next :=
 		<Tenant id="{$tenant}">
@@ -175,7 +177,7 @@ declare function user:storeAccess($dm-home-data as xs:string, $tenant as xs:stri
 			{$normalized}
 		</Tenant>
 	let $store := xmldb:store($path, 'tenant.dm.xml', $next)
-	let $sync := user:syncGroupMembers($group-id, $users/@id/string())
+	let $sync := user:syncGroupMembers($group-id, $usernames)
 	return $normalized
 };
 

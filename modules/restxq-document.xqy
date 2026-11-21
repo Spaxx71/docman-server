@@ -195,6 +195,26 @@ function dmdocument:deleteDocument($user as xs:string*, $tenant as xs:string, $y
 	document:deleteDocument($main:home-data,$tenant,$year,$binder,$document-id)
 };
 
+(:
+	POST /api/xml/tenants/{tenant}/years/{year}/binders/{binder}/documents/{document-id}/notes
+	Body: <Notes>...</Notes>
+:)
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/notes")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("application/xml")
+function dmdocument:notes($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $body as item()*) {
+	let $text :=
+		if ($body instance of element(Notes)) then
+			string($body)
+		else
+			string(($body/Notes, $body//Notes)[1])
+	return document:updateNotes($main:home-data, $tenant, $year, $binder, $document-id, $text)
+};
+
 declare
     %rest:GET
     %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents")

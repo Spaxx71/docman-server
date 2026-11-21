@@ -154,7 +154,7 @@ declare function document:processOutline($doc as element(Process)?) as element(P
 			where $value castable as xs:double
 			return xs:double($value)
 		)
-		let $notes := normalize-space(string-join(($doc/Notes/text(), $master/Notes/text()), ' '))
+		let $notes := normalize-space(string($doc/Notes))
 		let $files := string-join($doc//File/@type, ' ')
 		let $type := normalize-space(string(($doc/@type, $master/@type)[normalize-space(string(.)) != ''][1]))
 		return
@@ -377,6 +377,28 @@ declare function document:createDocument($home-data as xs:string, $tenant as xs:
 	}
 };
 
+
+declare function document:updateNotes($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $text as xs:string) as element() {
+	let $collection := concat($home-data, '/', $tenant, '/', $year, '/', $binder)
+	let $process := collection($collection)/Process[@id = $document-id]
+	return
+		if (empty($process)) then
+			error(xs:QName('docman:NoFileForID'), 'There is no file for the given document ID')
+		else
+			let $notes := $process/Notes
+			let $_ :=
+				if (exists($notes)) then
+					update value $notes with $text
+				else
+					update insert <Notes>{$text}</Notes> into $process
+			let $changed :=
+				if (exists($process/@changed)) then
+					update value $process/@changed with current-dateTime()
+				else
+					update insert attribute changed { current-dateTime() } into $process
+			return
+				<noted document-id="{$document-id}" binder="{$binder}"/>
+};
 
 declare function document:updateDocument($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $document-data) as element()
 {
