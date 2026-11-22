@@ -33,6 +33,9 @@ import module namespace document="http://bintellix.com/docman/document" at "/db/
 
 declare namespace docman = "http://docman.bintellix.com";
 
+declare variable $banking:match-days-before as xs:integer := 14;
+declare variable $banking:match-days-after as xs:integer := 21;
+
 (: declare decimal-format local:EU decimal-separator = "," grouping-separator = "."; :)
 
 (: Persistent passport path: absolute Passport/@url or EXIST_HOME/docman-passports.
@@ -1261,4 +1264,46 @@ declare function local:createAccountingID($bank-iban as xs:string?, $accounting,
 	return
 		(: "DEBUG" || $value || " $dayCounter = '" || $dayCounter || "' hash=" || util:hash($value,"MD5",false()) :)
 		"PAY" || util:hash($value,"MD5",false())
+};
+
+declare function banking:matchSuggestions(
+	$home-data as xs:string,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$bank as xs:string?,
+	$payment-id as xs:string?,
+	$process-id as xs:string?,
+	$days-before as xs:integer,
+	$days-after as xs:integer
+) as element(Suggestions) {
+	let $_ := request:set-attribute('home-data', $home-data)
+	let $_ := request:set-attribute('tenant', $tenant)
+	let $_ := request:set-attribute('year', string($year))
+	let $_ := request:set-attribute('bank', string(($bank, '')[1]))
+	let $_ := request:set-attribute('payment-id', string(($payment-id, '')[1]))
+	let $_ := request:set-attribute('process-id', string(($process-id, '')[1]))
+	let $_ := request:set-attribute('days-before', string($days-before))
+	let $_ := request:set-attribute('days-after', string($days-after))
+	return util:eval(xs:anyURI('/db/apps/docman/modules/functions/match_suggestions.xqy'))
+};
+
+declare function banking:applyMatch(
+	$home-data as xs:string,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$bank as xs:string,
+	$payment-id as xs:string,
+	$days-before as xs:integer,
+	$days-after as xs:integer,
+	$user as xs:string
+) as element(Suggestions) {
+	let $_ := request:set-attribute('home-data', $home-data)
+	let $_ := request:set-attribute('tenant', $tenant)
+	let $_ := request:set-attribute('year', string($year))
+	let $_ := request:set-attribute('bank', $bank)
+	let $_ := request:set-attribute('payment-id', $payment-id)
+	let $_ := request:set-attribute('days-before', string($days-before))
+	let $_ := request:set-attribute('days-after', string($days-after))
+	let $_ := request:set-attribute('username', $user)
+	return util:eval(xs:anyURI('/db/apps/docman/modules/functions/match_apply.xqy'))
 };

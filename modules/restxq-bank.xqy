@@ -27,6 +27,7 @@ module namespace dmbank="http://exist-db.org/apps/restxq/docman-bank";
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace banking="http://bintellix.com/docman/banking" at "/db/apps/docman/modules/module_banking.xqm";
 import module namespace user="http://bintellix.com/docman/user" at "/db/apps/docman/modules/module_user.xqm";
+import module namespace match="http://bintellix.com/docman/match" at "/db/apps/docman/modules/module_match.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -668,3 +669,88 @@ declare
 function dmbank:putAccountingsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $body) {
 	dmbank:putAccountings($user, $tenant, $year, $bank-account, $body)
 };
+
+declare function local:match-days($value, $default as xs:integer) as xs:integer {
+	let $text := normalize-space(string($value))
+	return if ($text castable as xs:integer) then abs(xs:integer($text)) else $default
+};
+
+declare function local:match-money($value, $default as xs:decimal) as xs:decimal {
+	let $text := translate(normalize-space(string($value)), ',', '.')
+	return if ($text castable as xs:decimal) then abs(xs:decimal($text)) else $default
+};
+
+(: Ausgangspunkt ist die Kontobewegung. :)
+declare function local:movement-suggestions($tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance) {
+	match:suggestions($main:home-data, $tenant, $year, $bank-account, $accounting-id, (), local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01))
+};
+
+declare function local:movement-apply($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance) {
+	match:apply($main:home-data, $tenant, $year, $bank-account, $accounting-id, local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]))
+};
+
+(:
+GET/POST /api/(xml|json)/tenants/{t}/years/{y}/banks/{kto}/accountings/{PAY}/suggestions
+Ausgangspunkt ist die Kontobewegung. POST schreibt nur Gruppen mit auto=true.
+Der Vorgangspfad payment-suggestions gehört nach restxq-document.xqy.
+:)
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:produces("application/xml")
+    %rest:produces("text/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:suggestionsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance) {
+	local:movement-suggestions($tenant, $year, $bank-account, $accounting-id, $days-before, $days-after, $tolerance)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:suggestionsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance) {
+	local:movement-suggestions($tenant, $year, $bank-account, $accounting-id, $days-before, $days-after, $tolerance)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:applySuggestionsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	local:movement-apply($user, $tenant, $year, $bank-account, $accounting-id, $days-before, $days-after, $tolerance)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:applySuggestionsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	local:movement-apply($user, $tenant, $year, $bank-account, $accounting-id, $days-before, $days-after, $tolerance)
+};
+

@@ -26,12 +26,28 @@ module namespace dmdocument="http://exist-db.org/apps/restxq/docman-document";
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
+import module namespace match="http://bintellix.com/docman/match" at "/db/apps/docman/modules/module_match.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
 declare namespace http="http://expath.org/ns/http-client";
 declare namespace rerr= "http://exquery.org/ns/restxq/error";
 declare namespace docman = "http://docman.bintellix.com";
+
+declare function local:match-days($value, $default as xs:integer) as xs:integer {
+	let $text := normalize-space(string($value))
+	return if ($text castable as xs:integer) then abs(xs:integer($text)) else $default
+};
+
+declare function local:match-money($value, $default as xs:decimal) as xs:decimal {
+	let $text := translate(normalize-space(string($value)), ',', '.')
+	return if ($text castable as xs:decimal) then abs(xs:decimal($text)) else $default
+};
+
+(: Ausgangspunkt ist der Vorgang. :)
+declare function local:payment-suggestions($tenant as xs:string, $year as xs:integer, $document-id as xs:string, $days-before, $days-after, $tolerance) {
+	match:suggestions($main:home-data, $tenant, $year, (), (), $document-id, local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01))
+};
 
 (: https://docman.com/exist-backend/rest/db/apps/docman/modules/module_document.xqm :)
 
@@ -284,4 +300,38 @@ function dmdocument:sepaTransfer($user as xs:string*, $tenant as xs:string, $yea
 	let $_ := request:set-attribute('username', ($user, 'Guest')[1])
 	return
 		util:eval(xs:anyURI('/db/apps/docman/modules/functions/banking_sepa_transfer_process.xqy'))
+};
+
+(:
+GET /api/(xml|json)/tenants/{t}/years/{y}/binders/{binder}/documents/{PRO}/payment-suggestions
+Ausgangspunkt ist der Vorgang. Pfad nur hier, nicht zusätzlich in restxq-bank:
+dieselbe URL in zwei Modulen verwirft eXist und antwortet mit HTTP 405.
+:)
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/payment-suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:produces("application/xml")
+    %rest:produces("text/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmdocument:paymentSuggestionsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $days-before, $days-after, $tolerance) {
+	local:payment-suggestions($tenant, $year, $document-id, $days-before, $days-after, $tolerance)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/payment-suggestions")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmdocument:paymentSuggestionsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $days-before, $days-after, $tolerance) {
+	local:payment-suggestions($tenant, $year, $document-id, $days-before, $days-after, $tolerance)
 };

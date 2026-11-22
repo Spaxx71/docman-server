@@ -582,6 +582,180 @@ paths:
       responses:
         '200':
           description: Successful update
+  /tenants/{tenant}/years/{year}/banks/{bankId}/accountings/{accountingId}/suggestions:
+    get:
+      summary: Vorschläge für eine Kontobewegung
+      description: >
+        Offene Vorgänge zu einer Zahlung. auto=true ist eine sichere Gruppe aus einer Bewegung
+        und ein bis drei Vorgängen, Cent-genau, im Datumsfenster und mit Beleg- oder Vorgangsnummer
+        im Zahlungstext. Alles andere bleibt Vorschlag und nennt den Grund an Betrag, Datum oder Text.
+        Regeln in docu/bank-zuordnung.md.
+      tags:
+       - Bank
+      operationId: paymentSuggestions
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accountingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days-before
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 14
+        - name: days-after
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 21
+        - name: tolerance
+          in: query
+          required: false
+          description: Betrag gilt als erreicht, wenn die Differenz höchstens diesen Euro-Betrag ausmacht. Komma oder Punkt.
+          schema:
+            type: number
+            default: 0.01
+      responses:
+        '200':
+          description: Suggestions
+          content:
+            application/xml:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: Sichere Zuordnung einer Kontobewegung schreiben
+      description: Schreibt nur Gruppen mit auto=true, und nur wenn sie beim Schreiben noch eindeutig und offen sind.
+      tags:
+       - Bank
+      operationId: applyPaymentSuggestions
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bankId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: accountingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days-before
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 14
+        - name: days-after
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 21
+        - name: tolerance
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0.01
+      responses:
+        '200':
+          description: Suggestions plus Applied
+          content:
+            application/xml:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /tenants/{tenant}/years/{year}/binders/{binder}/documents/{documentId}/payment-suggestions:
+    get:
+      summary: Vorschläge für einen Vorgang
+      description: >
+        Offene Zahlungen zu einem Vorgang, dieselbe Bewertung wie bei den Vorschlägen einer Kontobewegung.
+        Regeln in docu/bank-zuordnung.md.
+      tags:
+       - Binder
+      operationId: processPaymentSuggestions
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: binder
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days-before
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 14
+        - name: days-after
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 21
+        - name: tolerance
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 0.01
+      responses:
+        '200':
+          description: Suggestions
+          content:
+            application/xml:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
   /tenants/{tenant}/years/{year}/banks/{bankId}/balancelist:
     get:
       summary: Get a list of balances for a bank account
