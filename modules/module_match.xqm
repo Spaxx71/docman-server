@@ -13,10 +13,11 @@ declare function match:suggestions(
 	$days-after as xs:integer,
 	$tolerance as xs:decimal
 ) as element(Suggestions) {
+	let $opt := match:settings($home-data, $tenant, $year)
 	let $model := local:model($home-data, $tenant, $year)
 	let $accounts := local:accounts($home-data, $tenant, $year)
 	let $past := local:history($home-data, $tenant, $year)
-	let $groups := local:field-groups($model, $accounts, $past, $days-before, $days-after, $payment-id, $process-id, $tolerance)
+	let $groups := local:field-groups($model, $accounts, $past, $payment-id, $process-id, $opt)
 	let $filtered := local:finish($groups, $bank, $payment-id, $process-id)
 	let $anchor-pay := ($model/Pay[@id = $payment-id])[1]
 	let $anchor-proc := ($model/Proc[@id = $process-id])[1]
@@ -37,7 +38,7 @@ declare function match:suggestions(
 	let $anchor-date := if ($anchor-pay) then xs:date($anchor-pay/@date) else if ($anchor-proc) then xs:date($anchor-proc/@date) else ()
 	let $next := if (empty($anchor-date)) then () else ($later[xs:date(@date) ge $anchor-date][1], $later[1])[1]
 	return
-		<Suggestions days-before="{$days-before}" days-after="{$days-after}" tolerance="{format-number($tolerance, '0.00')}" cluster="{$cluster}" next="{string($next/@id)}" remaining="{count($later)}">
+		<Suggestions days-before="{string($opt/@perfect-before)}" days-after="{string($opt/@perfect-after)}" potential-before="{string($opt/@potential-before)}" potential-after="{string($opt/@potential-after)}" tolerance="{format-number(xs:decimal($opt/@tolerance), '0.00')}" rounding="{string($opt/@rounding)}" cluster="{$cluster}" next="{string($next/@id)}" remaining="{count($later)}">
 			{$filtered}
 		</Suggestions>
 };
@@ -90,6 +91,10 @@ declare function local:sum($values as xs:decimal*) as xs:decimal {
 (: Halber Cent je Einzelbetrag, nur gegen Rundung. Die Toleranz gilt für Summen. :)
 declare function local:same($left as xs:decimal, $right as xs:decimal) as xs:boolean {
 	abs($left - $right) lt 0.005
+};
+
+declare function local:near($left as xs:decimal, $right as xs:decimal, $rounding as xs:decimal) as xs:boolean {
+	abs($left - $right) le $rounding
 };
 
 declare function local:within($left as xs:decimal, $right as xs:decimal, $tolerance as xs:decimal) as xs:boolean {
@@ -224,16 +229,19 @@ declare function local:model($home-data as xs:string, $tenant as xs:string, $yea
 				{local:party-keys($account)}
 			</Party>
 	let $tasks := collection($collection)/Process/Tasks/PaymentTask
+	let $booked-by-id := map:merge(
+		for $task in $tasks
+		let $id := normalize-space(string($task/RefID))
+		let $number := local:money($task/Amount/@value)
+		where $id != '' and exists($number)
+		return map:entry($id, $number),
+		map {'duplicates': 'combine'}
+	)
 	let $pays :=
 		for $bank in collection($collection)/BankAccount
 		for $accounting in $bank/Accountings/Accounting
 		let $face := local:money($accounting/Amount)
-		let $booked := local:sum(
-			for $value in $tasks[normalize-space(RefID) = $accounting/@id]/Amount/@value
-			let $number := local:money($value)
-			where exists($number)
-			return $number
-		)
+		let $booked := local:sum($booked-by-id(string($accounting/@id)))
 		let $open := if (exists($face)) then $face - $booked else ()
 		let $date := local:date($accounting/ValueDate)
 		where exists($open) and exists($date) and abs($open) ge 0.005
@@ -930,23 +938,24 @@ declare function local:in-span($account as element(Account)?, $pay as element(Pa
 	return exists($bounds) and $amount ge min($bounds) and $amount le max($bounds)
 };
 
-declare function local:skonto-explains($proc as element(Proc), $pay as element(Pay)) as xs:boolean {
+declare function local:skonto-explains($proc as element(Proc), $pay as element(Pay), $opt as element(Opt)) as xs:boolean {
 	let $gap := local:gap($proc, $pay)
 	let $fee := abs($gap)
 	let $base := abs(local:sum(for $amount in $proc/Posten[@direction = $pay/@direction][not(@role = 'storno')]/@amount return xs:decimal($amount)))
+	let $rate := xs:decimal($opt/@skonto) div 100
 	let $notes := string-join(($proc/Note, $proc/Posten/@text, $pay/@purpose), ' ')
-	return $proc/@direction = $pay/@direction and $fee gt 0.005 and (
+	return $proc/@direction = $pay/@direction and $fee gt xs:decimal($opt/@rounding) and (
 		local:words($notes) = 'SKONTO'
-		or ($base gt 0 and $fee le $base * 0.03)
+		or ($base gt 0 and $fee le $base * $rate)
 	)
 };
 
-declare function local:named-fee($notes as xs:string) as xs:decimal? {
+declare function local:named-fee($notes as xs:string, $limit as xs:decimal) as xs:decimal? {
 	try {
 		let $hit := analyze-string($notes, '(mahnung|mahngebühr|mahngebuehr|mahnkosten|mahnspesen|verzugspauschale)\D{0,16}(\d+[.,]\d{2})', 'i')
 		let $number := string($hit//*:group[@nr = '2'][1])
 		let $value := local:money($number)
-		return if (exists($value) and $value gt 0.005 and $value le 99.99) then $value else ()
+		return if (exists($value) and $value gt 0.005 and $value le $limit) then $value else ()
 	} catch * { () }
 };
 
@@ -954,21 +963,24 @@ declare function local:dunning-word($notes as xs:string) as xs:boolean {
 	exists(local:words($notes)[. = ('MAHNUNG', 'MAHNGEBUEHR', 'MAHNGEBÜHR', 'MAHNKOSTEN', 'MAHNSPESEN', 'VERZUGSPAUSCHALE')])
 };
 
-declare function local:field-view($proc as element(Proc), $pay as element(Pay), $also as element(Pay)*, $accounts as element(Account)*, $learned as element(Learned)?, $before as xs:integer, $after as xs:integer, $amount-level as xs:string) as element(Process) {
+declare function local:field-view($proc as element(Proc), $pay as element(Pay), $also as element(Pay)*, $accounts as element(Account)*, $learned as element(Learned)?, $opt as element(Opt), $amount-level as xs:string) as element(Process) {
 	<Process id="{$proc/@id}" binder="{$proc/@binder}" name="{$proc/@name}" owner="{$proc/@owner}" ownerName="{$proc/@ownerName}" amount="{$proc/@amount}" date="{$proc/@date}" ref="{$proc/@ref}" trans="{$proc/@trans}" description="{$proc/@description}" task="{$proc/@task}" storno="{$proc/@storno}" salary="{$proc/@salary}" distance="{local:day-count($proc, $pay)}">
-		{local:field-marks($proc, $pay, $also, $accounts, $learned, $before, $after, $amount-level)}
+		{local:field-marks($proc, $pay, $also, $accounts, $learned, $opt, $amount-level)}
 		{$proc/Posten}
 	</Process>
 };
 
-declare function local:field-marks($proc as element(Proc), $pay as element(Pay), $also as element(Pay)*, $accounts as element(Account)*, $learned as element(Learned)?, $before as xs:integer, $after as xs:integer, $amount-level as xs:string) as element(Mark)* {
+declare function local:field-marks($proc as element(Proc), $pay as element(Pay), $also as element(Pay)*, $accounts as element(Account)*, $learned as element(Learned)?, $opt as element(Opt), $amount-level as xs:string) as element(Mark)* {
 	let $side := $proc/Posten[@direction = $pay/@direction]
 	let $dates := for $post in ($side, $proc)[1] return local:date($post/@date)
 	let $date := ($dates, local:date($proc/@date))[1]
 	let $pay-date := local:date($pay/@date)
 	let $account := local:party-account($accounts, $proc)
 	let $interval := string((local:intervals($account, $pay-date)/Period/@interval)[1])
-	let $window := exists($date) and exists($pay-date) and local:in-window($date, $pay-date, $before, $after) and local:period-holds($interval, $date, $pay-date)
+	let $period := local:period-holds($interval, $date, $pay-date)
+	let $perfect := exists($date) and exists($pay-date) and local:in-window($date, $pay-date, xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after)) and $period
+	let $potential := exists($date) and exists($pay-date) and local:in-window($date, $pay-date, xs:integer($opt/@potential-before), xs:integer($opt/@potential-after)) and $period
+	let $date-level := if ($perfect) then 'done' else if ($potential) then 'part' else 'none'
 	let $purpose := local:purpose-of($proc, ($pay, $also))
 	let $refs := ($side/@ref, $proc/Ref, $proc/@ref)[normalize-space(.) != '']
 	let $trans := ($side/@trans, $proc/Trans, $proc/@trans)[normalize-space(.) != '']
@@ -983,7 +995,7 @@ declare function local:field-marks($proc as element(Proc), $pay as element(Pay),
 	let $name-level := local:phrase-level($purpose, ($proc/@ownerName, $proc/@employee))
 	return (
 		<Mark field="amount" level="{$amount-level}"/>,
-		<Mark field="date" level="{if ($window) then 'done' else 'none'}" days="{if (exists($date) and exists($pay-date)) then days-from-duration($pay-date - $date) else ''}"/>,
+		<Mark field="date" level="{$date-level}" days="{if (exists($date) and exists($pay-date)) then days-from-duration($pay-date - $date) else ''}"/>,
 		if ($proc/@salary = 'true') then ()
 		else (
 			<Mark field="reference" level="{if (exists($refs[local:number-hit($purpose, string(.))])) then 'done' else 'none'}"/>,
@@ -994,15 +1006,15 @@ declare function local:field-marks($proc as element(Proc), $pay as element(Pay),
 	)
 };
 
-declare function local:amount-level($proc as element(Proc), $pay as element(Pay), $tolerance as xs:decimal) as xs:string {
+declare function local:amount-level($proc as element(Proc), $pay as element(Pay), $tolerance as xs:decimal, $rounding as xs:decimal) as xs:string {
 	let $side := $proc/Posten[@direction = $pay/@direction][not(@role = 'storno') or @direction = $pay/@direction]
 	let $sum := local:sum($side/@amount ! xs:decimal(.))
 	let $target := xs:decimal($pay/@match)
 	return
 		if (empty($side)) then 'none'
-		else if (count($side) = 1 and local:same($sum, $target)) then 'done'
+		else if (count($side) = 1 and local:near($sum, $target, $rounding)) then 'done'
 		else if (count($side) gt 1 and local:within($sum, $target, $tolerance)) then 'done'
-		else if (exists($side[local:same(xs:decimal(@amount), $target)])) then 'part'
+		else if (exists($side[local:near(xs:decimal(@amount), $target, $rounding)])) then 'part'
 		else if (abs($sum) gt 0 and abs($sum) lt abs($target)) then 'part'
 		else 'none'
 };
@@ -1013,21 +1025,22 @@ declare function local:gap($proc as element(Proc), $pay as element(Pay)) as xs:d
 	return xs:decimal($pay/@match) - $sum
 };
 
-declare function local:invites($proc as element(Proc), $pay as element(Pay), $twin as element(Pay)?) as element(Invite)* {
+declare function local:invites($proc as element(Proc), $pay as element(Pay), $twin as element(Pay)?, $opt as element(Opt)) as element(Invite)* {
 	let $gap := local:gap($proc, $pay)
 	let $notes := string-join(($proc/Note, $proc/Posten/@text, $pay/@purpose), ' ')
-	let $named := local:named-fee($notes)
+	let $limit := xs:decimal($opt/@dunning)
+	let $named := local:named-fee($notes, $limit)
 	let $fee := if (exists($named)) then $named else abs($gap)
 	let $dunning-word := local:dunning-word($notes) or exists($named)
 	let $has-fee := $proc/Posten[@task = ('DunningFeeTask', 'DunningChargeTask')][local:same(abs(xs:decimal(@amount)), $fee)]
-	let $skonto := local:skonto-explains($proc, $pay)
+	let $skonto := local:skonto-explains($proc, $pay, $opt)
 	return (
-		if ($proc/@direction = $pay/@direction and $gap != 0 and $dunning-word and $fee gt 0.005 and $fee le 99.99 and empty($has-fee) and not($proc/Posten/@role = 'storno')) then
-			<Invite task="DunningFeeTask" amount="{format-number(if (xs:decimal($pay/@match) lt 0) then -$fee else $fee, '0.00')}" limit="99.99" process="{$proc/@id}"/>
-		else if ($dunning-word and $fee gt 99.99) then
-			<Invite task="DunningFeeTask" amount="{format-number($fee, '0.00')}" limit="99.99" process="{$proc/@id}" blocked="true"/>
+		if ($proc/@direction = $pay/@direction and $gap != 0 and $dunning-word and $fee gt xs:decimal($opt/@rounding) and $fee le $limit and empty($has-fee) and not($proc/Posten/@role = 'storno')) then
+			<Invite task="DunningFeeTask" amount="{format-number(if (xs:decimal($pay/@match) lt 0) then -$fee else $fee, '0.00')}" limit="{format-number($limit, '0.00')}" process="{$proc/@id}"/>
+		else if ($dunning-word and $fee gt $limit) then
+			<Invite task="DunningFeeTask" amount="{format-number($fee, '0.00')}" limit="{format-number($limit, '0.00')}" process="{$proc/@id}" blocked="true"/>
 		else (),
-		if ($proc/@direction = $pay/@direction and $gap != 0 and $skonto and $fee gt 0.005 and $fee le 99.99 and empty($proc/Posten[@task = 'DiscountTask'][local:same(abs(xs:decimal(@amount)), $fee)])) then
+		if ($proc/@direction = $pay/@direction and $gap != 0 and $skonto and $fee gt xs:decimal($opt/@rounding) and $fee le $limit and empty($proc/Posten[@task = 'DiscountTask'][local:same(abs(xs:decimal(@amount)), $fee)])) then
 			<Invite task="DiscountTask" amount="{format-number(if (xs:decimal($pay/@match) lt 0) then -$fee else $fee, '0.00')}" process="{$proc/@id}"/>
 		else (),
 		if ($twin and $proc/Posten[@role = 'cost'] and not($proc/Posten[@role = 'cost']/@direction = $pay/@direction)) then
@@ -1056,23 +1069,26 @@ declare function local:explain-amount($level as xs:string, $proc as element(Proc
 		else ()
 };
 
-declare function local:one-group($proc as element(Proc), $pay as element(Pay), $offset as element(Pay)?, $accounts as element(Account)*, $learned as element(Learned)?, $before as xs:integer, $after as xs:integer, $tolerance as xs:decimal) as element(Group)? {
+declare function local:one-group($proc as element(Proc), $pay as element(Pay), $offset as element(Pay)?, $accounts as element(Account)*, $learned as element(Learned)?, $opt as element(Opt)) as element(Group)? {
 	let $template := if ($offset and not($proc/Posten/@direction = $pay/@direction) and $proc/Posten/@direction = $offset/@direction) then $offset else $pay
 	let $other := if ($template is $pay) then $offset else $pay
-	let $raw := local:amount-level($proc, $template, $tolerance)
+	let $raw := local:amount-level($proc, $template, xs:decimal($opt/@tolerance), xs:decimal($opt/@rounding))
 	let $account := local:party-account($accounts, $proc)
-	let $level := if ($raw = 'none' and (local:in-span($account, $template) or local:skonto-explains($proc, $template))) then 'part' else $raw
-	let $invites := local:invites($proc, $pay, $offset)
+	let $same := exists($proc/Key[. = $template/Key])
+	let $level := if ($raw = 'none' and (local:in-span($account, $template) or local:skonto-explains($proc, $template, $opt) or $same)) then 'part' else $raw
+	let $invites := local:invites($proc, $pay, $offset, $opt)
 	let $explained := $level = ('done', 'part') or exists($invites[not(@blocked = 'true')])
 	where $explained and not($proc/Linked = $template/@id)
 	let $kind := if ($other) then 'offset' else if ($level = 'done' and count($proc/Posten[@direction = $template/@direction][not(@role = 'storno')]) le 1) then 'exact' else if (count($proc/Posten[@direction = $template/@direction][not(@role = 'storno')]) gt 1 and $level = 'done') then 'bundle' else 'part'
 	let $interval := string((local:intervals($account, local:date($template/@date))/Period/@interval)[1])
 	let $doc-date := local:date(($proc/Posten[@direction = $template/@direction]/@date, $proc/@date)[1])
+	let $gap := local:gap($proc, $template)
 	return
 		<Group kind="{$kind}" quality="0">
 			{local:payment-view($template)}
 			{if ($other) then <Offset id="{$other/@id}" amount="{$other/@amount}" date="{$other/@date}" direction="{$other/@direction}" recipient="{$other/@recipient}" purpose="{$other/@purpose}"/> else ()}
-			{local:field-view($proc, $template, $other, $accounts, $learned, $before, $after, $level)}
+			{local:field-view($proc, $template, $other, $accounts, $learned, $opt, $level)}
+			{if ($level = 'done') then () else <Sum amount="{format-number(xs:decimal($template/@match) - $gap, '0.00')}" level="{$level}"/>}
 			{$invites}
 			{local:explain-amount($level, $proc, $template)}
 			{if ($raw != 'done' and exists(local:bounds($account)) and not(local:in-span($account, $template))) then <Reason field="amount">Der Betrag liegt außerhalb der erwarteten Spanne des Kreditors.</Reason> else ()}
@@ -1093,27 +1109,35 @@ declare function local:learned-for($proc as element(Proc), $accounts as element(
 	()
 };
 
-declare function local:field-groups($model as element(Model), $accounts as element(Account)*, $past as element(Past)*, $before as xs:integer, $after as xs:integer, $payment-id as xs:string?, $process-id as xs:string?, $tolerance as xs:decimal) as element(Group)* {
+declare function local:field-groups($model as element(Model), $accounts as element(Account)*, $past as element(Past)*, $payment-id as xs:string?, $process-id as xs:string?, $opt as element(Opt)) as element(Group)* {
 	let $payment := normalize-space(string($payment-id))
 	let $process := normalize-space(string($process-id))
 	let $focus-pay := ($model/Pay[@id = $payment])[1]
 	let $focus-proc := ($model/Proc[@id = $process])[1]
-	let $pays :=
-		if ($focus-pay) then $focus-pay
-		else if ($focus-proc) then $model/Pay[not($focus-proc/Linked = @id)][local:touches(., $focus-proc)][local:process-candidate(., $focus-proc)]
+	let $before := xs:integer($opt/@perfect-before)
+	let $after := xs:integer($opt/@perfect-after)
+	return
+		if ($focus-pay) then
+			let $best := local:assemble($focus-pay, $model/Proc, $accounts, $past, $opt, ())
+			let $used := $best/Process/@id
+			let $twin := local:twin($focus-pay, $model/Pay, $before, $after)
+			let $pool := $model/Proc[not(Linked = $focus-pay/@id)][not(@id = $used)][local:touches($focus-pay, .) or ($twin and local:touches($twin, .))]
+			let $ordered :=
+				for $proc in $pool
+				order by abs(local:gap($proc, $focus-pay))
+				return $proc
+			let $more :=
+				for $proc in subsequence($ordered, 1, 8)
+				return local:one-group($proc, $focus-pay, $twin, $accounts, local:learned-from($past, string($proc/@owner)), $opt)
+			return ($best, $more, local:missing-periodic($focus-pay, $model, $accounts, ($best, $more)))
+		else if ($focus-proc) then
+			let $pays :=
+				for $pay in $model/Pay[not($focus-proc/Linked = @id)][local:party-fit(., $focus-proc)]
+				order by abs(local:gap($focus-proc, $pay)), abs(local:day-count($focus-proc, $pay))
+				return $pay
+			for $pay in subsequence($pays, 1, 8)
+			return local:assemble($pay, $model/Proc, $accounts, $past, $opt, $focus-proc)
 		else ()
-	let $found :=
-		for $pay in subsequence($pays, 1, 20)
-		let $twin := local:twin($pay, $model/Pay, $before, $after)
-		let $procs :=
-			if ($focus-proc) then $focus-proc
-			else $model/Proc[not(Linked = $pay/@id)][local:touches($pay, .) or ($twin and local:touches($twin, .))]
-		for $proc in subsequence($procs, 1, 30)
-		return local:one-group($proc, $pay, $twin, $accounts, local:learned-from($past, string($proc/@owner)), $before, $after, $tolerance)
-	return (
-		$found,
-		if ($focus-pay) then local:missing-periodic($focus-pay, $model, $accounts, $found) else ()
-	)
 };
 
 declare function local:missing-periodic($pay as element(Pay), $model as element(Model), $accounts as element(Account)*, $found as element(Group)*) as element(Group)* {
@@ -1141,7 +1165,7 @@ declare function local:process-candidate($pay as element(Pay), $proc as element(
 	return exists($side) and (
 		local:same($sum, $target)
 		or exists($side[local:same(xs:decimal(@amount), $target)])
-		or local:skonto-explains($proc, $pay)
+		or local:skonto-explains($proc, $pay, match:default-settings())
 		or (local:dunning-word($notes) and $fee gt 0.005 and $fee le 99.99)
 	)
 };
@@ -1181,10 +1205,13 @@ declare function local:finish($groups as element(Group)*, $bank as xs:string?, $
 	]
 	return
 		for $group in $ranked
-		return
+		let $ready :=
 			if ($group/Payment/@id = $unique/Payment/@id and $group/Process/@id = $unique/Process/@id and $group/@level = 'done' and not($group/Invite)) then
 				element Group { $group/@*[not(local-name() = 'auto')], attribute auto {'true'}, $group/* }
 			else $group
+		let $class := local:match-class($ready)
+		order by local:class-rank($class), abs(local:row-rest($ready))
+		return element Group { $ready/@*[not(local-name() = 'class')], attribute class {$class}, $ready/* }
 };
 
 declare function match:check(
@@ -1197,6 +1224,7 @@ declare function match:check(
 	$tolerance as xs:decimal,
 	$body as element()
 ) as element(Check) {
+	let $opt := match:settings($home-data, $tenant, $year)
 	let $model := local:model($home-data, $tenant, $year)
 	let $accounts := local:accounts($home-data, $tenant, $year)
 	let $pay := $model/Pay[@id = $payment-id]
@@ -1212,7 +1240,7 @@ declare function match:check(
 		<Check payment="{$payment-id}" sum="{format-number($sum, '0.00')}" rest="{format-number($rest, '0.00')}" tolerance="{format-number($tolerance, '0.00')}" level="{if (local:same($rest, 0)) then 'done' else 'part'}" commit="{if ($pay and (local:same($rest, 0) or $partial)) then 'true' else 'false'}">
 			{
 				for $proc in $procs
-				return local:one-group($proc, $pay, local:twin($pay, $model/Pay, $days-before, $days-after), $accounts, (), $days-before, $days-after, $tolerance)
+				return local:one-group($proc, $pay, local:twin($pay, $model/Pay, xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after)), $accounts, (), $opt)
 			}
 			{
 				for $portion in $portions
@@ -1554,4 +1582,353 @@ declare function match:pattern-preview($home-data as xs:string, $tenant as xs:st
 		<Pattern kto="{$kto}" count="{string($learned/@count)}" interval="{if ($learned) then string($learned/@interval) else 'monthly'}" payday="{string($learned/@payday)}" amount-min="{string($learned/@amount-min)}" amount-max="{string($learned/@amount-max)}" valid-from="{substring(string(current-date()), 1, 10)}">
 			{$learned/Word}
 		</Pattern>
+};
+
+declare function match:default-settings() as element(Opt) {
+	<Opt perfect-before="14" perfect-after="21" potential-before="45" potential-after="60" rounding="0.005" tolerance="0.01" dunning="99.99" skonto="3" neighbor="45"/>
+};
+
+declare function local:opt-int($node as element()?, $name as xs:string, $fallback as xs:integer) as xs:integer {
+	let $value := normalize-space(string($node/@*[local-name() = $name]))
+	return if ($value castable as xs:integer) then abs(xs:integer($value)) else $fallback
+};
+
+declare function local:opt-dec($node as element()?, $name as xs:string, $fallback as xs:decimal) as xs:decimal {
+	let $value := translate(normalize-space(string($node/@*[local-name() = $name])), ',', '.')
+	return if ($value castable as xs:decimal) then abs(xs:decimal($value)) else $fallback
+};
+
+declare function local:opt-fill($node as element()?) as element(Opt) {
+	let $base := match:default-settings()
+	let $before := local:opt-int($node, 'perfect-before', xs:integer($base/@perfect-before))
+	let $after := local:opt-int($node, 'perfect-after', xs:integer($base/@perfect-after))
+	let $wide-before := max((local:opt-int($node, 'potential-before', xs:integer($base/@potential-before)), $before))
+	let $wide-after := max((local:opt-int($node, 'potential-after', xs:integer($base/@potential-after)), $after))
+	return
+		<Opt perfect-before="{$before}" perfect-after="{$after}" potential-before="{$wide-before}" potential-after="{$wide-after}" rounding="{format-number(local:opt-dec($node, 'rounding', xs:decimal($base/@rounding)), '0.000')}" tolerance="{format-number(local:opt-dec($node, 'tolerance', xs:decimal($base/@tolerance)), '0.00')}" dunning="{format-number(local:opt-dec($node, 'dunning', xs:decimal($base/@dunning)), '0.00')}" skonto="{format-number(local:opt-dec($node, 'skonto', xs:decimal($base/@skonto)), '0.00')}" neighbor="{local:opt-int($node, 'neighbor', xs:integer($base/@neighbor))}"/>
+};
+
+declare function match:settings($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Opt) {
+	let $path := concat($home-data, '/', $tenant, '/', string($year), '/matching-settings.xml')
+	let $stored := if (doc-available($path)) then doc($path)/Opt else ()
+	return local:opt-fill($stored)
+};
+
+declare function match:save-settings($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $body as element()) as element(Opt) {
+	let $node := if ($body instance of element(Opt)) then $body else ($body/Opt)[1]
+	let $opt := local:opt-fill($node)
+	let $collection := concat($home-data, '/', $tenant, '/', string($year))
+	let $stored := xmldb:store($collection, 'matching-settings.xml', $opt)
+	let $uri := xs:anyURI(concat($collection, '/matching-settings.xml'))
+	let $mode := sm:chmod($uri, 'rwxrwxr-x')
+	let $group := sm:chgrp($uri, 'docman')
+	return $opt
+};
+
+declare function local:match-class($group as element(Group)) as xs:string {
+	let $amount := if ($group/Sum) then string($group/Sum/@level) else string(($group/Process/Mark[@field = 'amount']/@level)[1])
+	let $posts := count($group/Process/Posten)
+	return
+		if ($group/@auto = 'true') then 'full'
+		else if ($amount = 'done' and $posts le 1) then 'single'
+		else if ($amount = 'done' and $posts gt 1) then 'group'
+		else 'partly'
+};
+
+declare function local:class-rank($class as xs:string) as xs:integer {
+	if ($class = 'full') then 0
+	else if ($class = 'single') then 1
+	else if ($class = 'group') then 2
+	else if ($class = 'partly') then 3
+	else 4
+};
+
+declare function local:row-rest($group as element(Group)?) as xs:decimal {
+	if (empty($group)) then xs:decimal(0)
+	else if ($group/Sum and string($group/Sum/@level) = 'done') then xs:decimal(0)
+	else if ($group/Sum and $group/Payment/@amount castable as xs:decimal and $group/Sum/@amount castable as xs:decimal) then xs:decimal($group/Payment/@amount) - xs:decimal($group/Sum/@amount)
+	else if (($group/Process/Mark[@field = 'amount']/@level)[1] = 'done') then xs:decimal(0)
+	else if ($group/Payment/@amount castable as xs:decimal) then xs:decimal($group/Payment/@amount)
+	else xs:decimal(0)
+};
+
+declare function local:amount-fit($pay as element(Pay), $proc as element(Proc)) as xs:boolean {
+	exists($proc/Posten[@direction = $pay/@direction][local:near(abs(xs:decimal(@amount)), abs(xs:decimal($pay/@match)), xs:decimal('0.005'))])
+};
+
+declare function local:party-fit($pay as element(Pay), $proc as element(Proc)) as xs:boolean {
+	let $amount := exists($proc/Posten[local:near(abs(xs:decimal(@amount)), abs(xs:decimal($pay/@match)), xs:decimal('0.005'))])
+	let $named := local:phrase-level($pay/@purpose, ($proc/@ownerName, $proc/@employee)) = ('done', 'part')
+	return exists($proc/Posten[@direction = $pay/@direction]) and (
+		exists($proc/Key[. = $pay/Key])
+		or exists(($proc/Ref, $proc/@ref, $proc/Posten/@ref)[local:number-hit($pay/@purpose, string(.))])
+		or ($amount and $named)
+	)
+};
+
+declare function local:side-sum($proc as element(Proc), $direction as xs:string) as xs:decimal {
+	local:sum(for $amount in $proc/Posten[@direction = $direction][not(@role = 'storno')]/@amount return xs:decimal($amount))
+};
+
+declare function local:combo-pool($pay as element(Pay), $procs as element(Proc)*, $required as element(Proc)?) as element(Proc)* {
+	let $base := $procs[not(Linked = $pay/@id)][Posten/@direction = $pay/@direction][Key = $pay/Key]
+	let $focus := if ($required) then $base[@id = $required/@id] else ()
+	let $rest :=
+		for $proc in $base[not(@id = $focus/@id)]
+		order by abs(local:day-count($proc, $pay))
+		return $proc
+	return ($focus, subsequence($rest, 1, 11))
+};
+
+declare function local:member-group($pay as element(Pay), $members as element(Proc)*, $accounts as element(Account)*, $past as element(Past)*, $opt as element(Opt), $level as xs:string) as element(Group) {
+	let $direction := string($pay/@direction)
+	let $sum := local:sum(for $member in $members return local:side-sum($member, $direction))
+	let $rest := xs:decimal($pay/@match) - $sum
+	let $mark := if (count($members) = 1) then $level else if ($level = 'done') then 'part' else $level
+	return
+		<Group kind="{if (count($members) = 1 and $level = 'done') then 'exact' else if (count($members) gt 1 and $level = 'done') then 'bundle' else 'part'}" quality="0">
+			{local:payment-view($pay)}
+			{for $member in $members return local:field-view($member, $pay, (), $accounts, local:learned-from($past, string($member/@owner)), $opt, $mark)}
+			<Sum amount="{format-number($sum, '0.00')}" level="{$level}"/>
+			{if ($level = 'done') then () else <Reason field="amount" difference="{format-number($rest, '0.00')}">Es fehlen {local:euro($rest)} EUR, damit die Bewegung aufgeht.</Reason>}
+		</Group>
+};
+
+declare function local:partial-members($pay as element(Pay), $pool as element(Proc)*, $need as xs:string) as element(Proc)* {
+	let $direction := string($pay/@direction)
+	let $target := xs:decimal($pay/@match)
+	let $one := (
+		for $item in $pool
+		let $sum := local:side-sum($item, $direction)
+		where ($need = '' or $item/@id = $need) and abs($sum) gt 0.005 and abs($sum) lt abs($target) - 0.005
+		order by abs($target - $sum)
+		return $item
+	)[1]
+	let $pair := (
+		for $left at $index in $pool
+		for $right in subsequence($pool, $index + 1, 12)
+		let $sum := local:side-sum($left, $direction) + local:side-sum($right, $direction)
+		where ($need = '' or $left/@id = $need or $right/@id = $need) and abs($sum) gt 0.005 and abs($sum) lt abs($target) - 0.005
+		order by abs($target - $sum)
+		return <Hit rest="{format-number(abs($target - $sum), '0.00')}"><Id>{string($left/@id)}</Id><Id>{string($right/@id)}</Id></Hit>
+	)[1]
+	let $one-rest := if ($one) then abs($target - local:side-sum($one, $direction)) else xs:decimal(999999)
+	let $pair-rest := if ($pair) then xs:decimal($pair/@rest) else xs:decimal(999999)
+	return
+		if (exists($pair) and $pair-rest lt $one-rest) then $pool[@id = $pair/Id]
+		else if ($one) then $one
+		else if ($need != '') then $pool[@id = $need]
+		else ()
+};
+
+declare function local:assemble($pay as element(Pay), $procs as element(Proc)*, $accounts as element(Account)*, $past as element(Past)*, $opt as element(Opt), $required as element(Proc)?) as element(Group)? {
+	if ($required and empty($procs[not(Linked = $pay/@id)][@id = $required/@id][Key = $pay/Key])) then
+		local:one-group($required, $pay, (), $accounts, local:learned-from($past, string($required/@owner)), $opt)
+	else
+		let $pool := local:combo-pool($pay, $procs, $required)
+		let $direction := string($pay/@direction)
+		let $target := xs:decimal($pay/@match)
+		let $tolerance := xs:decimal($opt/@tolerance)
+		let $rounding := xs:decimal($opt/@rounding)
+		let $need := if ($required) then string($required/@id) else ''
+		let $exact-one := (
+			for $item in $pool
+			where ($need = '' or $item/@id = $need) and local:near(local:side-sum($item, $direction), $target, $rounding)
+			order by abs(local:day-count($item, $pay))
+			return $item
+		)[1]
+		let $exact-pair :=
+			if ($exact-one) then ()
+			else (
+				for $left at $index in $pool
+				for $right in subsequence($pool, $index + 1, 12)
+				where ($need = '' or $left/@id = $need or $right/@id = $need) and local:within(local:side-sum($left, $direction) + local:side-sum($right, $direction), $target, $tolerance)
+				return <Hit><Id>{string($left/@id)}</Id><Id>{string($right/@id)}</Id></Hit>
+			)[1]
+		let $exact-triple :=
+			if ($exact-one or $exact-pair) then ()
+			else (
+				for $left at $i in $pool
+				for $middle at $j in $pool
+				for $right at $k in $pool
+				where $i lt $j and $j lt $k and ($need = '' or $left/@id = $need or $middle/@id = $need or $right/@id = $need) and local:within(local:side-sum($left, $direction) + local:side-sum($middle, $direction) + local:side-sum($right, $direction), $target, $tolerance)
+				return <Hit><Id>{string($left/@id)}</Id><Id>{string($middle/@id)}</Id><Id>{string($right/@id)}</Id></Hit>
+			)[1]
+		let $closed := exists($exact-one) or exists($exact-pair) or exists($exact-triple)
+		let $members :=
+			if ($exact-one) then $exact-one
+			else if ($exact-pair) then $pool[@id = $exact-pair/Id]
+			else if ($exact-triple) then $pool[@id = $exact-triple/Id]
+			else local:partial-members($pay, $pool, $need)
+		where exists($members)
+		return local:member-group($pay, $members, $accounts, $past, $opt, if ($closed) then 'done' else 'part')
+};
+
+declare function local:best-class($groups as element(Group)*) as element(Group)? {
+	($groups[@class = 'full'], $groups[@class = 'single'], $groups[@class = 'group'], $groups[@class = 'partly'])[1]
+};
+
+declare function local:money-key($direction as xs:string, $amount as xs:decimal) as xs:string {
+	concat($direction, ':', format-number(round(abs($amount) * 100), '0'))
+};
+
+declare function local:unique-procs($procs as element(Proc)*) as element(Proc)* {
+	let $map := map:merge(for $proc in $procs return map:entry(string($proc/@id), $proc), map {'duplicates': 'use-last'})
+	return map:for-each($map, function ($key, $proc) { $proc })
+};
+
+declare function local:closest-procs($procs as element(Proc)*, $pay as element(Pay), $limit as xs:integer) as element(Proc)* {
+	subsequence((
+		for $proc in local:unique-procs($procs)
+		order by abs(local:day-count($proc, $pay))
+		return $proc
+	), 1, $limit)
+};
+
+declare function local:proc-board($procs as element(Proc)*) as map(*) {
+	map:merge(
+		for $proc in $procs
+		for $key in distinct-values(for $value in $proc/Key return string($value))
+		where $key != ''
+		return map:entry($key, $proc),
+		map {'duplicates': 'combine'}
+	)
+};
+
+declare function local:posten-board($procs as element(Proc)*) as map(*) {
+	map:merge(
+		for $proc in $procs
+		for $post in $proc/Posten[not(@role = 'storno')]
+		let $amount := xs:decimal($post/@amount)
+		where abs($amount) ge 0.005
+		return map:entry(local:money-key(string($post/@direction), $amount), $proc),
+		map {'duplicates': 'combine'}
+	)
+};
+
+declare function local:pay-board($pays as element(Pay)*) as map(*) {
+	map:merge(
+		for $pay in $pays
+		return map:entry(local:money-key(string($pay/@direction), xs:decimal($pay/@match)), $pay),
+		map {'duplicates': 'combine'}
+	)
+};
+
+declare function local:fast-twin($pay as element(Pay), $pays as map(*), $before as xs:integer, $after as xs:integer) as element(Pay)? {
+	let $other := if ($pay/@direction = 'in') then 'out' else 'in'
+	return (
+		for $hit in $pays(local:money-key($other, xs:decimal($pay/@match)))[not(@id = $pay/@id)]
+		where (
+			($pay/@iban != '' and $hit/@iban = $pay/@iban)
+			or ($pay/@recipient != '' and upper-case(string($hit/@recipient)) = upper-case(string($pay/@recipient)))
+		) and local:in-window(xs:date($hit/@date), xs:date($pay/@date), $before, $after)
+		order by abs(days-from-duration(xs:date($pay/@date) - xs:date($hit/@date)))
+		return $hit
+	)[1]
+};
+
+declare function local:lead-payment($pay as element(Pay), $keys as map(*), $amounts as map(*), $pays as map(*), $accounts as element(Account)*, $opt as element(Opt)) as element(Group)? {
+	let $direction := string($pay/@direction)
+	let $target := xs:decimal($pay/@match)
+	let $rounding := xs:decimal($opt/@rounding)
+	let $pool := local:closest-procs(
+		(for $key in $pay/Key return $keys(string($key)))[Posten/@direction = $direction][not(Linked = $pay/@id)],
+		$pay,
+		8
+	)
+	let $assembled := if (empty($pool)) then () else local:assemble($pay, $pool, $accounts, (), $opt, ())
+	let $exact := (
+		for $proc in local:closest-procs($amounts(local:money-key($direction, $target)), $pay, 4)
+		where not($proc/Linked = $pay/@id) and local:near(local:side-sum($proc, $direction), $target, $rounding)
+		return $proc
+	)[1]
+	let $exact-group := if ($exact) then local:member-group($pay, $exact, $accounts, (), $opt, 'done') else ()
+	let $primary := local:best-class(local:finish(($assembled, $exact-group), string($pay/@bank), string($pay/@id), ()))
+	let $twin := if ($primary/@class = ('full', 'single', 'group')) then () else local:fast-twin($pay, $pays, xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after))
+	let $twin-proc := if (empty($twin)) then () else (
+		for $proc in local:closest-procs($amounts(local:money-key(string($twin/@direction), xs:decimal($twin/@match))), $twin, 2)
+		where not($proc/Linked = $twin/@id)
+		return $proc
+	)[1]
+	let $twin-group := if (empty($twin-proc)) then () else local:one-group($twin-proc, $pay, $twin, $accounts, (), $opt)
+	return if ($twin-group) then local:best-class(($primary, local:finish($twin-group, string($pay/@bank), string($pay/@id), ()))) else $primary
+};
+
+declare function local:lead-process($proc as element(Proc), $keys as map(*), $pay-keys as map(*), $accounts as element(Account)*, $opt as element(Opt)) as element(Group)? {
+	let $direction := string(($proc/Posten/@direction)[1])
+	let $found := (
+		for $key in $proc/Key
+		return $pay-keys(string($key))
+	)[not(@id = $proc/Linked)][@direction = $direction]
+	let $ordered := subsequence((
+		for $pay in $found
+		order by abs(local:gap($proc, $pay))
+		return $pay
+	), 1, 4)
+	let $groups :=
+		for $pay in $ordered
+		let $pool := ($proc, local:closest-procs($keys(string(($proc/Key)[1]))[not(@id = $proc/@id)][Posten/@direction = $direction][not(Linked = $pay/@id)], $pay, 7))
+		return local:assemble($pay, $pool, $accounts, (), $opt, $proc)
+	return local:best-class(local:finish($groups, (), (), string($proc/@id)))
+};
+
+declare function local:tag-year($model as element(Model), $year as xs:integer) as element()* {
+	for $node in $model/*
+	return element {node-name($node)} { $node/@*, attribute year {string($year)}, $node/* }
+};
+
+declare function local:model-if($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Model) {
+	let $collection := concat($home-data, '/', $tenant, '/', string($year))
+	return if (xmldb:collection-available($collection)) then local:model($home-data, $tenant, $year) else <Model/>
+};
+
+declare function local:wide-model($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $opt as element(Opt)) as element(Model) {
+	let $days := xs:integer($opt/@neighbor)
+	let $start := xs:date(concat(string($year), '-01-01'))
+	let $end := xs:date(concat(string($year), '-12-31'))
+	let $from := $start - xs:dayTimeDuration(concat('P', string($days), 'D'))
+	let $till := $end + xs:dayTimeDuration(concat('P', string($days), 'D'))
+	let $current := local:tag-year(local:model($home-data, $tenant, $year), $year)
+	let $previous := local:tag-year(local:model-if($home-data, $tenant, $year - 1), $year - 1)[local:date(@date) ge $from][local:date(@date) lt $start]
+	let $following := local:tag-year(local:model-if($home-data, $tenant, $year + 1), $year + 1)[local:date(@date) gt $end][local:date(@date) le $till]
+	return <Model>{$current, $previous, $following}</Model>
+};
+
+declare function local:pay-key-board($pays as element(Pay)*) as map(*) {
+	map:merge(
+		for $pay in $pays
+		for $key in distinct-values(for $value in $pay/Key return string($value))
+		where $key != ''
+		return map:entry($key, $pay),
+		map {'duplicates': 'combine'}
+	)
+};
+
+declare function match:stack($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $side as xs:string, $banks as xs:string*) as element(Stack) {
+	let $opt := match:settings($home-data, $tenant, $year)
+	let $model := local:wide-model($home-data, $tenant, $year, $opt)
+	let $accounts := local:accounts($home-data, $tenant, $year)
+	let $keys := local:proc-board($model/Proc)
+	let $amounts := local:posten-board($model/Proc)
+	let $pay-keys := local:pay-key-board($model/Pay)
+	let $pay-amounts := local:pay-board($model/Pay)
+	let $wanted := $banks[normalize-space(.) != '']
+	let $rows :=
+		if ($side = 'process') then
+			for $proc in $model/Proc[string(@year) = string($year)]
+			let $group := local:lead-process($proc, $keys, $pay-keys, $accounts, $opt)
+			let $class := if ($group) then string($group/@class) else 'none'
+			let $rest := if ($class = ('full', 'single', 'group')) then xs:decimal(0) else if ($group) then local:row-rest($group) else xs:decimal($proc/@amount)
+			order by local:class-rank($class), abs($rest), xs:date($proc/@date)
+			return <Row class="{$class}" rest="{format-number($rest, '0.00')}" bank="" id="{string($proc/@id)}" date="{string($proc/@date)}" amount="{string($proc/@amount)}" recipient="{string($proc/@ownerName)}" purpose="{normalize-space(string($proc/@description))}" binder="{string($proc/@binder)}" owner="{string($proc/@owner)}">{$group}</Row>
+		else
+			for $pay in $model/Pay[string(@year) = string($year)][empty($wanted) or @bank = $wanted]
+			let $group := local:lead-payment($pay, $keys, $amounts, $pay-amounts, $accounts, $opt)
+			let $class := if ($group) then string($group/@class) else 'none'
+			let $rest := if ($class = ('full', 'single', 'group')) then xs:decimal(0) else if ($group) then local:row-rest($group) else xs:decimal($pay/@amount)
+			order by local:class-rank($class), abs($rest), xs:date($pay/@date)
+			return <Row class="{$class}" rest="{format-number($rest, '0.00')}" bank="{string($pay/@bank)}" id="{string($pay/@id)}" date="{string($pay/@date)}" amount="{string($pay/@amount)}" recipient="{string($pay/@recipient)}" purpose="{normalize-space(string($pay/@purpose))}">{$group}</Row>
+	let $open := local:sum(for $row in $rows return abs(xs:decimal($row/@amount)))
+	let $explained := local:sum(for $row in $rows[@class = ('full', 'single', 'group')] return abs(xs:decimal($row/@amount)))
+	return <Stack side="{if ($side = 'process') then 'process' else 'payment'}" open="{format-number($open, '0.00')}" explained="{format-number($explained, '0.00')}" rest="{format-number($open - $explained, '0.00')}" count="{count($rows)}">{$rows}</Stack>
 };

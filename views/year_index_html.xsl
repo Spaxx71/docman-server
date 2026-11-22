@@ -103,7 +103,10 @@
 						<!-- wiederkehrende Zahlungen erstellen und Verküpfen -->
 						<!-- /rest/db/apps/docman/modules/functions/automatic/automatic_periodic-payments.xqy -->
 						<li>
-							<a href="{$home-web-gui||'/'||$tenant||'/'||$year||'/test.html'}">Konstistenz und Validität der Daten</a>
+							<a href="{$home-web-gui||'/'||$tenant||'/'||$year||'/test.html'}">Konsistenz und Validität der Daten</a>
+						</li>
+						<li>
+							<a href="{$home-web-api||'/document-intelligence/check'}">Dokument-Intelligenz (Check)</a>
 						</li>
 					</ul>
 				</div>

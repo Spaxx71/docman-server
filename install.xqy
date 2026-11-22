@@ -97,6 +97,7 @@ let $script := exists($files[self::file][@path = $export || '/install-linux.sh']
 let $command := local:command($root)
 let $present := local:command-present($command)
 let $job-uri := $root || '/modules/functions/document_intelligence_process.xqy'
+let $check-uri := $root || '/modules/functions/document_intelligence_check.xqy'
 let $mod-uri := $root || '/modules/module_document-intelligence.xqm'
 let $functions-col := $root || '/modules/functions'
 let $rights :=
@@ -106,8 +107,8 @@ let $rights :=
 			for $uri in (
 				xs:anyURI($mod-uri),
 				xs:anyURI($job-uri),
-				xs:anyURI($root || '/install.xqy'),
-				xs:anyURI($root || '/check.xqy')
+				xs:anyURI($check-uri),
+				xs:anyURI($root || '/install.xqy')
 			)
 			return (
 				sm:chown($uri, 'admin'),

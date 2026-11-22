@@ -849,3 +849,86 @@ function dmbank:patternSaveXML($tenant as xs:string, $year as xs:integer, $kto a
 	match:save-pattern($main:home-data, $tenant, $year, $kto, local:match-body($body))
 };
 
+declare function local:settings-node($body) as element() {
+	if ($body instance of element(Opt)) then $body
+	else if ($body instance of element() and exists($body/Opt)) then $body/Opt
+	else if ($body instance of element()) then $body
+	else if ($body instance of map(*)) then
+		<Opt perfect-before="{string(map:get($body, 'perfect-before'))}" perfect-after="{string(map:get($body, 'perfect-after'))}" potential-before="{string(map:get($body, 'potential-before'))}" potential-after="{string(map:get($body, 'potential-after'))}" rounding="{string(map:get($body, 'rounding'))}" tolerance="{string(map:get($body, 'tolerance'))}" dunning="{string(map:get($body, 'dunning'))}" skonto="{string(map:get($body, 'skonto'))}" neighbor="{string(map:get($body, 'neighbor'))}"/>
+	else <Opt/>
+};
+
+declare function local:bank-list($banks) as xs:string* {
+	for $bank in tokenize(string-join($banks, ','), ',')
+	let $id := normalize-space($bank)
+	where $id != ''
+	return $id
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/matching-settings")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchingSettingsXML($tenant as xs:string, $year as xs:integer) {
+	match:settings($main:home-data, $tenant, $year)
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/matching-settings")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:matchingSettingsJSON($tenant as xs:string, $year as xs:integer) {
+	match:settings($main:home-data, $tenant, $year)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/matching-settings")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:saveMatchingSettingsXML($tenant as xs:string, $year as xs:integer, $body) {
+	match:save-settings($main:home-data, $tenant, $year, local:settings-node($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/matching-settings")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:saveMatchingSettingsJSON($tenant as xs:string, $year as xs:integer, $body) {
+	match:save-settings($main:home-data, $tenant, $year, local:settings-node($body))
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/matchings")
+    %rest:query-param("side", "{$side}", "payment")
+    %rest:query-param("banks", "{$banks}", "")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchingsXML($tenant as xs:string, $year as xs:integer, $side as xs:string*, $banks as xs:string*) {
+	match:stack($main:home-data, $tenant, $year, string(($side, 'payment')[1]), local:bank-list($banks))
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/matchings")
+    %rest:query-param("side", "{$side}", "payment")
+    %rest:query-param("banks", "{$banks}", "")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:matchingsJSON($tenant as xs:string, $year as xs:integer, $side as xs:string*, $banks as xs:string*) {
+	match:stack($main:home-data, $tenant, $year, string(($side, 'payment')[1]), local:bank-list($banks))
+};
+

@@ -98,7 +98,7 @@ declare function local:set-rights($RootCollection as xs:string) as element(SetRi
 								let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
 								return ()
 							else if (matches($WebUri, '^$')) then
-								if (matches($FileName, '^(initialize|install|check)\.xqy$')) then
+								if (matches($FileName, '^(initialize|install)\.xqy$')) then
 									let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
 									return ()
 								else if (matches($FileName, '^update_module_hbci.xqy$')) then
@@ -116,7 +116,7 @@ declare function local:set-rights($RootCollection as xs:string) as element(SetRi
 							else if (matches($WebUri, '^/modules') and matches($FileName, '^(restxq-email\.xqy|module_email\.xqm)$')) then
 								let $_ := sm:chmod($FileUri, 'rwsrwx--x')
 								return ()
-							else if (matches($WebUri, '^/modules') and matches($FileName, '^(module_document-intelligence\.xqm|document_intelligence_process\.xqy)$')) then
+							else if (matches($WebUri, '^/modules') and matches($FileName, '^(module_document-intelligence\.xqm|document_intelligence_process\.xqy|document_intelligence_check\.xqy)$')) then
 								let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
 								return ()
 							else if (matches($WebUri, '^/modules') and matches($FileName, '^restxq-[a-z\-]+\.xqy$')) then
@@ -203,10 +203,13 @@ declare function local:intelligence-start($root as xs:string) as xs:string {
 	else
 		try {
 			let $job-uri := xs:anyURI($root || '/modules/functions/document_intelligence_process.xqy')
+			let $check-uri := xs:anyURI($root || '/modules/functions/document_intelligence_check.xqy')
 			let $mod-uri := xs:anyURI($root || '/modules/module_document-intelligence.xqm')
 			let $rights := (
 				sm:chown($job-uri, 'admin'),
 				sm:chmod($job-uri, 'rwsr-xr-x'),
+				sm:chown($check-uri, 'admin'),
+				sm:chmod($check-uri, 'rwsr-xr-x'),
 				sm:chown($mod-uri, 'admin'),
 				sm:chmod($mod-uri, 'rwsr-xr-x')
 			)

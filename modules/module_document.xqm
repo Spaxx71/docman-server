@@ -400,6 +400,64 @@ declare function document:updateNotes($home-data as xs:string, $tenant as xs:str
 				<noted document-id="{$document-id}" binder="{$binder}"/>
 };
 
+(: Dokument-Intelligenz für Binder-PDFs neu lesen und in File/DocmanIntelligence schreiben. :)
+declare function document:refreshIntelligence($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) as element() {
+	let $collection := concat($home-data, '/', $tenant, '/', $year, '/', $binder)
+	let $process := collection($collection)/Process[@id = $document-id]
+	return
+		if (empty($process)) then
+			error(xs:QName('docman:NoFileForID'), 'There is no file for the given document ID')
+		else
+			let $accounts := di:accounts($home-data, $tenant, $year)
+			let $results :=
+				for $file in $process//Files/File
+				let $name :=
+					let $joined := normalize-space(string($file/@fileName) || string($file/@fileExtension))
+					return
+						if ($joined != '' and di:is-document($joined)) then $joined
+						else
+							let $from-src := tokenize(string($file/@src), '/')[last()]
+							return if (di:is-document($from-src)) then $from-src else ''
+				where $name != ''
+				let $fresh :=
+					try { di:run-at($home-data, $tenant, $year, $collection, $name, '', '') }
+					catch * { <Error>{substring($err:description, 1, 500)}</Error> }
+				let $shell := di:shell($name, '', '')
+				let $intel :=
+					if ($fresh/self::Error) then
+						di:fail($shell, string($fresh))
+					else if ($fresh/Error) then
+						di:fail($shell, string($fresh/Error[1]))
+					else if ($fresh//Error and empty($fresh/Fields) and empty($fresh/*/Fields)) then
+						di:fail($shell, string(($fresh//Error)[1]))
+					else
+						let $payload :=
+							if ($fresh/self::DocmanIntelligence) then $fresh
+							else if ($fresh/DocmanIntelligence) then $fresh/DocmanIntelligence
+							else $fresh/*
+						return di:merge($shell, $payload, $accounts)
+				let $_ := (
+					if ($file/DocmanIntelligence) then update delete $file/DocmanIntelligence else (),
+					update insert $intel into $file,
+					if (string($intel/Source/@origin) = 'digital') then update value $file/@doctype with 'digital'
+					else if (string($intel/Source/@origin) = 'scan') then update value $file/@doctype with 'paper'
+					else ()
+				)
+				return
+					<File name="{$name}" status="{$intel/@status}">
+						{ if ($intel/@status = 'error') then $intel/Error else () }
+					</File>
+			let $changed :=
+				if (exists($process/@changed)) then
+					update value $process/@changed with current-dateTime()
+				else
+					update insert attribute changed { current-dateTime() } into $process
+			return
+				<IntelligenceRefresh document-id="{$document-id}" binder="{$binder}" files="{count($results)}" done="{count($results[@status='done'])}" error="{count($results[@status='error'])}">
+					{$results}
+				</IntelligenceRefresh>
+};
+
 declare function document:updateDocument($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $document-data) as element()
 {
 	let $user := sm:id()/sm:id/sm:real/sm:username/data()

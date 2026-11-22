@@ -27,6 +27,7 @@ module namespace dmdocument="http://exist-db.org/apps/restxq/docman-document";
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
 import module namespace match="http://bintellix.com/docman/match" at "/db/apps/docman/modules/module_match.xqm";
+import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
 
 declare namespace rest="http://exquery.org/ns/restxq";
 declare namespace output="http://www.w3.org/2010/xslt-xquery-serialization";
@@ -83,7 +84,13 @@ declare
     %rest:query-param("user", "{$user}", "Guest")
 
 function dmdocument:getDocument($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
-	document:getDocument($main:home-data,$tenant,$year,$binder,$document-id)
+	(: RESTXQ serialisiert DB-Knoten über cglib — Kopie im Speicher vermeidet 500. :)
+	let $doc := document:getDocument($main:home-data,$tenant,$year,$binder,$document-id)
+	return
+		if ($doc instance of element()) then
+			di:detach($doc)
+		else
+			$doc
 };
 
 
@@ -229,6 +236,67 @@ function dmdocument:notes($user as xs:string*, $tenant as xs:string, $year as xs
 		else
 			string(($body/Notes, $body//Notes)[1])
 	return document:updateNotes($main:home-data, $tenant, $year, $binder, $document-id, $text)
+};
+
+(:
+	POST /api/xml/tenants/{tenant}/years/{year}/binders/{binder}/documents/{document-id}/intelligence
+	Dokument-Intelligenz für Binder-PDFs aktualisieren (nicht Transfer).
+:)
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/intelligence")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmdocument:refreshIntelligence($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
+	try {
+		document:refreshIntelligence($main:home-data, $tenant, $year, $binder, $document-id)
+	} catch * {
+		(
+			<rest:response>
+				<http:response status="400" message="Document intelligence refresh failed">
+					<http:header name="Content-Type" value="text/xml; charset=utf-8"/>
+				</http:response>
+			</rest:response>
+			,
+			<error>{$err:code, $err:value, $err:description, " module: ", $err:module, "(", $err:line-number, ",", $err:column-number, ")"}</error>
+		)
+	}
+};
+
+(:
+	GET /api/xml/document-intelligence/check
+	GET /api/xml/tenants/{tenant}/years/{year}/document-intelligence/check
+	process:execute braucht DBA — deshalb setuid-Hauptmodul
+	modules/functions/document_intelligence_check.xqy (Rechte: initialize.xqy).
+:)
+declare
+    %rest:GET
+    %rest:path("/docman/xml/document-intelligence/check")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmdocument:intelligenceCheck($user as xs:string*) {
+	try {
+		let $result := util:eval(xs:anyURI('/db/apps/docman/modules/functions/document_intelligence_check.xqy'))
+		return
+			if ($result instance of element()) then
+				di:detach($result)
+			else
+				$result
+	} catch * {
+		<error>{$err:code, $err:description}</error>
+	}
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/document-intelligence/check")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmdocument:intelligenceCheckForYear($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	dmdocument:intelligenceCheck($user)
 };
 
 declare

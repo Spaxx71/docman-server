@@ -202,9 +202,13 @@ declare function di:binary-uri($collection as xs:string, $file as xs:string) as 
 };
 
 declare function di:run($home as xs:string, $tenant as xs:string, $year, $file as xs:string, $from as xs:string, $subject as xs:string) as item()* {
+	di:run-at($home, $tenant, $year, di:collection($home, $tenant, $year), $file, $from, $subject)
+};
+
+(: Wie di:run, aber PDF aus beliebiger Collection (Transfer oder Binder). :)
+declare function di:run-at($home as xs:string, $tenant as xs:string, $year, $collection as xs:string, $file as xs:string, $from as xs:string, $subject as xs:string) as item()* {
 	let $command := di:command()
 	let $probe := di:probe($command)
-	let $collection := di:collection($home, $tenant, $year)
 	let $binary := di:binary-uri($collection, $file)
 	return
 		if ($probe) then
@@ -880,4 +884,115 @@ declare function di:propose-creditor-hints($home as xs:string, $tenant as xs:str
 		if (empty($accounts)) then ()
 		else xmldb:store($target, 'accounts.hint-proposals.xml', $proposals)
 	return $proposals
+};
+
+declare function local:file-permission($uri as xs:string) as element() {
+	try {
+		let $p := sm:get-permissions(xs:anyURI($uri))/sm:permission
+		return <Permission path="{$uri}" owner="{$p/@owner}" mode="{$p/@mode}"/>
+	} catch * {
+		<Permission path="{$uri}" error="{$err:description}"/>
+	}
+};
+
+declare function local:mode-has-setuid($mode as xs:string?) as xs:boolean {
+	contains(string($mode), 's') or contains(string($mode), 'S')
+};
+
+(: Schneller Zustandstest (früher check.xqy). Kein OCR. Aufruf: di:check() bzw. REST …/document-intelligence/check :)
+declare function di:check() as element(check) {
+	let $home := $main:home-data
+	let $root := replace($home, '/data$', '')
+	let $job-uri := $root || '/modules/functions/document_intelligence_process.xqy'
+	let $check-uri := $root || '/modules/functions/document_intelligence_check.xqy'
+	let $mod-uri := $root || '/modules/module_document-intelligence.xqm'
+	let $command := di:command()
+	let $job-perm := local:file-permission($job-uri)
+	let $check-perm := local:file-permission($check-uri)
+	let $mod-perm := local:file-permission($mod-uri)
+	let $installed := di:installed()
+	let $status :=
+		if (doc-available($home || '/document-intelligence-status.xml')) then
+			doc($home || '/document-intelligence-status.xml')/*
+		else
+			<DocumentIntelligenceStatus state="missing">Noch kein Heartbeat.</DocumentIntelligenceStatus>
+	let $status-age :=
+		try {
+			if ($status/@at castable as xs:dateTime) then
+				string(current-dateTime() - xs:dateTime($status/@at))
+			else
+				'?'
+		} catch * {
+			'?'
+		}
+	let $queue :=
+		try { di:queue($home) }
+		catch * { () }
+	let $active :=
+		try { di:active-runs($home) }
+		catch * { () }
+	let $scheduled :=
+		try {
+			scheduler:get-scheduled-jobs()//*:job[@name = 'docman-intelligence']
+		} catch * {
+			<error>{$err:description}</error>
+		}
+	let $probe :=
+		try {
+			let $run := process:execute(($command, '--version'), <options/>)
+			return
+				<Probe
+					who="{di:who()}"
+					exit="{string($run/@exitCode)}"
+					out="{substring(normalize-space(string-join(($run/stdout/line, $run/stderr/line), ' ')), 1, 200)}"/>
+		} catch * {
+			<Probe who="{di:who()}" error="{substring($err:description, 1, 400)}"/>
+		}
+	let $job-setuid-ok := local:mode-has-setuid($job-perm/@mode)
+	let $check-setuid-ok := local:mode-has-setuid($check-perm/@mode)
+	let $mod-setuid-ok := local:mode-has-setuid($mod-perm/@mode)
+	let $job-ran-as-admin := contains(string($status/@who), 'admin')
+	let $probe-version := string($probe/@out)
+	let $verdict :=
+		if (not($check-setuid-ok)) then
+			'document_intelligence_check.xqy hat kein setuid. initialize.xqy ausführen.'
+		else if (not($mod-setuid-ok)) then
+			'module_document-intelligence.xqm hat kein setuid (mode ohne s). initialize.xqy ausführen.'
+		else if (exists($probe/@error)) then
+			'process:execute schlägt fehl: ' || string($probe/@error)
+		else if (not(contains($probe-version, '0.1.7')) and not(starts-with($probe-version, '0.1.7'))) then
+			'Programm-Version ist "' || $probe-version || '", nötig ist 0.1.7 (Kreditor/IBAN/Kundennummer). install.xqy, dann als root: sh /tmp/docman-intelligence/install-linux.sh'
+		else if (not($job-setuid-ok)) then
+			'Job-Datei ohne setuid. install.xqy oder initialize.xqy ausführen.'
+		else if (not($installed)) then
+			'Marker fehlt. install.xqy ausführen.'
+		else if (empty($scheduled) or exists($scheduled/self::error)) then
+			'Job steht nicht im Scheduler. install.xqy ausführen.'
+		else if (exists($active)) then
+			'Ein Lesevorgang läuft (status=running). Status-at und Sidecar beobachten.'
+		else if (count($queue) = 0) then
+			'Job und Programm ok, Warteschlange leer.'
+		else
+			'Bereit (0.1.7): ' || count($queue) || ' in der Queue. Status-at=' || string($status/@at)
+	return
+		<check>
+			<Who>{di:who()}</Who>
+			<Installed>{$installed}</Installed>
+			<Command path="{$command}"/>
+			{$probe}
+			{$job-perm}
+			{$check-perm}
+			{$mod-perm}
+			{local:file-permission($root || '/modules/functions')}
+			<Setuid job="{$job-setuid-ok}" check="{$check-setuid-ok}" module="{$mod-setuid-ok}" status-who-admin="{$job-ran-as-admin}"/>
+			<Scheduled count="{count($scheduled[not(self::error)])}">{$scheduled}</Scheduled>
+			<Active count="{count($active)}">{$active}</Active>
+			<Queue count="{count($queue)}">{
+				for $item at $pos in $queue[position() le 10]
+				return <Item position="{$pos}" tenant="{$item/@tenant}" year="{$item/@year}" file="{$item/@source}" status="{$item/@status}" updated="{$item/@updated}"/>
+			}</Queue>
+			<StatusAge>{$status-age}</StatusAge>
+			{$status}
+			<Verdict>{$verdict}</Verdict>
+		</check>
 };

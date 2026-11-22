@@ -30,9 +30,9 @@ Ein einzelner Betrag gilt als gleich, wenn er um weniger als einen halben Cent a
 
 `tolerance` gilt für den Gesamtbetrag eines Bündels. Vorgabe ist `0.01` Euro. Die Seite zeigt das Feld als `0,01`. Zwei oder drei kleinere Belege desselben Gebers, deren Summe die Zahlung innerhalb dieser Toleranz erreicht, sind ein Bündel. Ein einzelner kleinerer Betrag steht als Teiltreffer. Grün, Gelb und Rot in der Zelle zeigen, ob der Indikator trifft, teilweise trifft oder fehlt. Die Auswahlbox der Zeilengruppe trägt die zusammengefasste Qualität als Hintergrund.
 
-Im Datumsfeld steht der Abstand. Liegt die Zahlung im Fenster, ist das Datum grün. Außerhalb des Fensters ist es rot. Gelb gibt es beim Datum nicht.
+Im Datumsfeld steht der Abstand. Liegt die Zahlung im perfekten Fenster, ist das Datum grün. Im weiteren, potentiellen Fenster ist es gelb. Außerhalb beider Fenster ist es rot.
 
-Die Feldmarken kommen vom Server. Einbezogen werden die Beträge der Warenposition, der Rechnung, des Gehalts, des Skontos und der Mahngebühr. Eine Gutschrift wird nicht mit Kosten addiert. Der Text wird an Wortgrenzen verglichen, Nummern ohne Leerzeichen. Grünes Datum heißt: die Zahlung liegt im Fenster. Automatisch verknüpft wird nur ein Full-match, in dem jede Marke grün ist. Gutschrift, Mahngebühr, Skonto und Kreditor-Muster werden nur auf Klick angelegt.
+Die Feldmarken kommen vom Server. Einbezogen werden die Beträge der Warenposition, der Rechnung, des Gehalts, des Skontos und der Mahngebühr. Eine Gutschrift wird nicht mit Kosten addiert. Der Text wird an Wortgrenzen verglichen, Nummern ohne Leerzeichen. Grünes Datum heißt: die Zahlung liegt im perfekten Fenster, gelbes Datum im weiteren Fenster. Automatisch verknüpft wird nur ein Full-Match, in dem jede Marke grün ist. Der Stapel unter `/{jahr}/matchings` zeigt zuerst die Stücke, die aufgehen, und den noch offenen Saldo; weitere Treffer und eine unvollständige Sammelzahlung bleiben mit dem fehlenden Betrag sichtbar. Gutschrift, Mahngebühr, Skonto und Kreditor-Muster werden nur auf Klick angelegt.
 
 ## Sichere Zuordnung
 
