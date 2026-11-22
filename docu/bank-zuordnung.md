@@ -30,29 +30,25 @@ Ein einzelner Betrag gilt als gleich, wenn er um weniger als einen halben Cent a
 
 `tolerance` gilt für den Gesamtbetrag eines Bündels. Vorgabe ist `0.01` Euro. Die Seite zeigt das Feld als `0,01`. Zwei oder drei kleinere Belege desselben Gebers, deren Summe die Zahlung innerhalb dieser Toleranz erreicht, sind ein Bündel. Ein einzelner kleinerer Betrag steht als Teiltreffer. Grün, Gelb und Rot in der Zelle zeigen, ob der Indikator trifft, teilweise trifft oder fehlt. Die Auswahlbox der Zeilengruppe trägt die zusammengefasste Qualität als Hintergrund.
 
-Im Datumsfeld steht der Abstand. Gleicher Tag ist grün. Ein anderer Tag im Fenster ist orange. Außerhalb des Fensters steht der Abstand ohne Trefferfarbe, mit dem Hinweis, dass das Datum außerhalb liegt.
+Im Datumsfeld steht der Abstand. Liegt die Zahlung im Fenster, ist das Datum grün. Außerhalb des Fensters ist es rot. Gelb gibt es beim Datum nicht.
+
+Die Feldmarken kommen vom Server. Einbezogen werden die Beträge der Warenposition, der Rechnung, des Gehalts, des Skontos und der Mahngebühr. Eine Gutschrift wird nicht mit Kosten addiert. Der Text wird an Wortgrenzen verglichen, Nummern ohne Leerzeichen. Grünes Datum heißt: die Zahlung liegt im Fenster. Automatisch verknüpft wird nur ein Full-match, in dem jede Marke grün ist. Gutschrift, Mahngebühr, Skonto und Kreditor-Muster werden nur auf Klick angelegt.
 
 ## Sichere Zuordnung
 
-Geschrieben wird nur eine noch offene Bewegung, deren vorzeichenbehafteter Betrag mit einem, zwei oder drei offenen Vorgängen auf den Cent aufgeht. Jeder beteiligte Vorgang liegt im Fenster. Bei einer Rechnung steht die Belegnummer oder die Vorgangsnummer (mindestens sechs Zeichen) im Zahlungstext. Beim Gehalt steht der Mitarbeitername (mindestens vier Zeichen) darin. Die Gruppe ist die einzige, die diese Bewegung erklärt, und kein beteiligter Vorgang steckt in einer zweiten sicheren Gruppe.
+Geschrieben wird ohne einzelne Bestätigung nur ein Full-match: jede Feldmarke ist grün, die Gruppe ist die einzige für diese Bewegung und diesen Posten, und sie trägt keine Einladung. Der Betrag trifft auf den halben Cent, bei einem Bündel die Summe innerhalb der Toleranz. Das Datum liegt im Fenster. Belegnummer oder Vorgangsnummer trifft ohne Leerzeichen; beim Gehalt der Mitarbeitername. Der Text trifft an Wortgrenzen. Das Gegenkonto trifft über Konto, IBAN, Gläubiger-ID oder eine erfüllte Zahlungsregel.
 
-Der Dienst hängt dann je Vorgang einen `PaymentTask` an. Buchungsrichtung und Storno folgen `modules/functions/attach/attach_payment.xqy`. Der gespeicherte Zahlungsbetrag ist der offene Betrag des Vorgangs, damit sich Teillieferung und Gutschrift zum Bewegungsbetrag addieren.
-
-Bei zwei oder drei Vorgängen bleibt der Einzelbetrag ungefärbt. Die Summenzeile wird grün, wenn die Summe den Bewegungsbetrag trifft. Ein Storno behält sein Vorzeichen. Die sichere Gruppe hat eine Aktion für die ganze Gruppe.
+Der Dienst hängt dann je Posten einen `PaymentTask` an. Buchungsrichtung und Storno folgen dem Posten. Gutschrift, Mahngebühr, Skonto, Dauerbezug und Kreditor-Muster werden nie automatisch angelegt.
 
 ## Vorschläge
 
-Alles andere wird gezeigt und nicht geschrieben.
+Alles andere wird gezeigt und nur auf Klick geschrieben, nachdem `match-check` den Rest mit 0,00 oder eine ausdrückliche Teilzahlung bestätigt.
 
-- Der Betrag geht nicht auf: die Differenz in Euro steht in der Zelle, orange wenn sie höchstens ein Euro beträgt.
-- Das Datum liegt außerhalb des Fensters: der Abstand in Tagen.
-- Der Text überlagert sich nicht: weder Belegnummer noch Vorgangsnummer steht im Zahlungstext, beim Gehalt der Mitarbeitername nicht. Die beiden Nummernfelder bleiben beim Gehalt leer und heißen „keine Nummer“.
-- Mehrere Gruppen gehen gleich gut auf.
-- Mehrere Zahlungen und mehrere Vorgänge derselben Beleg- oder Vorgangsnummer gehen zusammen auf oder unterscheiden sich um einen Betrag. Das ist der Fall einer gestückelten Bestellung. Gezeigt werden bis zu sechs Zahlungen und sechs Vorgänge.
-
-Die Liste bleibt auf dasselbe Gegenüber begrenzt. Für die Betragskombinationen werden je Bewegung höchstens 15 Vorgänge geprüft, zuerst solche mit Texttreffer oder Datum im Fenster. Einzelvorschläge sind die acht datumsnächsten Vorgänge, die einen Texttreffer, ein Datum im Fenster oder einen Betrag innerhalb eines Euro haben.
-
-In diesen Gruppen verknüpft jede Vorgangszeile einzeln.
+- Der Betrag geht nicht auf: die Differenz steht in der Zelle. Ohne Posten, Summe oder Kommentar, der sie trägt, gibt es keinen Treffer. Ein Euro Spielraum gibt es nicht.
+- Das Datum liegt außerhalb des Fensters: der Abstand in Tagen, rot.
+- Der Text trifft ein Wort, aber nicht die ganze Folge: gelb.
+- Eine gegenläufige Bewegung hebt sich auf. Verknüpft wird nur die Richtung, die zum Posten passt.
+- Mahngebühr, Skonto und fehlende Gutschrift erscheinen als Einladung, nicht als Buchung.
 
 ## Schnittstellen
 

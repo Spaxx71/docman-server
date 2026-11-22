@@ -2304,7 +2304,7 @@
 						<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" constraint=". &gt; 0" alert="Amount has to be given as a positive value"/>
 					</xsl:when>
 					<xsl:otherwise>
-						<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" constraint=". &lt; 0" alert="Amount has to be given as a negative value"/>
+						<xf:bind nodeset="instance('document')/Process/TotalAmount/@value" constraint="if (instance('document')/Process/Tasks/*[@isStorno='true']) then . &lt;= 0 else . &lt; 0" alert="Amount has to be given as a negative value"/>
 					</xsl:otherwise>
 				</xsl:choose>
 

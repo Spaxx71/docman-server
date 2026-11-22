@@ -335,3 +335,61 @@ declare
 function dmdocument:paymentSuggestionsJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $days-before, $days-after, $tolerance) {
 	local:payment-suggestions($tenant, $year, $document-id, $days-before, $days-after, $tolerance)
 };
+
+declare function local:match-body($body) as element() {
+	if ($body instance of element()) then $body else $body/*[1]
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/match-check")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmdocument:matchCheckXML($tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	match:check($main:home-data, $tenant, $year, string(local:match-body($body)/@payment), local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/match-check")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmdocument:matchCheckJSON($tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	match:check($main:home-data, $tenant, $year, string(local:match-body($body)/@payment), local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/match-commit")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmdocument:matchCommitXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $tolerance, $body) {
+	match:commit($main:home-data, $tenant, $year, string(local:match-body($body)/@payment), local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/match-commit")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmdocument:matchCommitJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string, $tolerance, $body) {
+	match:commit($main:home-data, $tenant, $year, string(local:match-body($body)/@payment), local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]), local:match-body($body))
+};

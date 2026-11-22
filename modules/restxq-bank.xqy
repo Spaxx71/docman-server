@@ -754,3 +754,98 @@ function dmbank:applySuggestionsJSON($user as xs:string*, $tenant as xs:string, 
 	local:movement-apply($user, $tenant, $year, $bank-account, $accounting-id, $days-before, $days-after, $tolerance)
 };
 
+declare function local:match-body($body) as element() {
+	if ($body instance of element()) then $body else $body/*[1]
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-check")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchCheckXML($tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	match:check($main:home-data, $tenant, $year, $accounting-id, local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-check")
+    %rest:query-param("days-before", "{$days-before}", "")
+    %rest:query-param("days-after", "{$days-after}", "")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:matchCheckJSON($tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $days-before, $days-after, $tolerance, $body) {
+	match:check($main:home-data, $tenant, $year, $accounting-id, local:match-days($days-before, 14), local:match-days($days-after, 21), local:match-money($tolerance, 0.01), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-commit")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchCommitXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $tolerance, $body) {
+	match:commit($main:home-data, $tenant, $year, $accounting-id, local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/json/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-commit")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:query-param("tolerance", "{$tolerance}", "")
+    %rest:consumes("application/json")
+    %rest:produces("application/json")
+    %output:method("json")
+    %output:media-type("application/json")
+function dmbank:matchCommitJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $tolerance, $body) {
+	match:commit($main:home-data, $tenant, $year, $accounting-id, local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]), local:match-body($body))
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-invite")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchInviteXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $body) {
+	match:invite($main:home-data, $tenant, $year, string(($user, 'Guest')[1]), local:match-body($body))
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts/{$kto}/payment-pattern")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:patternPreviewXML($tenant as xs:string, $year as xs:integer, $kto as xs:string) {
+	match:pattern-preview($main:home-data, $tenant, $year, $kto)
+};
+
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts/{$kto}/payment-pattern")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:patternSaveXML($tenant as xs:string, $year as xs:integer, $kto as xs:string, $body) {
+	match:save-pattern($main:home-data, $tenant, $year, $kto, local:match-body($body))
+};
+
