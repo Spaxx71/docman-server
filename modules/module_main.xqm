@@ -22,16 +22,21 @@ xquery version "3.1";
 
 module namespace main = "http://bintellix.com/docman/main";
 
-(: external URL when using Docman without an proxy :)
-(:
-declare variable $main:home-web-gui := '/exist/apps/docman';
-declare variable $main:home-web-api := '/exist/restxq/docman';
-:)
+declare variable $main:deployment-uri := '/db/apps/docman/deployment.xml';
 
-(: external URL when using Docman with the given http proxy excample :)
+declare function main:configured-path($name as xs:string, $fallback as xs:string) as xs:string {
+    let $configured :=
+        if (doc-available($main:deployment-uri)) then
+            normalize-space(doc($main:deployment-uri)/config/*[local-name() = $name])
+        else
+            ''
+    return
+        if ($configured ne '') then $configured else $fallback
+};
 
-declare variable $main:home-web-gui := '/app';
-declare variable $main:home-web-api := '/api/xml';
+(: Proxy-Pfade, solange deployment.xml fehlt. Das Test-XAR legt die Datei mit den eXist-Pfaden an. :)
+declare variable $main:home-web-gui := main:configured-path('gui', '/app');
+declare variable $main:home-web-api := main:configured-path('api', '/api/xml');
 
 declare variable $main:home-data := '/db/apps/docman/data';
 declare variable $main:home-views := '/db/apps/docman/views';

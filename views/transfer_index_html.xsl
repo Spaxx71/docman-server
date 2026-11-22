@@ -512,6 +512,14 @@
 				<a href="{$home-web-gui}/{$tenant}/{$year}/binders/enter/index.html?ref=/{$tenant}/{$year}/transfer/{@name}">
 					<xsl:value-of select="@name"/>
 				</a>
+				<xsl:choose>
+					<xsl:when test="@duplicate = 'filed'">
+						<span style="color:#c00; font-weight:bold" title="Diese Datei wurde bereits verbucht."> Bereits verbucht</span>
+					</xsl:when>
+					<xsl:when test="@duplicate = 'transfer'">
+						<span style="background:#ffe14a; color:#5a4300; font-weight:bold" title="Diese Datei liegt mehrfach im Transfer-Ordner"> Mehrfach im Transfer</span>
+					</xsl:when>
+				</xsl:choose>
 				 
 				<a href="{$home-web-api}/tenants/{$tenant}/years/{$year}/transfer/{@name}">
 					<img alt="Dokument download" src="/app/resources/download.svg" height="20px"/>

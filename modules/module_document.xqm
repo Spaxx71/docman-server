@@ -36,6 +36,13 @@ declare namespace docman = "http://docman.bintellix.com";
 
 declare function document:listDocuments ($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer, $owner as xs:string?) {
 	<Binders version="1.0" tenantId="{$tenant}">
+	{
+		let $year-col := $dm-home-data||'/'||$tenant||'/'||$year
+		let $prepared :=
+			for $process in local:year-processes($year-col)
+			return document:stamp-file-hashes($dm-home-data, $process, true())
+		return local:file-twins($year-col)
+	}
 	{ 
 		let $document-collections := 
 			for $collection in xmldb:get-child-collections($dm-home-data||'/'||$tenant||'/'||$year||'/')
@@ -57,7 +64,8 @@ declare function document:listDocuments ($dm-home-data as xs:string, $tenant as 
 					let $documents := xmldb:get-child-resources($document-collection)
 					for $document in $documents
 					where ends-with($document,'.dm.xml')
-					let $doc := doc($document-collection||'/'||$document)/Process
+					let $doc-uri := $document-collection||'/'||$document
+					let $doc := doc($doc-uri)/Process
 					order by $doc/@date, $doc/@name
 					let $mainTask := $doc/Tasks/*[@isMaster=true()][1]
 					return
@@ -123,10 +131,16 @@ declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $t
 
 (: $details=false() = Outline: nur Process/Tasks/Task, Tasks ohne Kind-Elemente. Tabellenfelder als Attribute. :)
 declare function document:listDocumentsForBinder ($dm-home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $details as xs:boolean) {
+	let $year-col := $dm-home-data||'/'||$tenant||'/'||$year
+	let $prepared :=
+		for $process in local:year-processes($year-col)
+		return document:stamp-file-hashes($dm-home-data, $process, true())
+	return
 	<Binders version="1.0" tenantId="{$tenant}" details="{if ($details) then 'true' else 'false'}">
+		{ local:file-twins($year-col) }
 		<Binder name="{$binder}" tenantId="{$tenant}" year="{$year}" binder="{$binder}">
 		{
-			let $document-collection := $dm-home-data||'/'||$tenant||'/'||$year||'/'||$binder
+			let $document-collection := $year-col||'/'||$binder
 			for $document in xmldb:get-child-resources($document-collection)
 			where ends-with($document,'.dm.xml')
 			let $doc := doc($document-collection||'/'||$document)/Process
@@ -186,7 +200,16 @@ declare function document:processOutline($doc as element(Process)?) as element(P
 							attribute notes { normalize-space(string($task/Notes)) },
 							attribute amount { string($task/Amount/@value) },
 							attribute unit { string($task/Amount/@unit) },
-							attribute files { string-join($task/Files/File/@type, ' ') }
+							attribute files { string-join($task/Files/File/@type, ' ') },
+							<Files>
+							{
+								for $file in $task/Files/File
+								return
+									<File type="{string($file/@type)}" src="{string($file/@src)}" fileName="{string($file/@fileName)}">
+										{ if (matches(string($file/@hashcode), '^[0-9a-f]{64}$')) then attribute hashcode { string($file/@hashcode) } else () }
+									</File>
+							}
+							</Files>
 						}
 				}
 				</Tasks>
@@ -317,16 +340,51 @@ declare function local:processById($collection as xs:string, $document as xs:str
 };
 
 declare function document:getDocument($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string?, $document as xs:string) {
-	if (matches($document,'^PRO[0-9a-f\-]+$')) then
-		if (not($binder)) then
-			(
-				for $folder in xmldb:get-child-collections(concat($home-data, '/', $tenant, '/', $year))
-				return local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $folder), $document)
-			)[1]
+	let $process :=
+		if (matches($document,'^PRO[0-9a-f\-]+$')) then
+			if (not($binder)) then
+				(
+					for $folder in xmldb:get-child-collections(concat($home-data, '/', $tenant, '/', $year))
+					return local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $folder), $document)
+				)[1]
+			else
+				local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $binder), $document)
 		else
-			local:processById(concat($home-data, '/', $tenant, '/', $year, '/', $binder), $document)
-	else
-		doc(concat($home-data,'/',$tenant,'/',$year,'/',$binder,'/',$document,'.dm.xml'))
+			doc(concat($home-data,'/',$tenant,'/',$year,'/',$binder,'/',$document,'.dm.xml'))
+	let $_ := document:stamp-file-hashes($home-data, $process, true())
+	let $uri := if ($process) then document-uri(root($process)) else ()
+	return
+		if (not($uri)) then $process
+		else if ($process instance of document-node()) then doc($uri)
+		else doc($uri)/*
+};
+
+(: SHA-256 über den Dateiinhalt. $ref ist ein DB-Pfad oder ein Web-Pfad der Datei. :)
+declare function document:hashcode($home-data as xs:string, $ref as xs:string?) as xs:string? {
+	let $uri := local:binary-uris($home-data, $ref)[util:binary-doc-available(.)][1]
+	return
+		if (empty($uri)) then ()
+		else local:content-hash($uri)
+};
+
+(: Schreibt @hashcode an Files/File. $missing-only lässt vorhandene Hashcodes stehen. :)
+declare function document:stamp-file-hashes($home-data as xs:string, $node as node()?, $missing-only as xs:boolean) {
+	for $file in $node//Files/File
+	where not($missing-only) or not(matches(string($file/@hashcode), '^[0-9a-f]{64}$'))
+	let $hash := (
+		document:hashcode($home-data, string($file/@src)),
+		document:hashcode($home-data, string($file/@uploadSrc))
+	)[normalize-space(.) != ''][1]
+	where exists($hash) and string($file/@hashcode) != $hash
+	return
+		try {
+			if ($file/@hashcode) then
+				update value $file/@hashcode with $hash
+			else
+				update insert attribute hashcode { $hash } into $file
+		} catch * {
+			()
+		}
 };
 
 
@@ -367,6 +425,7 @@ declare function document:createDocument($home-data as xs:string, $tenant as xs:
 
 					let $moveAttachements := for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
 								return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
+					let $hashes := document:stamp-file-hashes($home-data, $document, false())
 					return
 					<created resource="{$resource-uri}" document-id="{$document-id}" filename="{$filename||'.dm.xml'}">
 						{$moveAttachements}
@@ -495,6 +554,7 @@ declare function document:updateDocument($home-data as xs:string, $tenant as xs:
 
 					let $moveAttachements := for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
 						return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
+					let $hashes := document:stamp-file-hashes($home-data, $document, false())
 					return
 					<updated resource="{$resource-uri}" document-id="{$document-id}" filename="{$filename||'.dm.xml'}">
 						{$moveAttachements}
@@ -560,6 +620,7 @@ declare function document:insertTask ($home-data as xs:string, $tenant as xs:str
 		let $moveAttachements := 
 			for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
 			return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
+		let $hashes := document:stamp-file-hashes($home-data, $document, false())
 		return
 			<stored resource="{$resource-uri}" resource-id="{$document-id}">
 				{$document}
@@ -594,6 +655,67 @@ declare function document:validateProcess ($home-data as xs:string, $tenant as x
 
 
 (: ############# local functions ############# :)
+
+declare function local:year-processes($year-col as xs:string) as element(Process)* {
+	for $folder in xmldb:get-child-collections($year-col)
+	return collection($year-col || '/' || $folder)/Process
+};
+
+declare function local:file-twins($year-col as xs:string) as element(Twins) {
+	<Twins>
+	{
+		for $file in local:year-processes($year-col)//Files/File[matches(@hashcode, '^[0-9a-f]{64}$')]
+		group by $hash := string($file/@hashcode)
+		where count($file) gt 1
+		return
+			<Twin hash="{$hash}" count="{count($file)}">
+			{
+				for $name in distinct-values($file/ancestor::Process/@name)
+				order by $name
+				return <Name>{$name}</Name>
+			}
+			</Twin>
+	}
+	</Twins>
+};
+
+declare function local:strip-web($ref as xs:string) as xs:string {
+	replace(replace(replace($ref, '^https?://[^/]+', ''), '^/exist/apps/docman', ''), '^/app', '')
+};
+
+(: Mögliche DB-Pfade zu einer Datei: Ablage, Transfer oder direkter Datenpfad. :)
+declare function local:binary-uris($home-data as xs:string, $ref as xs:string?) as xs:string* {
+	let $raw := normalize-space(string($ref))
+	let $path := local:strip-web($raw)
+	where $path != ''
+	return
+		distinct-values((
+			if (starts-with($raw, '/db/')) then $raw else (),
+			if (starts-with($path, '/db/')) then $path else (),
+			if (matches($path, '^/[^/]+/[0-9]{4}/binders/.+')) then
+				$home-data || replace($path, '^(/[^/]+/[0-9]{4})/binders/', '$1/')
+			else (),
+			if (starts-with($path, '/') and not(starts-with($path, '/db/'))) then
+				$home-data || $path
+			else ()
+		))
+};
+
+declare function local:content-hash($uri as xs:string) as xs:string? {
+	try {
+		let $digest := function-lookup(xs:QName('util:binary-doc-content-digest'), 2)
+		let $value :=
+			if (exists($digest)) then
+				lower-case(string($digest($uri, 'SHA-256')))
+			else
+				lower-case(util:hash(string(util:binary-doc($uri)), 'SHA-256', false()))
+		return
+			if (matches($value, '^[0-9a-f]{64}$')) then $value else ()
+	} catch * {
+		()
+	}
+};
+
 declare function local:moveAttachement($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $attachment) as element() {
 
 	let $transfer-collection := concat($home-data,'/',$tenant,'/',$year,'/transfer')

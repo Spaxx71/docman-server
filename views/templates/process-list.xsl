@@ -216,6 +216,7 @@
 							<a href="{$home-web-gui}/{@src}">
 								<xsl:call-template name="FileTypes"/>
 							</a>
+							<xsl:call-template name="FileHashNote"/>
 							<br/>
 						</xsl:for-each>
 					</xsl:when>
@@ -223,7 +224,9 @@
 						<xsl:for-each select="Tasks/*/Files/File">
 							<a href="{$home-web-gui}/{@src}">
 								<xsl:call-template name="FileTypes"/>
-							</a><br/>
+							</a>
+							<xsl:call-template name="FileHashNote"/>
+							<br/>
 						</xsl:for-each>
 					</xsl:otherwise>
 				</xsl:choose>					
@@ -287,6 +290,17 @@
 		</tr>
 	</xsl:template>
 	
+	<xsl:template name="FileHashNote">
+		<xsl:if test="normalize-space(@hashcode)">
+			<xsl:variable name="hash" select="string(@hashcode)"/>
+			<xsl:variable name="twin" select="(ancestor::Binders/Twins/Twin[@hash = $hash])[1]"/>
+			<xsl:variable name="same" select="//Process//File[string(@hashcode) = $hash]"/>
+			<xsl:if test="$twin or count($same) gt 1">
+				<span style="color:#c00; font-weight:bold" title="Diese Datei wurde mehrfach hinterlegt"> Mehrfach hinterlegt</span>
+			</xsl:if>
+		</xsl:if>
+	</xsl:template>
+
 	<xsl:template name="FileTypes">
 		<xsl:choose>
 			<xsl:when test="@type='doc-bank-transfer'">

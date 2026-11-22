@@ -22,13 +22,17 @@ let $username := request:get-attribute('username')
 
 let $file-name := tokenize($file,'/')[last()]
 let $file-path := substring-before($file, $file-name)
+let $src := concat($file-path, $file-name)
+let $hash := document:hashcode($home-data, $src)
 
 return
 	<result resource-type="attachment">
 		<AttachmentTask type="doc-undefined" id="ACC{util:uuid()}" date="{substring(xs:string(current-date()),1,10)}" created="{current-dateTime()}" isMaster="false" user="{$username}" isStorno="false">
 			<Notes/>
 			<Files>
-				<File src="{concat($file-path,$file-name)}" uploadSrc="{concat($file-path,$file-name)}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="delivery-note" doctype="doc-undefined" archived="false"/>			
+				<File src="{$src}" uploadSrc="{$src}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="delivery-note" doctype="doc-undefined" archived="false">
+					{ if ($hash) then attribute hashcode { $hash } else () }
+				</File>
 			</Files>
 			<Bookings/>
 			<Amount value="0" unit="EUR"/>

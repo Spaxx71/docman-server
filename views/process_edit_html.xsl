@@ -648,7 +648,7 @@
 						<xsl:copy-of select="Files/File"/>
 					</xsl:when>
 					<xsl:otherwise>
-						<File fileName="" fileExtension="" mimeType="" src="" type="" uploadName="" uploadSrc="" doctype="" archived=""/>
+						<File fileName="" fileExtension="" mimeType="" src="" type="" uploadName="" uploadSrc="" doctype="" archived="" hashcode=""/>
 					</xsl:otherwise>
 				</xsl:choose>
 			</data>

@@ -22,6 +22,8 @@ let $username := request:get-attribute('username')
 
 let $file-name := tokenize($file,'/')[last()]
 let $file-path := substring-before($file, $file-name)
+let $src := concat($file-path, $file-name)
+let $hash := document:hashcode($home-data, $src)
 
 (: Note: the template in process_edit_html.xsl has to be updated the same :)
 return
@@ -29,7 +31,9 @@ return
 		<DunningFeeTask type="dunning-fee" id="ACC{util:uuid()}" date="" created="{current-dateTime()}" isMaster="false" user="{$username}">
 			<Notes/>
 			<Files>
-				<File src="{concat($file-path,$file-name)}" uploadSrc="{concat($file-path,$file-name)}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="doc-dunning-fee" doctype="undefined" archived="false"/>
+				<File src="{$src}" uploadSrc="{$src}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="doc-dunning-fee" doctype="undefined" archived="false">
+					{ if ($hash) then attribute hashcode { $hash } else () }
+				</File>
 			</Files>
 			<Bookings>
 				<Booking date="" quality="3" amountValue="" amountUnit="EUR" credit="" debit="6855" taxKey="1" taxAmount="0.0" refID="" description=""/>			

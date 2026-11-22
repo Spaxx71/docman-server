@@ -78,8 +78,13 @@ return
 		}
 		{
 			if ($file-name != '') then
+				let $src := concat($file-path, $file-name)
+				let $hash := document:hashcode($home-data, $src)
+				return
 				<Files>
-					<File src="{concat($file-path,$file-name)}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" uploadSrc="{$home-web-gui}{$file}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat('http://localhost:8080/exist/apps/docman', $file-path,$file-name)))}" type="{$type}" doctype="" archived="false"/>
+					<File src="{$src}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" uploadSrc="{$home-web-gui}{$file}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat('http://localhost:8080/exist/apps/docman', $file-path,$file-name)))}" type="{$type}" doctype="" archived="false">
+						{ if ($hash) then attribute hashcode { $hash } else () }
+					</File>
 				</Files>
 			else
 				()

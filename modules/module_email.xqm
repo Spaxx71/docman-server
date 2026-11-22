@@ -33,7 +33,7 @@ declare function local:replaceAttributeValue($node as item(), $attributeName as 
 	if ($node instance of document-node()) then
 		local:replaceAttributeValue($node/*, $attributeName, $attributeOldValue, $attributeNewValue)
 	else if ($node instance of element()) then
-		element {$node/name()} {
+		element { node-name($node) } {
 			for $attribute in $node/@*
 			return
 				if ($attribute/name()=$attributeName and $attribute/data() = $attributeOldValue) then
@@ -65,9 +65,24 @@ declare function local:safe-ncname($name as xs:string) as xs:string {
 			$trimmed
 };
 
+(: Präfix nur behalten, wenn es im Modul gebunden ist. Sonst wird aus o:p der Name o-p. :)
+declare function local:element-name($n as element()) as xs:QName {
+	if (namespace-uri($n) = 'http://exist-db.org/xquery/mail') then
+		node-name($n)
+	else
+		let $lexical := string(node-name($n))
+		let $raw :=
+			if (contains($lexical, ':')) then
+				concat(substring-before($lexical, ':'), '-', substring-after($lexical, ':'))
+			else
+				$lexical
+		return
+			QName('', local:safe-ncname($raw))
+};
+
 declare function local:cleanupNamespace($n as node()) as node() {
 	if($n instance of element()) then (
-		element { if (namespace-uri($n) = '') then local:safe-ncname(local-name($n)) else node-name($n) } 
+		element { local:element-name($n) }
 		{
 			for $attribute in $n/@*
 			return 

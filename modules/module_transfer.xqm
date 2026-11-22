@@ -23,32 +23,73 @@ xquery version "3.1";
 module namespace transfer = "http://bintellix.com/docman/transfer";
 
 import module namespace di = "http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+import module namespace document = "http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
 
 (: import module namespace crypto = "http://expath.org/ns/crypto"; 
 import module "http://expath.org/ns/crypto";
 :)
 
+declare function local:filed-copies($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Filed)* {
+	let $year-col := $home-data || '/' || $tenant || '/' || $year
+	for $folder in xmldb:get-child-collections($year-col)
+	where not($folder = ('trash', 'transfer'))
+	let $collection := $year-col || '/' || $folder
+	for $name in xmldb:get-child-resources($collection)
+	where ends-with($name, '.dm.xml')
+	let $process := doc($collection || '/' || $name)/Process
+	for $file in $process/Tasks/*/Files/File
+	let $hash :=
+		if (matches(string($file/@hashcode), '^[0-9a-f]{64}$')) then
+			string($file/@hashcode)
+		else
+			document:hashcode($home-data, string($file/@src))
+	where exists($hash)
+	return
+		<Filed hash="{$hash}" folder="{$folder}" process="{string($process/@name)}" file="{concat(string($file/@fileName), string($file/@fileExtension))}"/>
+};
+
 declare function transfer:index ($home-data as xs:string, $tenant as xs:string, $year as xs:integer) {
 	let $collection-transfer := $home-data||'/'||$tenant||'/'||$year||'/transfer'
 	let $documents := xmldb:get-child-resources($collection-transfer)
-	return
-	<Transfer version="1.0" tenantId="{$tenant}" yearId="{$year}">
-		<Files>
-		{ 
+	let $filed := local:filed-copies($home-data, $tenant, $year)
+	let $items :=
 		for $document in $documents
 		where not(di:is-sidecar($document))
 		let $ready := if (di:is-document($document)) then di:ensure($home-data, $tenant, $year, $document, '', '') else ()
-		let $meta := if (di:is-document($document)) then di:load($home-data, $tenant, $year, $document) else ()
+		let $hash := document:hashcode($home-data, $collection-transfer || '/' || $document)
 		order by $document
 		return
-			<File name="{$document}"
-				size="{xmldb:size($home-data||'/'||$tenant||'/'||$year||'/transfer',$document)}"
-				created="{xmldb:created($home-data||'/'||$tenant||'/'||$year||'/transfer',$document)}"
-				>
+			<Item name="{$document}" hash="{$hash}"
+				size="{xmldb:size($collection-transfer, $document)}"
+				created="{xmldb:created($collection-transfer, $document)}">
 				{ di:summary($home-data, $tenant, $year, $document) }
-				{ $meta[self::DocmanIntelligence] }
+				{ di:load($home-data, $tenant, $year, $document)[self::DocmanIntelligence] }
+			</Item>
+	return
+	<Transfer version="1.0" tenantId="{$tenant}" yearId="{$year}">
+		<Files>
+		{
+		for $item in $items
+		let $hash := string($item/@hash)
+		let $in-transfer := count($items[string(@hash) = $hash][string(@hash) != ''])
+		let $hits := $filed[@hash = $hash]
+		let $duplicate :=
+			if (exists($hits)) then 'filed'
+			else if ($in-transfer > 1) then 'transfer'
+			else ''
+		return
+			<File name="{$item/@name}"
+				size="{$item/@size}"
+				created="{$item/@created}"
+				hashcode="{$hash}"
+				duplicate="{$duplicate}">
+				{ $item/* }
+				{
+					if (exists($hits)) then
+						<AlreadyFiled>{$hits}</AlreadyFiled>
+					else ()
+				}
 			</File>
-				(: hash-sha1="{crypto:hash(util:binary-doc($collection-transfer ||'/'||$document),'SHA1')}" :)
 		}
 		</Files>
 	</Transfer>

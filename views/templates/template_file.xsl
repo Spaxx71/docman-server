@@ -47,6 +47,12 @@
 			<xf:label>MIME-Type:</xf:label>
 		</xf:output>
 
+		<div style="font-size:70%">
+			<xf:output ref="@hashcode">
+				<xf:label>Hashcode:</xf:label>
+			</xf:output>
+		</div>
+
 		<xf:select1 ref="@type" appearance="minimal">
 			<xf:label>Dokument Inhalt</xf:label>
 			<xf:item>

@@ -107,7 +107,9 @@ return
 					<TransferVoucherTask type="transfer-voucher" id="{$voucher-id}" date="{current-date()}" created="{current-dateTime()}" isMaster="false" user="{$username}">
 						<Notes>Automatisch erzeugt nach SEPA-Überweisung</Notes>
 						<Files>
-							<File src="{$rel}" uploadSrc="{$rel}" fileName="{$file-name}" fileExtension=".pdf" uploadName="{$file-name}.pdf" mimeType="application/pdf" type="doc-bank-transfer" doctype="digital" archived="false"/>
+							<File src="{$rel}" uploadSrc="{$rel}" fileName="{$file-name}" fileExtension=".pdf" uploadName="{$file-name}.pdf" mimeType="application/pdf" type="doc-bank-transfer" doctype="digital" archived="false">
+								{ let $hash := document:hashcode($home-data, $rel) return if ($hash) then attribute hashcode { $hash } else () }
+							</File>
 						</Files>
 						<Bookings/>
 						<Amount value="{$amount}" unit="{$unit}"/>

@@ -979,6 +979,14 @@
       </xs:simpleType>
     </xs:attribute>
     <xs:attribute name="uploadSrc" type="xs:anyURI"/>
+    <!-- SHA-256 des Dateiinhalts, zur Erkennung gleicher Dateien -->
+    <xs:attribute name="hashcode" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="[0-9a-f]{64}"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
   </xs:complexType>
 
   <!-- Document Intelligence Metadaten am Task-Dokument; Struktur in DocumentIntelligence.xsd -->

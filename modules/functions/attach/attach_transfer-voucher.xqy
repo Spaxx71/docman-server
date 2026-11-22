@@ -1,5 +1,7 @@
 xquery version "3.0";
 
+import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
+
 (:
 
 https://dev.bintellix.com/exist-backend/rest/db/apps/docman/modules/banking/banking_index.xqy
@@ -19,12 +21,16 @@ let $username := request:get-attribute('username')
 
 let $file-name := tokenize($file,'/')[last()]
 let $file-path := substring-before($file, $file-name)
+let $src := concat($file-path, $file-name)
+let $hash := document:hashcode($home-data, $src)
 return
 	<result resource-type="transfer-voucher">
 		<TransferVoucherTask type="transfer-voucher" id="ACC{util:uuid()}" date="" created="{current-dateTime()}" isMaster="false" user="{$username}">
 			<Notes/>
 			<Files>
-				<File src="{concat($file-path,$file-name)}" uploadSrc="{concat($file-path,$file-name)}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="doc-bank-transfer" doctype="undefined" archived="false"/>			
+				<File src="{$src}" uploadSrc="{$src}" fileName="{substring-before($file-name,'.')}" fileExtension=".{lower-case(substring-after($file-name,'.'))}" uploadName="{$file-name}" mimeType="{xmldb:get-mime-type(xs:anyURI(concat($home-data, $file-path,$file-name)))}" type="doc-bank-transfer" doctype="undefined" archived="false">
+					{ if ($hash) then attribute hashcode { $hash } else () }
+				</File>
 			</Files>
 			<Bookings/>
 			<Amount value="0" unit="EUR"/>
