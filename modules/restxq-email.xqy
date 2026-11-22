@@ -200,3 +200,30 @@ declare
 function dmemail:moveEmailJSON($user as xs:string*, $tenant as xs:string, $nr as xs:integer, $folder as xs:string*, $to as xs:string*) {
 	dmemail:moveEmailXML($user, $tenant, $nr, $folder, $to)
 };
+
+
+(:
+	DELETE /api/xml/tenants/{Mandant}/emails/{nr}?folder=INBOX
+	Löscht die Nachricht im Postfach. Es wird nichts in einen anderen Ordner kopiert.
+:)
+declare
+	%rest:DELETE
+	%rest:path("/docman/xml/tenants/{$tenant}/emails/{$nr}")
+	%rest:query-param("user", "{$user}", "Guest")
+	%rest:query-param("folder", "{$folder}", "INBOX")
+	%output:media-type("text/xml")
+	%output:method("xml")
+function dmemail:deleteEmailXML($user as xs:string*, $tenant as xs:string, $nr as xs:integer, $folder as xs:string*) {
+	try { email:delete-message($tenant, ($folder, 'INBOX')[1], $nr) } catch * { <error>{$err:description}</error> }
+};
+
+declare
+	%rest:DELETE
+	%rest:path("/docman/json/tenants/{$tenant}/emails/{$nr}")
+	%rest:query-param("user", "{$user}", "Guest")
+	%rest:query-param("folder", "{$folder}", "INBOX")
+	%output:media-type("application/json")
+	%output:method("json")
+function dmemail:deleteEmailJSON($user as xs:string*, $tenant as xs:string, $nr as xs:integer, $folder as xs:string*) {
+	dmemail:deleteEmailXML($user, $tenant, $nr, $folder)
+};

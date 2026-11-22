@@ -46,11 +46,25 @@ let $number := xs:integer(request:get-attribute('attachment'))
 let $transfer-collection := $ct-home-data||'/'||$tenant||'/'||$year||'/transfer'
 
 let $attachment := email:read-attachment($tenant, $id, $number)/*:attachment
-let $filename :=  replace(translate(replace(replace($attachment/@filename,'\.PDF','.pdf'),'utf\-8',''),' ','_'),'[^A-Za-z0-9_#\.\-]','')
+let $wanted := replace(translate(replace(replace(string(($attachment/@filename, $attachment/@name)[1]),'\.PDF','.pdf'),'utf\-8',''),' ','_'),'[^A-Za-z0-9_#\.\-]','')
+let $parts := analyze-string($wanted, '^(.*?)(\.[^.]+)?$')//fn:group
+let $stem := string(($parts[1], $wanted)[1])
+let $ext := string(($parts[2], '')[1])
+let $existing := xmldb:get-child-resources($transfer-collection)
+let $filename :=
+	if (empty(index-of($existing, $wanted))) then
+		$wanted
+	else
+		(
+			for $i in 1 to 10000
+			let $candidate := $stem || '-' || $i || $ext
+			where empty(index-of($existing, $candidate))
+			return $candidate
+			,
+			$stem || '-1' || $ext
+		)[1]
 return
-	if (index-of(xmldb:get-child-resources($transfer-collection), $filename) > 0) then
-		<error>Filename "{$filename}" already exists.</error>
-	else if (string-length($attachment/text()) = 0) then
+	if (string-length($attachment/text()) = 0) then
 		<error>No Attachment found.</error>
 	else
 		let $write := xmldb:store($transfer-collection, $filename, xs:base64Binary($attachment/text()), $attachment/@mime-type)

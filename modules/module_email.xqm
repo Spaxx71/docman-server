@@ -54,13 +54,31 @@ declare function local:replaceAttributeValue($node as item(), $attributeName as 
 };
 
 
+(: XML-Namen: kein führendes Digit/Punkt/Bindestrich; leere Reste vermeiden. :)
+declare function local:safe-ncname($name as xs:string) as xs:string {
+	let $cleaned := replace($name, '[^A-Za-z0-9_\-\.]', '-')
+	let $trimmed := replace($cleaned, '^[\-\.]+', '')
+	return
+		if ($trimmed = '' or matches($trimmed, '^[0-9]')) then
+			'a-' || (if ($trimmed = '') then 'attr' else $trimmed)
+		else
+			$trimmed
+};
+
 declare function local:cleanupNamespace($n as node()) as node() {
 	if($n instance of element()) then (
-		element { if (namespace-uri($n) = '') then local-name($n) else node-name($n) } 
+		element { if (namespace-uri($n) = '') then local:safe-ncname(local-name($n)) else node-name($n) } 
 		{
 			for $attribute in $n/@*
 			return 
-				attribute { if (namespace-uri($attribute) = '') then replace(local-name($attribute),'[^A-Za-z0-9+]','-') else replace(node-name($attribute),'[^A-Za-z0-9+]','-') } { $attribute/data() }
+				attribute {
+					local:safe-ncname(
+						if (namespace-uri($attribute) = '') then
+							local-name($attribute)
+						else
+							string(node-name($attribute))
+					)
+				} { $attribute/data() }
 			,
 			for $node in $n/node()
 			return
@@ -319,18 +337,71 @@ declare function email:read-emails($tenant as xs:string, $folder as xs:string) a
 	let $lMessageListHandle := mail:get-message-list($lMailFolderHandle)
 
 	let $MessageList := mail:get-message-list-as-xml($lMessageListHandle, false())
+	let $box := local:mailbox($tenant)
+	let $counts :=
+		if (exists($box)) then
+			local:attachment-counts($box, $folder-name)
+		else
+			()
 
 	return 
 	(: 
 		mail:search-message-list()
 	:)
 		<result folder="{$folder-name}">	
-			{$MessageList}
+			{local:with-attachment-counts($MessageList, $counts)}
 
 			{mail:close-message-list($lMessageListHandle)}
 			{mail:close-mail-folder($lMailFolderHandle, false())}
 			{mail:close-mail-store($lMailStoreHandle)}
 		</result>	
+};
+
+(: BODYSTRUCTURE: Anzahl der Teile mit Disposition ATTACHMENT. :)
+declare function local:bodystructure-attachment-count($structure as xs:string) as xs:integer {
+	count(tokenize(upper-case($structure), '"ATTACHMENT"')[position() gt 1])
+};
+
+declare function local:attachment-counts($box as element(mailbox), $folder as xs:string) as element(count)* {
+	let $quote := local:imap-quote($folder)
+	let $fetched := local:imap($box, (concat('SELECT ', $quote), 'FETCH 1:* (BODYSTRUCTURE)'))
+	return
+		if ($fetched/@ok = 'false') then
+			()
+		else
+			for $line in $fetched/line
+			let $text := string($line)
+			where matches($text, '^\* \d+ FETCH \(BODYSTRUCTURE')
+			return
+				<count number="{replace($text, '^\* (\d+) FETCH \(BODYSTRUCTURE.*$', '$1')}" value="{local:bodystructure-attachment-count($text)}"/>
+};
+
+declare function local:with-attachment-counts($node as node()?, $counts as element(count)*) as node()? {
+	if (empty($node)) then
+		()
+	else if ($node instance of document-node()) then
+		document {
+			for $child in $node/node()
+			return local:with-attachment-counts($child, $counts)
+		}
+	else if ($node instance of element() and local-name($node) = 'message') then
+		let $number := string($node/@number)
+		let $hit := $counts[@number = $number][1]
+		let $value := if (exists($hit)) then string($hit/@value) else "0"
+		return
+			element { node-name($node) } {
+				$node/@*[local-name() != "attachments"],
+				attribute attachments { $value },
+				$node/node()
+			}
+	else if ($node instance of element()) then
+		element { node-name($node) } {
+			$node/@*,
+			for $child in $node/node()
+			return local:with-attachment-counts($child, $counts)
+		}
+	else
+		$node
 };
 
 declare function local:sent-by-servers($folder as xs:long, $message as element()?) as xs:string* {
@@ -606,6 +677,46 @@ declare function email:move-message($tenant as xs:string, $folder as xs:string, 
 													<result folder="{$source-name}" number="{$number}" to="{$target-name}" status="moved" created="{$created}" reload="true">
 														Die Nachrichtennummer gilt nur im Ordner "{$source-name}" und kann sich im Zielordner ändern.
 													</result>
+};
+
+declare function email:delete-message($tenant as xs:string, $folder as xs:string, $number as xs:integer) as element() {
+	let $box := local:mailbox($tenant)
+	let $folder-name := local:folder-name($folder)
+	let $quote := local:imap-quote($folder-name)
+	return
+		if (empty($box)) then
+			<error>Kein Postfach für Mandant {$tenant} konfiguriert.</error>
+		else if ($number lt 1) then
+			<error>Die Nachrichtennummer muss größer als 0 sein.</error>
+		else
+			let $capability := local:imap($box, ('CAPABILITY'))
+			return
+				if ($capability/@ok = 'false') then
+					<error>{string($capability/error)}</error>
+				else if (not(contains(string-join($capability/line, ' '), 'UIDPLUS'))) then
+					<error>Das Postfach unterstützt kein UIDPLUS. Die Nachricht kann nicht einzeln gelöscht werden.</error>
+				else
+					let $selected := local:imap($box, (
+						concat('SELECT ', $quote),
+						concat('FETCH ', $number, ' (UID)')
+					))
+					let $uid := replace(string($selected/line[contains(., 'FETCH') and contains(., 'UID')][1]), '^.*\(UID\s+(\d+).*$', '$1')
+					return
+						if ($selected/@ok = 'false') then
+							<error>{string($selected/error)}</error>
+						else if (not(matches($uid, '^\d+$'))) then
+							<error>Die Nachricht {$number} wurde im Ordner "{$folder-name}" nicht gefunden.</error>
+						else
+							let $removed := local:imap($box, (
+								concat('SELECT ', $quote),
+								concat('UID STORE ', $uid, ' +FLAGS (\Deleted)'),
+								concat('UID EXPUNGE ', $uid)
+							))
+							return
+								if ($removed/@ok = 'false') then
+									<error>{string($removed/error)}</error>
+								else
+									<result folder="{$folder-name}" number="{$number}" status="deleted" reload="true"/>
 };
 
 

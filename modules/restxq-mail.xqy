@@ -61,6 +61,55 @@ declare function local:order-messages($node as node()?) as node()? {
 		$node
 };
 
+declare function local:transfer-collection($tenant as xs:string, $year as xs:integer) as xs:string {
+	let $year-col := concat($main:home-data, "/", $tenant, "/", $year)
+	let $transfer := concat($year-col, "/transfer")
+	return
+		if (xmldb:collection-available($transfer)) then
+			$transfer
+		else if (xmldb:collection-available($year-col)) then
+			let $created := xmldb:create-collection($year-col, "transfer")
+			return $transfer
+		else
+			error(xs:QName("dmmail:missing-year"), concat("Jahr fehlt: ", $year))
+};
+
+declare function local:attachment-name($attachment as element()?, $id as xs:integer, $index as xs:integer) as xs:string {
+	let $filename := normalize-space(string(($attachment/@filename)[1]))
+	let $named := normalize-space(string(($attachment/@name)[1]))
+	let $raw := if ($filename != "") then $filename else $named
+	let $clean := replace(translate(replace(replace($raw, "\.PDF", ".pdf"), "utf\-8", ""), " ", "_"), "[^A-Za-z0-9_#\.\-]", "")
+	return
+		if ($clean = "" or $clean = ".") then
+			concat("anhang-", $id, "-", $index)
+		else
+			$clean
+};
+
+(: Wie Transfer-Upload: bei Namenskollision Suffix -1, -2, … vor der Endung. :)
+declare function local:unique-transfer-name($collection as xs:string, $name as xs:string) as xs:string {
+	if (empty(index-of(xmldb:get-child-resources($collection), $name))
+		and not(doc-available($collection || "/" || $name))
+		and not(util:binary-doc-available($collection || "/" || $name))) then
+		$name
+	else
+		let $parts := analyze-string($name, "^(.*?)(\.[^.]+)?$")//fn:group
+		let $stem := string(($parts[1], $name)[1])
+		let $ext := string(($parts[2], "")[1])
+		let $free :=
+			for $i in 1 to 10000
+			let $candidate := $stem || "-" || $i || $ext
+			where empty(index-of(xmldb:get-child-resources($collection), $candidate))
+				and not(doc-available($collection || "/" || $candidate))
+				and not(util:binary-doc-available($collection || "/" || $candidate))
+			return $candidate
+		return
+			if (exists($free)) then
+				$free[1]
+			else
+				error(xs:QName("dmmail:name-clash"), concat("Kein freier Name für: ", $name))
+};
+
 (:
 	GET http://localhost:8080/exist/restxq/docman/xml/tenants/test/years/2020/mail
 	GET /api/(xml|json)/tenants/test/years/2020/mail
@@ -102,24 +151,25 @@ declare
 	%output:media-type("text/xml")
 	%output:method("xml")
 	%rest:query-param("user", "{$user}", "Guest")
-function dmmail:transferXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer) {
-	let $transfer-collection := $main:home-data || "/" || $tenant || "/" || $year || "/transfer"
-	let $attachment := email:read-attachment($tenant, $id, $index)/*:attachment
-	let $filename := replace(translate(replace(replace($attachment/@filename, "\.PDF", ".pdf"), "utf\-8", ""), " ", "_"), "[^A-Za-z0-9_#\.\-]", "")
+	%rest:query-param("folder", "{$folder}", "INBOX")
+function dmmail:transferXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer, $folder as xs:string*) {
+	let $box := ($folder, "INBOX")[1]
+	let $transfer-collection := local:transfer-collection($tenant, $year)
+	let $attachment := email:read-attachment($tenant, $id, $index, $box)/*:attachment
+	let $wanted := local:attachment-name($attachment, $id, $index)
 	return
-		if (index-of(xmldb:get-child-resources($transfer-collection), $filename) > 0) then
-			<error>Filename "{$filename}" already exists.</error>
-		else if (string-length($attachment/text()) = 0) then
-			<error>No Attachment found.</error>
+		if (empty($attachment) or string-length(normalize-space(string($attachment))) = 0) then
+			<error>Anhang {$index} der Nachricht {$id} wurde im Ordner "{$box}" nicht gefunden.</error>
 		else
+			let $filename := local:unique-transfer-name($transfer-collection, $wanted)
 			let $write := xmldb:store($transfer-collection, $filename, xs:base64Binary($attachment/text()), $attachment/@mime-type)
-			let $message := email:read-message($tenant, $id)
+			let $message := email:read-message($tenant, $id, $box)
 			let $from := string(($message//*:from)[1])
 			let $subject := string(($message//*:subject)[1])
 			let $intel := di:ensure($main:home-data, $tenant, $year, $filename, $from, $subject)
 			return
 				<result>
-					<transfer document="{$filename}" mime-type="{$attachment/@mime-type}" status=""/>
+					<transfer document="{$filename}" mime-type="{$attachment/@mime-type}" status="stored"/>
 				</result>
 };
 
@@ -169,6 +219,7 @@ declare
 	%output:media-type("application/json")
 	%output:method("json")
 	%rest:query-param("user", "{$user}", "Guest")
-function dmmail:transferJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer) {
-	dmmail:transferXML($user, $tenant, $year, $id, $index)
+	%rest:query-param("folder", "{$folder}", "INBOX")
+function dmmail:transferJSON($user as xs:string*, $tenant as xs:string, $year as xs:integer, $id as xs:integer, $index as xs:integer, $folder as xs:string*) {
+	dmmail:transferXML($user, $tenant, $year, $id, $index, $folder)
 };
