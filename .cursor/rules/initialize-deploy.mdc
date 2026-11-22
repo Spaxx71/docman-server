@@ -1,0 +1,24 @@
+---
+description: RESTXQ-Registrierung und Dateirechte nur über initialize.xqy
+alwaysApply: true
+---
+
+# Deploy: initialize.xqy
+
+Nach Änderungen an `modules/restxq-*.xqy`, `modules/module_*.xqm`, `install.xqy` oder Jobs unter `modules/functions/`:
+
+1. Dateien nach `/db/apps/docman/…` speichern (PUT/Sync).
+2. **Nicht** ad-hoc `exrest:register-module`, `sm:chmod` oder `sm:chown` per Query ausführen.
+3. Stattdessen **`initialize.xqy`** ausführen — dort werden RESTXQ-Module registriert und Rechte (inkl. setuid für DI-Modul/Job) gesetzt.
+
+## Verboten
+
+- `exrest:register-module(...)` in One-off-Queries nach Deploy
+- Manuelles `sm:chmod` / `sm:chown` „zum Testen“
+- eXist-Server- oder JVM-Configs ändern
+
+## Erlaubt
+
+- Lokale Code-Edits; Deploy der App-Dateien
+- Anschließend initialize.xqy (bzw. den üblichen Initialize-Aufruf des Projekts)
+- Diagnose-Reads (`sm:get-permissions`, `rest:resource-functions`) ohne Schreibzugriff auf Rechte/Registry
