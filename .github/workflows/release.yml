@@ -1,0 +1,67 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Spaxx71/docman-ui
+          ref: master
+          path: ui
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Abhängigkeiten der UI
+        working-directory: ui
+        run: npm ci
+
+      - name: XAR bauen
+        env:
+          DOCMAN_UI: ${{ github.workspace }}/ui
+        run: ./build-xar.sh
+
+      - name: Image bauen und starten
+        run: |
+          docker build -t docman:test .
+          docker run -d --name docman-test -p 8080:8080 -e EXIST_PASSWORD=docman docman:test
+
+      - name: Initialisierung prüfen
+        run: ./smoke-test.sh http://localhost:8080
+
+      - name: Testcontainer stoppen
+        if: always()
+        run: docker rm -f docman-test || true
+
+      - name: Bei ghcr.io anmelden
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Image veröffentlichen
+        run: |
+          docker tag docman:test ghcr.io/spaxx71/docman:0.6
+          docker tag docman:test ghcr.io/spaxx71/docman:latest
+          docker push ghcr.io/spaxx71/docman:0.6
+          docker push ghcr.io/spaxx71/docman:latest
+
+      - name: XAR als Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v0.6 dist/docman-0.6.xar \
+            --title "Docman 0.6" \
+            --notes "Test-XAR mit docman-ui und data/test. Image: ghcr.io/spaxx71/docman:0.6" \
+            || gh release upload v0.6 dist/docman-0.6.xar --clobber

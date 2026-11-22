@@ -1048,6 +1048,26 @@ else if (matches($exist:path, "^/xsltforms/(.*)")) then
 		<forward url="/xsltforms/{$params[1]}"/>
 	</dispatch>
 
+(: React-UI. Vorhandene Dateien direkt, alle anderen Routen auf index.html. :)
+else if ($exist:path = ("/webapp", "/webapp/")) then
+	<dispatch xmlns="http://exist.sourceforge.net/NS/exist">
+		<forward url="/docman/webapp/index.html"/>
+	</dispatch>
+
+else if (starts-with($exist:path, "/webapp/")) then
+	let $db-path := concat("/db/apps/docman", $exist:path)
+	return
+		if (util:binary-doc-available($db-path) or doc-available($db-path)) then
+			<dispatch xmlns="http://exist.sourceforge.net/NS/exist">
+				<ignore>
+					<cache-control cache="yes"/>
+				</ignore>
+			</dispatch>
+		else
+			<dispatch xmlns="http://exist.sourceforge.net/NS/exist">
+				<forward url="/docman/webapp/index.html"/>
+			</dispatch>
+
 else
 	(: everything else is an 404 - Not found :)
 	(
