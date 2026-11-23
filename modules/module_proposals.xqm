@@ -103,12 +103,90 @@ declare %private function proposals:best-party($recipient as xs:string, $parties
 	)[1]
 };
 
+(: Abwickler: Empfänger ist Bank/PayPal o. Ä., der Händler steht im Verwendungszweck. :)
+declare %private function proposals:is-processor($name as xs:string) as xs:boolean {
+	matches(upper-case(normalize-space($name)), '(^|[^A-Z])(BANK|SPARKASSE|VOLKSBANK|RAIFFEISEN|POSTBANK|COMDIRECT|ING.?DIBA|PAYPAL|SUMUP|STRIPE|ADYEN|WORLDLINE)([^A-Z]|$)')
+};
+
+(: Händler aus Verwendungszweck: Karte „Name//Ort“, PayPal „Ihr Einkauf bei …“, „…/PP.…/. Händler, …“. :)
+declare %private function proposals:purpose-party($purpose as xs:string) as xs:string {
+	let $raw := normalize-space($purpose)
+	let $einkauf :=
+		if (matches($raw, 'Ihr Einkauf bei\s+\S', 'i')) then
+			normalize-space(replace(replace($raw, '^.*?Ihr Einkauf bei\s+', '', 'i'), '[,.;].*$', ''))
+		else ''
+	let $slash :=
+		if (contains($raw, '//')) then normalize-space(substring-before($raw, '//')) else ''
+	let $pp :=
+		if (matches($raw, '/PP\.[^/\s]*/\.?\s*\S')) then
+			normalize-space(replace(replace($raw, '^.*?/PP\.[^/\s]*/\.?\s*', ''), ',.*$', ''))
+		else ''
+	let $pick := ($einkauf, $slash, $pp)[normalize-space(.) != '' and string-length(normalize-space(.)) ge 3][1]
+	return
+		if (empty($pick) or proposals:is-processor(string($pick)) or matches(string($pick), '^[0-9./\s]+$')) then ''
+		else string($pick)
+};
+
+declare %private function proposals:spoken-party($rows as element(Movement)*) as xs:string {
+	let $recipient := proposals:most($rows/@recipient ! string(.))
+	let $from-purpose := proposals:purpose-party(proposals:most($rows/@purpose ! string(.)))
+	return
+		if ($from-purpose != '' and (proposals:is-processor($recipient) or match:name-score($recipient, $from-purpose) lt 0.5)) then $from-purpose
+		else $recipient
+};
+
+(: Prozessor-Zahlung mit erkennbarem Händler: IBAN/Gläubiger-ID gehören dem Abwickler, nicht dem Händler. :)
+declare %private function proposals:processor-clearing($cluster as element(Cluster)) as xs:boolean {
+	let $recipient := string($cluster/@recipient)
+	let $label := string(($cluster/@spoken[. != ''], $cluster/@recipient)[1])
+	return proposals:is-processor($recipient) and $label != '' and $label != $recipient and match:name-score($label, $recipient) lt 0.8
+};
+
 declare %private function proposals:bank-account($rows as element(Movement)*) as element(BankAccount) {
 	let $from := min($rows/@date[. castable as xs:date] ! xs:date(.))
 	return
 		<BankAccount name="{proposals:most($rows/@recipient ! string(.))}" iban="{proposals:most($rows/@iban ! string(.))}" bic="{proposals:most($rows/@bic ! string(.))}" usage="" customerRef="{proposals:most($rows/@customer ! string(.))}" mandateRef="{proposals:most($rows/@mandate ! string(.))}" creditorId="{proposals:most($rows/@creditor ! string(.))}" notes="">
 			{if (exists($from)) then attribute valid-from {$from} else ()}
 		</BankAccount>
+};
+
+(: Intervall aus denselben Bewegungen wie die Neuanlage, falls der Turnus erkennbar ist. :)
+declare %private function proposals:party-interval($rows as element(Movement)*, $name as xs:string) as element(PeriodicPayments)? {
+	let $dated := $rows[@date castable as xs:date]
+	where count($dated) ge 3
+	let $dates := for $row in $dated return xs:date($row/@date)
+	let $interval := match:infer-interval($dates)
+	let $amounts := for $row in $dated return xs:decimal($row/@amount)
+	where max($amounts) le 3 * min($amounts)
+	let $min := floor(min($amounts) * 0.9)
+	let $max := ceiling(max($amounts) * 1.1)
+	let $iban := proposals:most($dated/@iban ! string(.))
+	let $creditor := proposals:most($dated/@creditor ! string(.))
+	let $key :=
+		if ($creditor != '') then <PaymentRule type="SEPA_DIRECT-DEBIT_CREDITOR-ID" use="required">{$creditor}</PaymentRule>
+		else if ($iban != '') then <PaymentRule type="{if (count($dated[@direction = 'out']) ge count($dated[@direction = 'in'])) then 'SEPA_DIRECT-DEBIT_IBAN' else 'SEPA_CREDIT-TRANSFER_IBAN'}" use="required">{$iban}</PaymentRule>
+		else ()
+	let $label := if ($name != '') then $name else 'Zahlung'
+	return
+		<PeriodicPayments>
+			<PeriodicPayment>
+				<Name>{concat($label, ' (', proposals:interval-label($interval), ')')}</Name>
+				<Period interval="{$interval}" min="1" max="1" amount-min="{format-number($min, '0.00')}" amount-max="{format-number($max, '0.00')}" valid-from="{string(min($dates))}"/>
+				<DocumentTemplate>
+					<Section/>
+					<Other kto=""/>
+					<RefID/>
+					<TransactionID/>
+					<Description>{$label}</Description>
+					<Tax key="" region="" type=""/>
+					<TotalAmount value="" unit="EUR"/>
+					<Appointment date=""/>
+					<Notes/>
+				</DocumentTemplate>
+				<PaymentRules>{$key}</PaymentRules>
+				<Notes/>
+			</PeriodicPayment>
+		</PeriodicPayments>
 };
 
 declare %private function proposals:evidence($rows as element(Movement)*) as element(Evidence) {
@@ -132,26 +210,31 @@ declare %private function proposals:party-proposals($movements as element(Moveme
 		for $key in distinct-values(for $row in $unknown return if ($row/@creditor != '') then concat('creditor:', $row/@creditor) else concat('iban:', $row/@iban))
 		let $rows := $unknown[(if (@creditor != '') then concat('creditor:', @creditor) else concat('iban:', @iban)) = $key]
 		let $recipient := proposals:most($rows/@recipient ! string(.))
+		let $spoken := proposals:spoken-party($rows)
 		let $kind := if (count($rows[@direction = 'out']) ge count($rows[@direction = 'in'])) then 'creditor' else 'debitor'
-		return <Cluster key="{$key}" recipient="{$recipient}" kind="{$kind}">{$rows}</Cluster>
+		return <Cluster key="{$key}" recipient="{$recipient}" spoken="{$spoken}" kind="{$kind}">{$rows}</Cluster>
 	let $fallback := map { 'debitor': 10000, 'creditor': 70000 }
 	let $new :=
 		for $cluster in $groups
 		let $rows := $cluster/Movement
-		let $hit := proposals:best-party(string($cluster/@recipient), $parties, string($cluster/@kind))
-		where empty($hit) and count($rows) ge 2 and string($cluster/@recipient) != ''
+		let $label := string(($cluster/@spoken[. != ''], $cluster/@recipient)[1])
+		let $hit := proposals:best-party($label, $parties, string($cluster/@kind))
+		where empty($hit) and count($rows) ge 2 and $label != ''
 		return $cluster
 	return (
 		for $cluster in $groups
 		let $rows := $cluster/Movement
-		let $hit := proposals:best-party(string($cluster/@recipient), $parties, string($cluster/@kind))
+		let $label := string(($cluster/@spoken[. != ''], $cluster/@recipient)[1])
+		let $hit := proposals:best-party($label, $parties, string($cluster/@kind))
 		where exists($hit)
+		(: Prozessor-IBAN/Gläubiger-ID nicht an Abwickler oder Händler hängen, wenn der Händler im Zweck steht. :)
+		where not(proposals:processor-clearing($cluster))
 		let $bank := proposals:bank-account($rows)
 		let $what := if (starts-with($cluster/@key, 'creditor:')) then 'Gläubiger-ID' else 'IBAN'
 		return
 			<Proposal id="{proposals:id('bank-add', concat($hit/@kto, '|', $cluster/@key))}" kind="bank-add" kto="{$hit/@kto}" name="{$hit/@name}" basis="{count($rows)}" count="{count($rows)}" amount="{format-number(sum(for $row in $rows return xs:decimal($row/@amount)), '0.00')}" weight="{proposals:weight($rows)}" score="{$hit/@value}">
 				<Title>{concat($what, ' ', substring-after($cluster/@key, ':'), ' an ', $hit/@name, ' ergänzen')}</Title>
-				<Reason>{concat('Der Empfänger „', $cluster/@recipient, '“ ähnelt dem Konto ', $hit/@name, ' (', $hit/@kto, ', Ähnlichkeit ', $hit/@value, '). Die ', $what, ' ist dort noch nicht hinterlegt.')}</Reason>
+				<Reason>{concat('„', $label, '“ ähnelt dem Konto ', $hit/@name, ' (', $hit/@kto, ', Ähnlichkeit ', $hit/@value, '). Die ', $what, ' ist dort noch nicht hinterlegt.', if ($label != string($cluster/@recipient)) then concat(' Empfänger laut Bank: „', $cluster/@recipient, '“.') else '')}</Reason>
 				{proposals:evidence($rows)}
 				<Payload>{$bank}</Payload>
 			</Proposal>,
@@ -161,17 +244,23 @@ declare %private function proposals:party-proposals($movements as element(Moveme
 		for $cluster at $position in $new[@kind = $kind]
 		let $rows := $cluster/Movement
 		let $kto := string($start + $position)
-		let $bank := proposals:bank-account($rows)
+		let $label := string(($cluster/@spoken[. != ''], $cluster/@recipient)[1])
+		let $cleared := proposals:processor-clearing($cluster)
+		(: Bei PayPal/Karten-Clearing gehören IBAN und Gläubiger-ID dem Abwickler — nicht in den Händler-Kontakt. :)
+		let $bank := if ($cleared) then () else proposals:bank-account($rows)
+		let $id := account:speaking-id($label, $kto)
+		let $interval := if ($cleared) then () else proposals:party-interval($rows, $label)
 		return
-			<Proposal id="{proposals:id('party-new', string($cluster/@key))}" kind="party-new" kto="{$kto}" name="{string($cluster/@recipient)}" basis="{count($rows)}" count="{count($rows)}" amount="{format-number(sum(for $row in $rows return xs:decimal($row/@amount)), '0.00')}" weight="{proposals:weight($rows)}">
-				<Title>{concat(if ($kind = 'creditor') then 'Kreditor' else 'Debitor', ' „', $cluster/@recipient, '“ anlegen')}</Title>
-				<Reason>{concat(count($rows), ' Bewegungen mit ', if (starts-with($cluster/@key, 'creditor:')) then 'Gläubiger-ID ' else 'IBAN ', substring-after($cluster/@key, ':'), ' gehören zu keinem Konto.')}</Reason>
+			<Proposal id="{proposals:id('party-new', string($cluster/@key))}" kind="party-new" kto="{$kto}" name="{$label}" basis="{count($rows)}" count="{count($rows)}" amount="{format-number(sum(for $row in $rows return xs:decimal($row/@amount)), '0.00')}" weight="{proposals:weight($rows)}">
+				<Title>{concat(if ($kind = 'creditor') then 'Kreditor' else 'Debitor', ' „', $label, '“ anlegen')}</Title>
+				<Reason>{concat(count($rows), ' Bewegungen', if ($cleared) then '' else concat(' mit ', if (starts-with($cluster/@key, 'creditor:')) then 'Gläubiger-ID ' else 'IBAN ', substring-after($cluster/@key, ':')), ' gehören zu keinem Konto.', if ($label != string($cluster/@recipient)) then concat(' Empfänger laut Bank: „', $cluster/@recipient, '“.') else '')}</Reason>
 				{proposals:evidence($rows)}
 				<Payload>
-					<Account id="{account:speaking-id(string($cluster/@recipient), $kto)}" kto="{$kto}" type="ledger_account" classes="{$kind}">
-						<Name>{string($cluster/@recipient)}</Name>
+					<Account id="{$id}" kto="{$kto}" type="ledger_account" classes="{$kind}">
+						<Name>{$label}</Name>
 						<Notes/>
 						<BankAccounts>{$bank}</BankAccounts>
+						{$interval}
 						<Accounting openingBalance="0" closingBalance="0" debitSum="0" creditSum="0"/>
 					</Account>
 				</Payload>
@@ -468,14 +557,46 @@ declare %private function proposals:apply($home-data as xs:string, $tenant as xs
 			let $class := tokenize(string($incoming/@classes), '\s+')[. = ('creditor', 'debitor')][1]
 			return
 				if (not($new-kto castable as xs:integer)) then <Accepted error="Kontonummer fehlt."/>
-				else if (exists($accounts[string(@kto) = $new-kto])) then <Accepted error="Kontonummer {$new-kto} ist vergeben."/>
 				else if (normalize-space(string($incoming/Name)) = '') then <Accepted error="Name fehlt."/>
 				else if (empty($class)) then <Accepted error="Kreditor oder Debitor wählen."/>
 				else
 					let $account := proposals:clean-account($incoming, $new-kto, $class)
+					let $contact-id := string($account/@id)
+					let $known := account:contact($home-data, $tenant, $year, $contact-id)
+					let $existing := $accounts[lower-case(@id) = lower-case($contact-id)][1]
 					return
-						if (exists($accounts[lower-case(@id) = lower-case($account/@id)])) then <Accepted error="Konto-Id {string($account/@id)} ist vergeben."/>
-						else if (exists(account:contact($home-data, $tenant, $year, string($account/@id)))) then <Accepted error="Kontakt-Id {string($account/@id)} ist vergeben."/>
+						if (exists($existing) or exists($known)) then
+							(: Id/Kontakt schon da: bestehendes Konto nutzen, fehlende Banken ergänzen. :)
+							let $use-kto := string(($existing/@kto[. != ''], $new-kto)[1])
+							let $use-class := string(($existing/@classes[. != ''], $class)[1])
+							let $use-id := string(($existing/@id, $known/@id, $contact-id)[1])
+							let $ensured :=
+								if (exists($existing)) then $existing
+								else
+									account:storeAccount(
+										$home-data, $tenant, $year, $use-id,
+										<Account id="{$use-id}" kto="{$use-kto}" type="ledger_account" classes="{$use-class}" contactsRef="{$use-id}">
+											<Name>{normalize-space(string(($known/Name, $account/Name)[1]))}</Name>
+											{($account/Notes, <Notes/>)[1]}
+											<BudgetCategories/>
+											{($account/Accounting, <Accounting openingBalance="0" closingBalance="0" debitSum="0" creditSum="0"/>)[1]}
+										</Account>
+									)
+							let $target := account:mutable($home-data, $tenant, $year, $use-kto)
+							let $added :=
+								for $bank in $account/BankAccounts/BankAccount
+								let $iban := proposals:compact($bank/@iban)
+								let $creditor := proposals:compact($bank/@creditorId)
+								let $same := ($target/BankAccounts/BankAccount)[
+									($iban != '' and proposals:compact(@iban) = $iban)
+									or ($iban = '' and $creditor != '' and proposals:compact(@creditorId) = $creditor)
+								]
+								where exists($target) and empty($same)
+								return
+									let $box := proposals:ensure($target, 'BankAccounts')
+									return update insert $bank into $box
+							return <Accepted kind="{$kind}" kto="{$use-kto}" account="{$use-id}" contact="{$use-id}" reused="true"/>
+						else if (exists($accounts[string(@kto) = $new-kto])) then <Accepted error="Kontonummer {$new-kto} ist vergeben."/>
 						else
 							let $saved := account:create-party($home-data, $tenant, $year, $account)
 							return <Accepted kind="{$kind}" kto="{$new-kto}" account="{string($saved/@id)}" contact="{string($saved/@contactsRef)}"/>
@@ -532,7 +653,6 @@ declare function proposals:accept($home-data as xs:string, $tenant as xs:string,
 			</Proposal>
 		else ()
 	let $found := if (exists($stub)) then $stub else proposals:all($home-data, $tenant, $year, ())[@id = $id][1]
-	let $ready := doc-available(account:year-path($home-data, $tenant, $year))
 	let $payload :=
 		if (empty($body)) then $found/Payload/*[1]
 		else if ($body/self::Proposal) then ($body/Payload/*[1], $found/Payload/*[1])[1]
@@ -540,9 +660,9 @@ declare function proposals:accept($home-data as xs:string, $tenant as xs:string,
 		else $body
 	return
 		if (empty($found)) then <Accepted id="{$id}" error="Vorschlag nicht gefunden oder schon erledigt."/>
-		else if (not($ready)) then <Accepted id="{$id}" error="accounts.dm.xml fehlt."/>
 		else
 			try {
+				let $ready := account:ensure-year($home-data, $tenant, $year)
 				let $result := proposals:apply($home-data, $tenant, $year, $found, $payload)
 				return <Accepted id="{$id}" user="{$user}">{$result/@*[local-name() != 'id']}</Accepted>
 			} catch * { <Accepted id="{$id}" error="{$err:description}"/> }

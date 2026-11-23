@@ -32,6 +32,44 @@ declare function account:year-path($home-data as xs:string, $tenant as xs:string
 	concat($home-data, '/', $tenant, '/', $year, '/accounts.dm.xml')
 };
 
+(: Fehlt accounts.dm.xml (Jahr nur mit Banken o. Ä.), aus Vorjahr projizieren oder leeren Rahmen anlegen. :)
+declare function account:ensure-year($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as document-node() {
+	let $path := account:year-path($home-data, $tenant, $year)
+	return
+		if (doc-available($path)) then doc($path)
+		else
+			let $parent := concat($home-data, '/', $tenant)
+			let $col := concat($parent, '/', $year)
+			let $create :=
+				if (xmldb:collection-available($col)) then ()
+				else if (xmldb:collection-available($parent)) then xmldb:create-collection($parent, string($year))
+				else error(xs:QName('docman:YearMissing'), concat('Mandant oder Jahr fehlt: ', $tenant, '/', $year))
+			let $prior :=
+				max((
+					0,
+					for $name in xmldb:get-child-collections($parent)
+					where $name castable as xs:integer and xs:integer($name) lt $year
+						and doc-available(account:year-path($home-data, $tenant, xs:integer($name)))
+					return xs:integer($name)
+				))
+			let $template :=
+				(
+					for $name in xmldb:get-child-collections($parent)
+					where $name castable as xs:integer and doc-available(account:year-path($home-data, $tenant, xs:integer($name)))
+					order by xs:integer($name) descending
+					return doc(account:year-path($home-data, $tenant, xs:integer($name)))/Accounts
+				)[1]
+			let $seed :=
+				if ($prior gt 0) then account:project-year($home-data, $tenant, $prior, $year)
+				else
+					<Accounts
+						chart="{string(($template/@chart[. != ''], 'SKR04')[1])}"
+						personNumbers="{string(($template/@personNumbers[. != ''], 'A-Z')[1])}"
+					/>
+			let $stored := ($create, xmldb:store($col, 'accounts.dm.xml', $seed))
+			return doc($path)
+};
+
 declare function account:has-book($home-data as xs:string, $tenant as xs:string) as xs:boolean {
 	doc-available(account:book-path($home-data, $tenant))
 };
@@ -347,7 +385,7 @@ declare function account:storeAccount ($home-data as xs:string, $tenant as xs:st
 	let $incoming :=
 		if ($raw/self::AccountRecord) then account:held(($raw/Year/Account, $raw/Book/Account)[1], string(($raw/Book/Account/@id, $raw/Year/Account/@id, $resource-id)[1]))
 		else $raw
-	let $year-doc := doc(account:year-path($home-data, $tenant, $year))
+	let $year-doc := account:ensure-year($home-data, $tenant, $year)
 	let $existing := $year-doc/Accounts/Account[lower-case(@id) = lower-case($resource-id)][1]
 	let $guard := account:own-firm-error($incoming, $existing)
 	return
@@ -689,7 +727,7 @@ declare function account:store-contact($home-data as xs:string, $tenant as xs:st
 declare function account:create-party($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $incoming as element()) as element(Account) {
 	let $id := normalize-space(string($incoming/@id))
 	let $book := account:ensure-book($home-data, $tenant, $year)
-	let $year-doc := doc(account:year-path($home-data, $tenant, $year))
+	let $year-doc := account:ensure-year($home-data, $tenant, $year)
 	let $entry := account:composed-contact($incoming, (), $id, $year, false())
 	let $row :=
 		<Account id="{$id}" kto="{$incoming/@kto}" type="ledger_account" classes="{$incoming/@classes}" contactsRef="{$id}">
