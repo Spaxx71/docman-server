@@ -45,7 +45,7 @@ return
 				<fieldset>
 					<legend>Dokument Name</legend>
 					<label>Neuer Name: </label>
-					<input type="text" name="name" size="50" value="{$document}" minlength="5" maxlength="254" pattern="[A-Za-z0-9+$_\-\.]+\.(pdf|tif|tiff|png|gif|txt|csv)" required="required"/>
+					<input type="text" name="name" size="50" value="{$document}" minlength="5" maxlength="254" pattern="[A-Za-z0-9_\-\.]+\.(pdf|tif|tiff|png|gif|txt|csv)" required="required"/>
 					<input type="submit" value="Umbenennen"/>
 				</fieldset>
 			</form>

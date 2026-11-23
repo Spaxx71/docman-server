@@ -21,6 +21,7 @@ All rights reserved by bintellix GmbH, Germany
 xquery version "3.1";
 
 import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+import module namespace transfer="http://bintellix.com/docman/transfer" at "/db/apps/docman/modules/module_transfer.xqm";
 
 let $filenames := request:get-uploaded-file-name('files[]')
 let $filesizes := request:get-uploaded-file-size('files[]')
@@ -45,7 +46,7 @@ return
 			(: isMultipart="{request:is-multipart-content()}" :)
 			for $filenameOrig at $pos in $filenames
 				let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.jpg|\.txt|\.csv|\.xml)$')//fn:group, 1)
-				let $fileName := replace(translate($filenameParts[1],' ','_'),'[^A-Za-z0-9+$_-]+','-')
+				let $fileName := transfer:safe-stem($filenameParts[1])
 				let $fileExt := lower-case($filenameParts[2])
 				let $suffix := 
 					if (doc-available($transfer-collection||'/'||$fileName||$fileExt) 

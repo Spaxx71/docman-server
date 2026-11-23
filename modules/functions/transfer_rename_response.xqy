@@ -28,7 +28,7 @@ let $file := request:get-attribute('resource-id')
 let $name := request:get-parameter('name','')
 
 let $transfer-collection := $ct-home-data||'/'||$tenant||'/'||$year||'/transfer'
-let $pattern := '[A-Za-z0-9+$_\-\.]+\.(pdf|tif|tiff|png|gif|txt|csv)'
+let $pattern := '[A-Za-z0-9_\-\.]+\.(pdf|tif|tiff|png|gif|txt|csv)'
 
 return
 

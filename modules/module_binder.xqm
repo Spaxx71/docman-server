@@ -75,9 +75,7 @@ declare function local:related-xml-names($file as xs:string) as xs:string* {
 	let $stem := di:stem($file)
 	return distinct-values((
 		$stem || '.dm.xml',
-		$file || '.dm.xml',
-		$stem || '.docman.xml',
-		$file || '.docman.xml'
+		$file || '.dm.xml'
 	))
 };
 

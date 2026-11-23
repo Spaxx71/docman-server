@@ -48,9 +48,100 @@ declare function local:filed-copies($home-data as xs:string, $tenant as xs:strin
 		<Filed hash="{$hash}" folder="{$folder}" process="{string($process/@name)}" file="{concat(string($file/@fileName), string($file/@fileExtension))}"/>
 };
 
+(: Prozent-Escapes auflösen. Ungültige Folgen bleiben stehen und fallen in die Zeichenregel. :)
+declare function local:decode-filename($name as xs:string) as xs:string {
+	if (not(contains($name, '%'))) then
+		$name
+	else
+		try { util:unescape-uri($name, 'UTF-8') }
+		catch * { $name }
+};
+
+(: Stamm ohne Escaping als URL-Parameter: Buchstaben, Ziffern, "_" und "-". "+", "%", "$" und Leerzeichen fallen weg. :)
+declare function transfer:safe-stem($stem as xs:string?) as xs:string {
+	if (string($stem) = '') then
+		''
+	else
+		let $decoded := local:decode-filename(string($stem))
+		let $spaced := translate($decoded, ' ', '_')
+		let $cleaned := replace($spaced, '[^A-Za-z0-9_-]+', '-')
+		let $trimmed := replace($cleaned, '^-+|-+$', '')
+		return
+			if ($trimmed = '') then 'datei'
+			else $trimmed
+};
+
+declare function transfer:safe-name($name as xs:string) as xs:string {
+	let $decoded := local:decode-filename($name)
+	let $ext :=
+		if (matches($decoded, '\.[^.]+$')) then
+			lower-case(replace($decoded, '^.*(\.[^.]+)$', '$1'))
+		else
+			''
+	let $stem :=
+		if ($ext = '') then $decoded
+		else substring($decoded, 1, string-length($decoded) - string-length($ext))
+	let $clean := transfer:safe-stem($stem)
+	return (if ($clean = '') then 'datei' else $clean) || $ext
+};
+
+(: Sidecar nur noch als .dm.xml, passend zu @source. :)
+declare function local:dm-sidecar($collection as xs:string, $file as xs:string) as xs:string {
+	let $names := (di:stem($file) || '.dm.xml', $file || '.dm.xml')
+	let $found := (
+		for $candidate in $names
+		where doc-available($collection || '/' || $candidate)
+		where string(doc($collection || '/' || $candidate)/*/@source) = $file
+		return $candidate
+	)[1]
+	return string($found)
+};
+
+declare function local:adopt-one(
+	$home-data as xs:string,
+	$tenant as xs:string,
+	$year as xs:integer,
+	$collection as xs:string,
+	$name as xs:string
+) as item()* {
+	let $safe := transfer:safe-name($name)
+	let $target := if ($safe = $name) then $name else local:unique-name($collection, $safe)
+	let $moved :=
+		if ($target = $name) then ()
+		else
+			let $side := local:dm-sidecar($collection, $name)
+			return (
+				xmldb:rename($collection, $name, $target),
+				if ($side = '') then () else di:follow($home-data, $tenant, $year, $name, $target)
+			)
+	let $ensured :=
+		if (di:is-document($target) and local:dm-sidecar($collection, $target) = '') then
+			di:ensure($home-data, $tenant, $year, $target, '', '')
+		else
+			()
+	return ($moved, $ensured)
+};
+
+declare function transfer:adopt-incoming($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as item()* {
+	let $collection := $home-data || '/' || $tenant || '/' || $year || '/transfer'
+	return
+		if (not(xmldb:collection-available($collection))) then ()
+		else
+			let $names := xmldb:get-child-resources($collection)
+			for $name in $names
+			where not(di:is-sidecar($name))
+			return
+				try { local:adopt-one($home-data, $tenant, $year, $collection, $name) }
+				catch * { () }
+};
+
 declare function transfer:index ($home-data as xs:string, $tenant as xs:string, $year as xs:integer) {
+	let $adopted := transfer:adopt-incoming($home-data, $tenant, $year)
 	let $collection-transfer := $home-data||'/'||$tenant||'/'||$year||'/transfer'
-	let $documents := xmldb:get-child-resources($collection-transfer)
+	(: count erzwingt die Bereinigung, bevor die Liste gelesen wird. :)
+	let $documents :=
+		if (count($adopted) ge 0) then xmldb:get-child-resources($collection-transfer)
+		else ()
 	let $filed := local:filed-copies($home-data, $tenant, $year)
 	let $items :=
 		for $document in $documents
@@ -103,7 +194,7 @@ declare function transfer:delete ($home-data as xs:string, $tenant as xs:string,
 
 declare function transfer:rename($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $document as xs:string, $name as xs:string) {
 	let $transfer-collection := $home-data||'/'||$tenant||'/'||$year||'/transfer'
-	let $pattern := '[A-Za-z0-9+$_\-\.]+\.(pdf|tif|tiff|png|gif|jpg|jpeg|txt|csv|xml)'
+	let $pattern := '[A-Za-z0-9_\-\.]+\.(pdf|tif|tiff|png|gif|jpg|jpeg|txt|csv|xml)'
 	return
 		if (not(matches($name, $pattern))) then
 			<error>Filename "{$name}" is not a valid file name.</error>

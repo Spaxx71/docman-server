@@ -178,7 +178,7 @@ function dmtransfer:upload1($user, $tenant, $year, $content-type, $content-lengt
 					</file>
 					:)
 					let $filenameParts := subsequence(analyze-string($filenameOrig, '(.*)(\.pdf|\.tif|.tiff|\.png|\.gif|\.jpg|\.txt|\.csv|\.xml)$')//fn:group, 1)
-					let $fileName := replace(translate($filenameParts[1],' ','_'),'[^A-Za-z0-9+$_-]+','-')
+					let $fileName := transfer:safe-stem($filenameParts[1])
 					let $fileExt := lower-case($filenameParts[2][last()])
 					let $suffix := 
 						if (doc-available($transfer-collection||'/'||$fileName||$fileExt) 

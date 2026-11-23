@@ -29,6 +29,16 @@ Das Skript zieht `ghcr.io/spaxx71/docman:0.6`, legt die Datenbank nach `~/.docma
 
 Dieselbe Datei `docman-0.6.xar` liegt am GitHub-Release `v0.6`, für eine eXist-Instanz, die schon läuft.
 
+## Testdaten nachziehen
+
+Der mitgelieferte Stand hat Kontenrahmen und leere Ordner. Bank, zwei Buchungen und ein Beleg entstehen über die Module, nicht als zweite Kopie der Daten:
+
+```text
+/exist/rest/db/apps/docman/seed-test-tenant.xqy?tenant=test&year=2022
+```
+
+Dieselbe Funktion hängt an `POST /exist/restxq/docman/xml/tenants/test/years/2022/test-seed`, nachdem `initialize.xqy` die REST-Module registriert hat. Ein zweiter Lauf lässt vorhandene Dateien stehen.
+
 ## Bauen
 
 `./build-xar.sh` prüft `data/`, baut die UI und schreibt `dist/docman-0.6.xar`. Die UI-Quellen liegen daneben in `../docman-ui` oder in `DOCMAN_UI`.

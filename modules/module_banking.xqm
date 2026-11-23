@@ -195,40 +195,30 @@ declare function banking:getBankAccountDetail ($home-data as xs:string, $tenant 
 
 
 declare function banking:listAccountings ($home-data as xs:string, $tenant as xs:string, $bank-account-id as xs:string, $year as xs:integer) {
-	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
-	let $payment-tasks := collection($home-data||'/'||$tenant||'/'||$year)/Process/Tasks/PaymentTask
+	let $col := $home-data || '/' || $tenant || '/' || $year
+	let $bank-account := collection($col)/BankAccount[@kto eq $bank-account-id]
+	(: RefID-Map einmal bauen — sonst O(Buchungen × PaymentTasks). :)
+	let $by-ref := local:payments-by-ref(collection($col)/Process/Tasks/PaymentTask)
 	return
 		<BankAccount version="1.0" kto="{$bank-account-id}" name="{$bank-account/@name}" year="{$year}" hasOnlineBanking="{exists($bank-account/BankAccountDetail/OnlineBanking/*)}">
 			<Accountings>
 				{$bank-account/Accountings/@*}
-				{for $accounting in $bank-account//Accounting
-				return
-					<Accounting>
-						{$accounting/@*}
-						{
-							for $booked in $payment-tasks[RefID eq $accounting/@id]
-							group by $d := ($booked/RefID)[1]
-							return
-								(
-								attribute booked {$booked/../../@id}
-								,
-								attribute booked-amount {sum($booked/Amount/@value)}
+				{
+					for $accounting in $bank-account/Accountings/Accounting
+					let $booked := $by-ref(string($accounting/@id))
+					return
+						<Accounting>
+							{$accounting/@*}
+							{
+								if (empty($booked)) then ()
+								else (
+									attribute booked { string-join(distinct-values(for $p in $booked return string($p/../../@id)), ' ') },
+									attribute booked-amount { sum(for $p in $booked return local:payment-amount($p)) }
 								)
-						}
-						<!--
-						{
-							let $booked := $payment-tasks[RefID eq $accounting/@id]
-							return
-								(
-								attribute booked {$booked/../../@id}
-								,
-								attribute booked-amount {sum($booked/Amount/@value)}
-								)
-						}
-						-->
-						{$accounting/*}
-					</Accounting>
-				}	
+							}
+							{$accounting/*}
+						</Accounting>
+				}
 			</Accountings>
 		</BankAccount>
 };
@@ -331,124 +321,120 @@ declare function banking:getAccountingByIdAsPDF($home-data as xs:string, $home-w
 };
 
 
-declare function local:getBookings($accounting-id as xs:string, $payments as node()*) as element()* {
-	for $payment in $payments/PaymentTask[RefID = $accounting-id]
-	return 
-		<Booking id="{$payment/@id}" 
-			amount="{format-number(xs:double($payment/Amount/text()), '0.00')}"
-			paymentDetail="{$payment/PaymentDetail/text()}"/>
+declare function local:movement-change($accounting as element(Accounting)) as xs:double {
+	xs:double($accounting/Amount)
+	+ (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
 };
 
+declare function local:payment-amount($payment as element(PaymentTask)) as xs:double {
+	let $raw := ($payment/Amount/@value[normalize-space(.) != ''], $payment/Amount)[1]
+	return if ($raw castable as xs:double) then xs:double($raw) else 0
+};
+
+(: PaymentTasks einmal nach RefID indexieren — Lookup O(1) statt Scan. :)
+declare function local:payments-by-ref($tasks as element(PaymentTask)*) as map(*) {
+	map:merge(
+		for $task in $tasks
+		let $id := normalize-space(string($task/RefID))
+		where $id != ''
+		return map:entry($id, $task),
+		map { 'duplicates': 'combine' }
+	)
+};
+
+declare function local:day-of-year($date as xs:date, $year as xs:string) as xs:integer {
+	xs:integer(($date - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
+};
+
+(: Tage einmal gruppieren, Saldo linear fortschreiben — wie courseFromMovements. :)
+declare function local:balances-linear(
+	$accountings as element(Accounting)*,
+	$start-saldo as xs:double,
+	$year as xs:string
+) as element(Balance)* {
+	let $days :=
+		for $accounting in $accountings
+		let $date := xs:date($accounting/ValueDate)
+		group by $date
+		order by $date
+		return
+			<day date="{$date}">{$accounting}</day>
+	return local:balances-walk($days, $start-saldo, $year)
+};
+
+declare function local:balances-walk(
+	$days as element(day)*,
+	$saldo as xs:double,
+	$year as xs:string
+) as element(Balance)* {
+	if (empty($days)) then
+		()
+	else
+		let $day := $days[1]
+		let $date := xs:date($day/@date)
+		let $rows := $day/Accounting
+		let $daily := round-half-to-even(sum($rows ! local:movement-change(.)) * 100) div 100
+		let $next := round-half-to-even(($saldo + $daily) * 100) div 100
+		return (
+			<Balance
+				date="{$date}"
+				day="{local:day-of-year($date, $year)}"
+				amount="{format-number($daily, '0.00')}"
+				saldo="{format-number($next, '0.00')}">
+				{
+					for $accounting in $rows
+					return
+						(: Keine Bookings hier — Lookup war teuer; die Grafik braucht nur id/amount/text. :)
+						<Transaction
+							id="{$accounting/@id}"
+							amount="{format-number(xs:double($accounting/Amount), '0.00')}"
+							paymentDetail="{normalize-space(string($accounting/PaymentDetail))}"/>
+				}
+			</Balance>,
+			local:balances-walk(subsequence($days, 2), $next, $year)
+		)
+};
 
 declare function banking:getAccountBalanceList($home-data as xs:string, $tenant as xs:string, $year as xs:string, $bankAccountId as xs:string) {
 	if ($home-data = '' or $tenant = '' or $year = '' or $bankAccountId = '') then
 		<error>Mandatory parameter missing</error>
-	
-	(: Fall: Summierung für alle Konten (bank-account-id = 0) :)
-  else if ($bankAccountId castable as xs:integer and xs:integer($bankAccountId) = 0) then
-    let $bankAccounts := collection($home-data || '/' || $tenant || '/' || $year)/BankAccount
-    let $paymentTasks := collection($home-data || '/' || $tenant || '/' || $year)/Process/Tasks/PaymentTask/RefID
-    return
-      let $start-saldo := sum($bankAccounts/Accountings/@saldoInitAmount)
-      (: Erfasse alle relevanten Datumswerte und gruppiere sie :)
-      let $dates := distinct-values(
-        for $account in $bankAccounts
-        for $accounting in $account/Accountings/Accounting
-        order by $accounting/ValueDate
-        return 
-          xs:date($accounting/ValueDate)
-      )
-      let $balances :=
-        for $date in $dates
-        (: Berechne die Tagesbuchungen über alle Konten :)
-        let $daily-balance := round-half-to-even(
-          sum(
-            for $account in $bankAccounts
-            for $accounting in $account/Accountings/Accounting[xs:date(ValueDate) = $date]
-            return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
-          ) * 100
-        ) div 100
-        (: Berechne den laufenden Saldo als Startsaldo plus alle Buchungen bis einschließlich dieses Tages :)
-        let $daySaldo := $start-saldo + sum(
-          for $account in $bankAccounts
-          for $accounting in $account/Accountings/Accounting
-          where xs:date($accounting/ValueDate) <= $date
-          return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
-        )
-        return
-          (: Erstelle die Liste der Bankbewegungen mit Details und verknüpfe sie mit den Buchungen :)
-          let $transactions := 
-            for $account in $bankAccounts
-            for $accounting in $account/Accountings/Accounting[xs:date(ValueDate) = $date]
-            return 
-              <Transaction id="{$accounting/@id}" 
-                amount="{format-number(xs:double($accounting/Amount/text()), '0.00')}"
-                paymentDetail="{$accounting/PaymentDetail/text()}">
-                  <Bookings>
-                    { local:getBookings($accounting/@id, $paymentTasks) }
-                  </Bookings>
-              </Transaction>
-          let $day-of-year := xs:integer((xs:date($date) - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
-          return 
-            <Balance date="{$date}" 
-              day="{$day-of-year}"
-              amount="{format-number($daily-balance, '0.00')}"
-              saldo="{format-number($daySaldo, '0.00')}">
-              { $transactions }
-            </Balance>
-      return
-        (: Ausgabe der Balances für alle Konten im gewünschten Format :)
-        <Balances tenantId="{$tenant}" yearId="{$year}" bankAccountId="0" bankName="0" unit="EUR" saldoInitAmount="{$start-saldo}" numberOfPaymentTasks="{count($paymentTasks)}">
-          { $balances }
-        </Balances>
-	
-	(: Fall: Verarbeitung eines spezifischen Kontos :)
-	else
-		let $bankAccount := collection($home-data || '/' || $tenant || '/' || $year)/BankAccount[@kto = $bankAccountId]
-		let $paymentTasks := collection($home-data || '/' || $tenant || '/' || $year)/Process/Tasks/PaymentTask/RefID
+
+	(: Alle Konten: eine Buchungsliste, ein linearer Saldo-Lauf. :)
+	else if ($bankAccountId castable as xs:integer and xs:integer($bankAccountId) = 0) then
+		let $col := $home-data || '/' || $tenant || '/' || $year
+		let $bankAccounts := collection($col)/BankAccount
+		let $start-saldo := sum($bankAccounts/Accountings/@saldoInitAmount)
 		return
-		if (empty($bankAccount)) then
-			<error>No Bank movements found for {$bankAccountId}</error>
-		else
-			let $start-saldo := xs:double($bankAccount/Accountings/@saldoInitAmount)
-			(: Gruppiere und summiere alle Buchungen pro Datum, basierend auf Amount/text(), und liste die Bewegungen auf :)
-			let $changes :=
-				for $date in distinct-values($bankAccount/Accountings/Accounting/ValueDate)
-				order by $date
-				let $daily-balance := round-half-to-even(
-					sum(
-						for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)]
-						return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
-					) * 100
-				) div 100
-				let $transactions := 
-					for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)]
-					return 
-						<Transaction id="{$accounting/@id}" 
-							amount="{format-number(xs:double($accounting/Amount/text()), '0.00')}"
-							paymentDetail="{$accounting/PaymentDetail/text()}">
-							<Bookings>
-								{ local:getBookings($accounting/@id, $paymentTasks) }
-							</Bookings>
-						</Transaction>
-				let $day-of-year := xs:integer((xs:date($date) - xs:date(concat($year, '-01-01'))) div xs:dayTimeDuration('P1D')) + 1
-				let $daySaldo := $start-saldo + sum(
-					for $accounting in $bankAccount/Accountings/Accounting[xs:date(ValueDate) < xs:date($date)]
-					return xs:double($accounting/Amount) + (if ($accounting/ExternalCosts castable as xs:double) then xs:double($accounting/ExternalCosts) else 0)
-				) + $daily-balance
-				(: let $daySaldo := $bankAccount/Accountings/Accounting[xs:date(ValueDate) = xs:date($date)][last()]/@saldoAmount :)(: Saldo is given based on booking date order! :)
+			<Balances
+				tenantId="{$tenant}"
+				yearId="{$year}"
+				bankAccountId="0"
+				bankName="0"
+				unit="EUR"
+				saldoInitAmount="{$start-saldo}"
+				numberOfPaymentTasks="0">
+				{ local:balances-linear($bankAccounts/Accountings/Accounting, xs:double($start-saldo), string($year)) }
+			</Balances>
+
+	else
+		let $col := $home-data || '/' || $tenant || '/' || $year
+		let $bankAccount := collection($col)/BankAccount[@kto = $bankAccountId]
+		return
+			if (empty($bankAccount)) then
+				<error>No Bank movements found for {$bankAccountId}</error>
+			else
+				let $start-saldo := xs:double(($bankAccount/Accountings/@saldoInitAmount, 0)[1])
 				return
-					<Balance date="{$date}" 
-						day="{$day-of-year}"
-						amount="{format-number($daily-balance, '0.00')}"
-						saldo="{format-number($daySaldo, '0.00')}">
-						{ $transactions }
-					</Balance>
-			return
-				(: Ausgabe im gewünschten Format für ein spezifisches Konto :)
-				<Balances tenantId="{$tenant}" yearId="{$year}" bankAccountId="{$bankAccount/@kto}" bankName="{$bankAccount/BankAccountDetail/AccountNick}" unit="EUR" saldoInitAmount="{$start-saldo}" numberOfPaymentTasks="{count($paymentTasks)}">
-					{ $changes }
-				</Balances>
+					<Balances
+						tenantId="{$tenant}"
+						yearId="{$year}"
+						bankAccountId="{$bankAccount/@kto}"
+						bankName="{$bankAccount/BankAccountDetail/AccountNick}"
+						unit="EUR"
+						saldoInitAmount="{$start-saldo}"
+						numberOfPaymentTasks="0">
+						{ local:balances-linear($bankAccount/Accountings/Accounting, $start-saldo, string($year)) }
+					</Balances>
 };
 
 

@@ -1,8 +1,8 @@
 (:
 Document Intelligence.
 di:ensure legt nur eine .dm.xml mit status="pending" an.
-Bestehende .docman.xml werden beim Zugriff nach .dm.xml umbenannt.
 di:process liest sie im Hintergrund und ersetzt die Felder. Notes bleibt.
+Alte .docman.xml benennt upgrade_docman_xml.xqy einmalig um.
 :)
 
 xquery version "3.1";
@@ -28,26 +28,13 @@ declare function di:stem($name as xs:string) as xs:string {
 };
 
 declare function di:is-sidecar($name as xs:string) as xs:boolean {
-	ends-with($name, '.dm.xml') or ends-with($name, '.docman.xml')
-};
-
-declare function di:prefer($collection as xs:string, $name as xs:string) as xs:string {
-	if ($name = '' or not(ends-with($name, '.docman.xml'))) then $name
-	else
-		let $next := replace($name, '\.docman\.xml$', '.dm.xml')
-		return
-			if (doc-available($collection || '/' || $next)) then $name
-			else
-				let $_ := xmldb:rename($collection, $name, $next)
-				return $next
+	ends-with($name, '.dm.xml')
 };
 
 declare function di:locate($collection as xs:string, $file as xs:string) as xs:string {
 	let $names := (
 		di:stem($file) || '.dm.xml',
-		$file || '.dm.xml',
-		di:stem($file) || '.docman.xml',
-		$file || '.docman.xml'
+		$file || '.dm.xml'
 	)
 	let $found := (
 		for $name in $names
@@ -55,7 +42,7 @@ declare function di:locate($collection as xs:string, $file as xs:string) as xs:s
 		where string(doc($collection || '/' || $name)/*/@source) = $file
 		return $name
 	)[1]
-	return di:prefer($collection, string($found))
+	return string($found)
 };
 
 declare function di:target-name($collection as xs:string, $file as xs:string) as xs:string {
@@ -408,7 +395,7 @@ declare function di:queue($home as xs:string) as element()* {
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
 	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
-	let $name := di:prefer($collection, $stored)
+	let $name := $stored
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence
@@ -441,7 +428,7 @@ declare function di:active-runs($home as xs:string) as element()* {
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
 	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
-	let $name := di:prefer($collection, $stored)
+	let $name := $stored
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence
@@ -468,7 +455,7 @@ declare function di:requeue-stale($home as xs:string) as item()* {
 	let $collection := di:collection($home, $tenant, $year)
 	where xmldb:collection-available($collection)
 	for $stored in xmldb:get-child-resources($collection)[di:is-sidecar(.)]
-	let $name := di:prefer($collection, $stored)
+	let $name := $stored
 	let $path := $collection || '/' || $name
 	where doc-available($path)
 	let $doc := doc($path)/DocmanIntelligence

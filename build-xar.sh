@@ -45,6 +45,7 @@ only_test "$ROOT/data"
 require_file "$ROOT/data/test/tenant.dm.xml"
 require_file "$ROOT/data/test/2022/year.dm.xml"
 require_file "$ROOT/data/test/2022/accounts.dm.xml"
+require_file "$ROOT/resources/collection.xconf"
 if ! grep -q 'id="mycompany"' "$ROOT/data/test/tenant.dm.xml"; then
 	fail 'tenant.dm.xml hat nicht id="mycompany"'
 fi
@@ -72,7 +73,7 @@ copy_tree() {
 }
 
 cp "$ROOT/controller.xql" "$ROOT/initialize.xqy" "$ROOT/install.xqy" "$ROOT/cleanup.xqy" \
-	"$ROOT/update_module_hbci.xqy" "$ROOT/repo.xml" "$ROOT/expath-pkg.xml" "$STAGE/"
+	"$ROOT/seed-test-tenant.xqy" "$ROOT/update_module_hbci.xqy" "$ROOT/repo.xml" "$ROOT/expath-pkg.xml" "$STAGE/"
 copy_tree "$ROOT/modules" "$STAGE/modules"
 copy_tree "$ROOT/views" "$STAGE/views"
 mkdir -p "$STAGE/resources"
@@ -104,6 +105,7 @@ only_test "$STAGE/data"
 require_file "$STAGE/data/test/tenant.dm.xml"
 require_file "$STAGE/data/test/2022/year.dm.xml"
 require_file "$STAGE/data/test/2022/accounts.dm.xml"
+require_file "$STAGE/resources/collection.xconf"
 if find "$STAGE/data" -print | grep -E -q '(^|/)(bintellix|intersecurity|ehuber)(/|$)|hbci_[^/]*\.dm\.xml'; then
 	fail "data im Paket enthält Produktionsnamen"
 fi
@@ -114,6 +116,9 @@ rm -f "$OUT"
 (cd "$STAGE" && zip -qr "$OUT" . -x '*.DS_Store')
 if ! unzip -l "$OUT" | awk '{ print $4 }' | grep -qx 'expath-pkg.xml'; then
 	fail "expath-pkg.xml liegt nicht in der Wurzel des Archivs"
+fi
+if ! unzip -l "$OUT" | awk '{ print $4 }' | grep -qx 'resources/collection.xconf'; then
+	fail "resources/collection.xconf fehlt im Archiv"
 fi
 if unzip -l "$OUT" | awk '{ print $4 }' | grep -E -q '(^|/)(bintellix|intersecurity|ehuber)(/|$)|hbci_[^/]*\.dm\.xml|__contents__\.xml'; then
 	fail "Archiv enthält ausgeschlossene Daten"

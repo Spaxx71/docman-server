@@ -34,6 +34,42 @@ declare function local:list-collections($Collection as xs:string) as xs:string* 
 		"Error: Collection " || $childCollection || " is listed but does not exist."
 };
 
+(: Collection-Pfad anlegen, falls er fehlt. /db bleibt unberührt. :)
+declare function local:ensure-collection($path as xs:string) as xs:string {
+	if ($path = '' or $path = '/') then
+		'/db'
+	else if (xmldb:collection-available($path)) then
+		$path
+	else
+		let $parent := replace($path, '/[^/]+$', '')
+		let $name := replace($path, '^.*/', '')
+		let $_ := local:ensure-collection(if ($parent = '') then '/db' else $parent)
+		return
+			if (xmldb:collection-available($path)) then
+				$path
+			else
+				xmldb:create-collection(if ($parent = '') then '/db' else $parent, $name)
+};
+
+(: Index-Config aus dem Paket nach /db/system/config legen, bevor reindex läuft. :)
+declare function local:deploy-index-config($root as xs:string) as element(IndexConfig) {
+	let $src := $root || '/resources/collection.xconf'
+	let $target-col := '/db/system/config/db/apps/docman/data'
+	let $target := $target-col || '/collection.xconf'
+	return
+		if (not(doc-available($src))) then
+			<IndexConfig status="missing-source" source="{$src}" target="{$target}"/>
+		else
+			try {
+				let $ensure := local:ensure-collection($target-col)
+				let $stored := xmldb:store($target-col, 'collection.xconf', doc($src))
+				return
+					<IndexConfig status="stored" source="{$src}" target="{$stored}" available="{doc-available($target)}"/>
+			} catch * {
+				<IndexConfig status="error" source="{$src}" target="{$target}">{$err:description}</IndexConfig>
+			}
+};
+
 
 declare function local:set-users($RootCollection as xs:string, $Owner as xs:string, $Group as xs:string) as node() {
 
@@ -60,9 +96,13 @@ declare function local:set-users($RootCollection as xs:string, $Owner as xs:stri
 
 
 
-declare function local:set-rights($RootCollection as xs:string) as element(SetRights) {
-	(: Rechte setzen; Antwort nur Zähler und Fehler — kein sm:get-permissions-Dump. :)
-	let $collections := (local:list-collections($RootCollection), xs:anyURI($RootCollection))
+declare function local:set-rights($RootCollection as xs:string, $skip-data as xs:boolean) as element(SetRights) {
+	(: Rechte setzen; Antwort nur Zähler und Fehler — kein sm:get-permissions-Dump.
+	   /data auslassen, solange ein Intelligence-Tick die Sammlung hält. :)
+	let $collections :=
+		for $Collection in (local:list-collections($RootCollection), xs:anyURI($RootCollection))
+		where not($skip-data and starts-with(string($Collection), $RootCollection || '/data'))
+		return $Collection
 	let $results :=
 		for $Collection in $collections
 		return
@@ -114,7 +154,8 @@ declare function local:set-rights($RootCollection as xs:string) as element(SetRi
 									let $_ := sm:chmod($FileUri, 'rwxr-xr-x')
 									return <error type="2" weburi="{$WebUri}" file="{$FileName}">File type not supported!</error>
 							else if (matches($WebUri, '^/modules') and matches($FileName, '^(restxq-email\.xqy|module_email\.xqm)$')) then
-								let $_ := sm:chmod($FileUri, 'rwsrwx--x')
+								(: other braucht Lesen, sonst kann guest den Controller nicht übersetzen :)
+								let $_ := sm:chmod($FileUri, 'rwsrwxr-x')
 								return ()
 							else if (matches($WebUri, '^/modules') and matches($FileName, '^(module_document-intelligence\.xqm|document_intelligence_process\.xqy|document_intelligence_check\.xqy)$')) then
 								let $_ := sm:chmod($FileUri, 'rwsr-xr-x')
@@ -181,20 +222,60 @@ declare function local:intelligence-stop() as xs:boolean {
 	}
 };
 
-(: Ein bereits laufender Tick hält /data auch nach delete-scheduled-job. Dann kein reindex. :)
+(: string() lässt Attribute weg. Der Pfad der laufenden Abfrage steht dort. :)
+declare function local:intelligence-text($node as node()) as xs:string {
+	lower-case(string-join((string($node), $node//@*), ' '))
+};
+
+(: Nur der Tick, nicht initialize selbst: dessen Quelltext enthält dieselben Namen. :)
+declare function local:intelligence-marked($node as element()) as xs:boolean {
+	let $text := local:intelligence-text($node)
+	return
+		not(contains($text, 'initialize.xqy'))
+		and (
+			contains($text, 'document_intelligence_process.xqy')
+			or contains($text, 'module_document-intelligence.xqm')
+			or (local-name($node) = 'job' and contains($text, 'docman-intelligence'))
+		)
+};
+
+declare function local:intelligence-queries() as element()* {
+	try {
+		system:get-running-xqueries()//*:xquery[local:intelligence-marked(.)]
+	} catch * {
+		()
+	}
+};
+
+(: Ein bereits laufender Tick hält /data auch nach delete-scheduled-job.
+   process:execute gibt die Sperre erst am Ende der Abfrage frei. :)
 declare function local:intelligence-busy() as xs:boolean {
 	try {
-		let $jobs := system:get-running-jobs()
-		let $queries := system:get-running-xqueries()
-		return
-			exists($jobs//*:job[
-				contains(lower-case(string-join((@action, @info, @id), ' ')), 'document_intelligence')
-				or contains(lower-case(string-join((@action, @info, @id), ' ')), 'docman-intelligence')
-			])
-			or exists($queries//*[contains(lower-case(string(.)), 'document_intelligence')])
+		exists(local:intelligence-queries())
+		or exists(system:get-running-jobs()//*:job[local:intelligence-marked(.)])
 	} catch * {
 		false()
 	}
+};
+
+(: Job aus dem Plan nehmen und den laufenden Tick abbrechen, damit /data frei wird.
+   Gibt true zurück, wenn nach fünf Sekunden noch ein Tick läuft. :)
+declare function local:intelligence-release($left as xs:integer) as xs:boolean {
+	let $stop := local:intelligence-stop()
+	let $killed :=
+		for $query in local:intelligence-queries()
+		let $id := string($query/@id)
+		where $id castable as xs:integer
+		return
+			try { system:kill-running-xquery(xs:integer($id)) } catch * { () }
+	return
+		if (not(local:intelligence-busy())) then
+			false()
+		else if ($left le 0) then
+			true()
+		else
+			let $pause := util:wait(1000)
+			return local:intelligence-release($left - 1)
 };
 
 declare function local:intelligence-start($root as xs:string) as xs:string {
@@ -229,9 +310,8 @@ declare function local:intelligence-start($root as xs:string) as xs:string {
 };
 
 let $targetPathPrefix := '/var/www/'
-(: Frische Installation: kein Marker, kein Job. Sonst Job aus dem Plan, bevor /data gesperrt wird. :)
-let $stop-intelligence := local:intelligence-stop()
-let $intelligence-busy := local:intelligence-busy()
+(: Job abbrechen, bevor set-rights oder reindex /data anfassen. :)
+let $intelligence-busy := local:intelligence-release(5)
 let $CurrentRootPath := replace(system:get-module-load-path(), '^(xmldb:exist://)?(embedded-eXist-server)?(.+)(general/functions)$','$3')
 let $CurrentRoot := replace($CurrentRootPath,'/$','') (: /db/apps/docman :) (: xmldb:exist://embedded-eXist-server/ :)
 
@@ -264,12 +344,15 @@ let $FolderCrm0 	:= xmldb:create-collection($CurrentRoot||'/data', 'test')
 let $FolderData		:= if (sm:list-groups() = 'test') then () else sm:create-group('test')
 
 
-let $resSetRights := local:set-rights($CurrentRoot)
+let $resSetRights := local:set-rights($CurrentRoot, $intelligence-busy)
 
 let $userAccess	:= local:set-users($CurrentRoot||'/','admin','docman')
 
 (: Access normalisieren (Group/Users) und SM-Gruppe per user:syncGroupMembers abgleichen — kein Leeren der Gruppe. :)
-let $tenants := 
+let $tenants :=
+	if ($intelligence-busy) then
+		<skipped reason="document-intelligence"/>
+	else
 	for $Tenant in (xmldb:get-child-collections($CurrentRoot || '/data/'))
 	let $tenant-doc := doc($CurrentRoot || '/data/' || $Tenant || '/tenant.dm.xml')/Tenant
 	let $Access := $tenant-doc/Access
@@ -308,9 +391,14 @@ let $invalidRestXqModules := if (exrest:invalid-modules() != ()) then
 		()
 
 
+(: Config zuerst, dann reindex — sonst bleiben range/lucene leer. :)
+let $index-config := local:deploy-index-config($CurrentRoot)
+
 (: reindex nur wenn kein Intelligence-Lauf mehr /data hält. Sonst wartet initialize bis zum Proxy-Timeout. :)
 let $reindex :=
 	if ($intelligence-busy) then
+		false()
+	else if (string($index-config/@status) = ('missing-source', 'error')) then
 		false()
 	else
 		xmldb:reindex($CurrentRoot||'/data')
@@ -338,7 +426,8 @@ let $cleanupFilesLogDocker := for $file in file:directory-list('/', 'hs_err_*.lo
 
 return
 <result>
-	<ReIndex done="{$reindex}" skipped-because-busy="{$intelligence-busy}"/>
+	{$index-config}
+	<ReIndex done="{$reindex}" skipped-because-busy="{$intelligence-busy}" config-status="{string($index-config/@status)}"/>
 	<Intelligence status="{$start-intelligence}" was-busy="{$intelligence-busy}">
 		{
 			if ($start-intelligence = 'scheduled') then
