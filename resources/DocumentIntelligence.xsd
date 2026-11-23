@@ -115,8 +115,19 @@
       </xs:element>
       <xs:element name="Account" minOccurs="0">
         <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Candidate" minOccurs="0" maxOccurs="2">
+              <xs:complexType>
+                <xs:attribute name="id" type="xs:string"/>
+                <xs:attribute name="quality" type="xs:decimal"/>
+                <xs:attribute name="reasons" type="xs:string"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
           <xs:attribute name="id" type="xs:string"/>
           <xs:attribute name="quality" type="xs:decimal"/>
+          <xs:attribute name="direction" type="xs:string"/>
+          <xs:attribute name="ambiguous" type="xs:boolean"/>
         </xs:complexType>
       </xs:element>
       <xs:element name="Fields" minOccurs="0">

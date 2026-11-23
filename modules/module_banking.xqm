@@ -30,6 +30,7 @@ import module namespace csv="http://bintellix.com/docman/csv" at "/db/apps/docma
 import module namespace hbci4java="http://exist-db.org/library/hbci4java" at "java:hbci4java.existdb.OnlineBankingModule";
 import module namespace xfo="http://bintellix.com/docman/xslfo" at "/db/apps/docman/modules/module_xfo.xqm";
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm";
+import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 
 declare namespace docman = "http://docman.bintellix.com";
 
@@ -112,6 +113,8 @@ declare function banking:listBankAccounts ($home-data as xs:string, $tenant as x
 		<BankAccounts version="1.0">
 		{
 			for $bank-account in $bank-accounts
+			let $span := $bank-account/BankAccountDetail
+			where account:in-year(string($span/@valid-from), string($span/@valid-till), $year)
 			order by $bank-account/BankAccountDetail/AccountNick
 			return
 			<BankAccount kto="{$bank-account/@kto}" year="{$year}" hasOnlineBanking="{exists($bank-account/BankAccountDetail/OnlineBanking/*)}">
@@ -908,7 +911,7 @@ declare function banking:setAccountingBudgetCategory (
 :)
 declare function banking:getPeriodicPaymentList ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
-	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
+	let $Accountings := account:accounts($home-data, $tenant, $year)[PeriodicPayments/PeriodicPayment]
 	let $bank-account := collection($home-data||'/'||$tenant||'/'||$year)/BankAccount[@kto eq $bank-account-id]
 	for $PeriodicPayment in $Accountings/PeriodicPayments/PeriodicPayment
 	return
@@ -932,7 +935,7 @@ declare function banking:getPeriodicPaymentList ($home-data as xs:string, $tenan
 :)
 declare function banking:getPeriodicPayments ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $date as xs:date?) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
-	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
+	let $Accountings := account:accounts($home-data, $tenant, $year)[PeriodicPayments/PeriodicPayment]
 	for $PeriodicPayment in $Accountings/PeriodicPayments/PeriodicPayment
 	return
 		if ($date) then
@@ -967,6 +970,18 @@ declare function banking:payment-rule-matches($rule as element(PaymentRule), $Mo
 			contains(upper-case($details), upper-case($text))
 };
 
+(:
+	Pflichtregeln (@use fehlt oder 'required') müssen alle greifen; Wahlregeln (@use='optional') nur,
+	wenn es keine Pflichtregel gibt – dann genügt eine.
+:)
+declare function banking:payment-rules-match($rules as element(PaymentRule)*, $Movement as element()) as xs:boolean {
+	let $required := $rules[not(@use = 'optional')]
+	return
+		exists($rules)
+		and (every $rule in $required satisfies banking:payment-rule-matches($rule, $Movement))
+		and (exists($required) or exists($rules[banking:payment-rule-matches(., $Movement)]))
+};
+
 declare function banking:amount-in-range($PeriodicPayment as element(PeriodicPayment), $amount as xs:double) as xs:boolean {
 	let $min := $PeriodicPayment/Period/@amount-min
 	let $max := $PeriodicPayment/Period/@amount-max
@@ -996,7 +1011,7 @@ declare function banking:getPeriodicPayment ($home-data as xs:string, $tenant as
 	let $legacy-iban := $PeriodicPayment/PaymentOptions/PaymentOption/IBAN
 	let $matched :=
 		if (exists($rules)) then
-			every $rule in $rules satisfies banking:payment-rule-matches($rule, $Movement)
+			banking:payment-rules-match($rules, $Movement)
 		else if (exists($legacy-iban)) then
 			upper-case(replace(string(($Movement/IBAN)[1]), '\s', '')) = upper-case(replace(string($legacy-iban[1]), '\s', ''))
 		else
@@ -1109,7 +1124,7 @@ declare function banking:transferViaFinTS ($home-data as xs:string, $tenant as x
 
 declare function banking:createPeriodicPayments ($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $bank-account-id as xs:string) {
 	let $collection := $home-data||'/'||$tenant||'/'||$year
-	let $Accountings := doc(concat($home-data,'/',$tenant,'/',$year,'/accounts.dm.xml'))/Accounts/Account[PeriodicPayments/PeriodicPayment]
+	let $Accountings := account:accounts($home-data, $tenant, $year)[PeriodicPayments/PeriodicPayment]
 	let $PaymentList := collection($collection)/Document/Tasks/PaymentTask/RefID
 	let $BankMovements := banking:listAccountings($home-data, $tenant, $bank-account-id, $year)
 	return

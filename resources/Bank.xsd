@@ -98,6 +98,8 @@
               </xs:element>
               <xs:element name="Notes" type="xs:string"/>
             </xs:sequence>
+            <xs:attribute name="valid-from" type="xs:date"/>
+            <xs:attribute name="valid-till" type="xs:date"/>
           </xs:complexType>
         </xs:element>
         <xs:element ref="Accountings"/>

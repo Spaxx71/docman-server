@@ -24,6 +24,7 @@ def parse_accounts(xml_text: str) -> list[dict]:
             continue
         hints = []
         ibans = []
+        creditor_ids = []
         name = company = email = vat = address = customer_id = ""
         for child in list(node):
             kind = _local(child.tag)
@@ -41,6 +42,8 @@ def parse_accounts(xml_text: str) -> list[dict]:
                 address = (child.text or "").strip()
             elif kind == "IBAN":
                 ibans.append((child.text or "").strip())
+            elif kind == "CreditorID":
+                creditor_ids.append((child.text or "").strip())
             elif kind == "Hints":
                 for hint in list(child):
                     if _local(hint.tag) != "Hint":
@@ -63,6 +66,7 @@ def parse_accounts(xml_text: str) -> list[dict]:
             "customerId": customer_id,
             "address": address,
             "ibans": ibans,
+            "creditorIds": creditor_ids,
             "hints": hints,
         })
     return accounts
@@ -141,7 +145,15 @@ def run_read(raw: str, path: str = "") -> str:
             from docman_intelligence.assign import group_lines, mark_roles, match_account
             lines = group_lines(words)
             mark_roles(lines)
-            zugferd["account"] = match_account(lines, accounts, zugferd["iban"]["value"], meta)
+            zugferd["account"] = match_account(
+                lines,
+                accounts,
+                zugferd["iban"]["value"],
+                meta,
+                (zugferd.get("customerNumber") or {}).get("value", ""),
+                (zugferd.get("vatId") or {}).get("value", ""),
+                (zugferd.get("invoiceNumber") or {}).get("value", ""),
+            )
         return render(zugferd)
     result = assign_words(words, accounts, meta, model)
     result["source"] = kind

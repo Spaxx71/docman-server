@@ -265,6 +265,20 @@ function dmdocument:refreshIntelligence($user as xs:string*, $tenant as xs:strin
 };
 
 (:
+	GET /api/xml/tenants/{tenant}/years/{year}/binders/{binder}/documents/{PRO}/evidence
+	Vergleicht Vorgang mit DocmanIntelligence und speichert @evidence.
+:)
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/binders/{$binder}/documents/{$document-id}/evidence")
+    %rest:query-param("user", "{$user}", "Guest")
+    %output:media-type("application/xml")
+    %output:method("xml")
+function dmdocument:evidenceXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) {
+	document:check-evidence($main:home-data, $tenant, $year, $binder, $document-id)
+};
+
+(:
 	GET /api/xml/document-intelligence/check
 	GET /api/xml/tenants/{tenant}/years/{year}/document-intelligence/check
 	process:execute braucht DBA — deshalb setuid-Hauptmodul

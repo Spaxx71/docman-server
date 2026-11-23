@@ -23,6 +23,7 @@ xquery version "3.1" encoding "UTF-8";
 (: https://apps.datev.de/dnlexka/document/1080789 :)
 
 import module namespace main="http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
+import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 
 (: 
 
@@ -82,7 +83,7 @@ return
 declare function local:datevExport ($home-data as xs:string, $tenant as xs:string, $year as xs:string) as xs:string+
 {
 
-	let $accounts := doc($home-data||'/'||$tenant||'/'||$year||'/'||'accounts.dm.xml')/Accounts
+	let $accounts := <Accounts>{account:accounts($home-data, $tenant, xs:integer($year))}</Accounts>
 	return
 		let $row :=
 		<Export name="DATEV" createHeadline="false">

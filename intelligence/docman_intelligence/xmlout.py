@@ -91,12 +91,16 @@ def render(result: dict) -> str:
         parts = [_field_el(fid, line.get(key) or empty) for key, fid in ARTICLE_MAP]
         articles.append(f'<Article quality="{_attr(line.get("quality", 0))}">{"".join(parts)}</Article>')
     account = result.get("account") or {"id": "", "quality": 0}
+    candidates = "".join(
+        f'<Candidate id="{_attr(item.get("id", ""))}" quality="{_attr(item.get("quality", 0))}" reasons="{_attr(" ".join(item.get("reasons", [])))}"/>'
+        for item in account.get("candidates", [])
+    )
     words = result.get("words") or []
     text = plain_text(words)
     return (
         "<Intelligence>"
         f'<Source kind="{_attr(result.get("source", "text"))}" origin="{_attr(result.get("origin", "digital"))}" pages="{_attr(result.get("pages", 1))}"/>'
-        f'<Account id="{_attr(account.get("id", ""))}" quality="{_attr(account.get("quality", 0))}"/>'
+        f'<Account id="{_attr(account.get("id", ""))}" quality="{_attr(account.get("quality", 0))}" direction="{_attr(account.get("direction", ""))}" ambiguous="{"true" if account.get("ambiguous") else "false"}">{candidates}</Account>'
         f'<Fields>{"".join(fields)}</Fields>'
         f'<Articles>{"".join(articles)}</Articles>'
         f"<Text>{text}</Text>"

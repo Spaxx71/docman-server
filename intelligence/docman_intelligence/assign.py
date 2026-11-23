@@ -997,70 +997,215 @@ def fuzzy_name_hit(name: str, hay: str) -> float:
     return 0.55
 
 
-def match_account(lines: list[Line], accounts: list[dict], iban: str, meta: dict | None, customer_number: str = "") -> dict:
-    envelope_text = " ".join(line.text for line in lines if line.role == "envelope")
-    head = " ".join(
+AMBIGUOUS_GAP = 0.15
+NAME_ONLY_CAP = 0.7
+
+
+def _compact(value: str) -> str:
+    return re.sub(r"[\s\-./]+", "", value or "").upper()
+
+
+def _account_ibans(account: dict) -> set[str]:
+    found = set()
+    for raw in account.get("ibans", []):
+        cleaned = iban_ok(raw) or _compact(raw)
+        if cleaned:
+            found.add(cleaned)
+    for hint in account.get("hints", []):
+        if field_id(hint.get("field") or "") == "sender.iban" and hint.get("label"):
+            found.add(iban_ok(hint["label"]) or _compact(hint["label"]))
+    return found
+
+
+def _account_vats(account: dict) -> set[str]:
+    found = {_compact(account.get("vat") or "")}
+    for hint in account.get("hints", []):
+        if field_id(hint.get("field") or "") == "sender.vat" and hint.get("label"):
+            found.add(_compact(hint["label"]))
+    return {value for value in found if value}
+
+
+def _is_party(account: dict) -> bool:
+    classes = set((account.get("classes") or "").split())
+    if "self" in classes:
+        return False
+    return bool({"creditor", "debitor"} & classes or account.get("type") in ("creditor", "debitor"))
+
+
+def outgoing_document(lines: list[Line], accounts: list[dict], iban: str = "") -> bool:
+    """Ausgangsrechnung: eigene IBAN auf dem Beleg, oder eigener Name im Briefkopf über dem Anschriftfeld
+    ohne IBAN eines Gegenübers."""
+    read = iban_ok(iban or "") or _compact(iban or "")
+    own = {value for account in self_accounts(accounts) for value in _account_ibans(account)}
+    if read and read in own:
+        return True
+    party_ibans = {value for account in accounts if _is_party(account) for value in _account_ibans(account)}
+    if read and read in party_ibans:
+        return False
+    markers = self_markers(accounts)
+    if not markers:
+        return False
+    head = [line for line in lines if line.y0 < 100 and line.role in ("letterhead", "envelope", "body", "invoiceHeader")]
+    return any(looks_like_self(line.text, markers) for line in head)
+
+
+def _counterpart_text(lines: list[Line], accounts: list[dict], outgoing: bool) -> tuple[str, str]:
+    """Kopf und Kuvert des Gegenübers. Bei Ausgangsrechnungen steht es im Empfängerblock."""
+    markers = self_markers(accounts)
+    if outgoing:
+        head = [
+            line.text for line in lines
+            if line.y0 < 320 and line.role in ("letterhead", "body", "invoiceHeader")
+            and not looks_like_self(line.text, markers)
+        ]
+        return " ".join(head), ""
+    head = [
         line.text for line in lines
         if line.role in ("envelope", "letterhead", "invoiceHeader", "body") and line.y0 < 280
-    )
+    ]
+    envelope = [line.text for line in lines if line.role == "envelope"]
+    return " ".join(head), " ".join(envelope)
+
+
+def _score_account(account: dict, ctx: dict) -> tuple[float, list[str]]:
+    reasons: list[str] = []
+    strong = 0.0
+    if ctx["iban"] and ctx["iban"] in ctx["ibans"][account["id"]]:
+        strong = max(strong, 0.95)
+        reasons.append("iban")
+    if ctx["vat"] and ctx["vat"] in ctx["vats"][account["id"]]:
+        strong = max(strong, 0.93)
+        reasons.append("vat")
+    for creditor_id in account.get("creditorIds", []):
+        compact = _compact(creditor_id)
+        if len(compact) >= 8 and compact in ctx["full_compact"]:
+            strong = max(strong, 0.93)
+            reasons.append("creditor-id")
+            break
+    stored_customer = (account.get("customerId") or "").strip()
+    customer = ctx["customer"]
+    if customer and stored_customer and norm(customer) == norm(stored_customer):
+        strong = max(strong, 0.9)
+        reasons.append("customer")
+    weak: list[float] = []
+    name_hits: list[float] = []
+    for name in (account.get("name") or "", account.get("company") or ""):
+        head_hit = fuzzy_name_hit(name, ctx["head"])
+        if head_hit:
+            name_hits.append(head_hit)
+        if ctx["envelope"]:
+            envelope_hit = fuzzy_name_hit(name, ctx["envelope"])
+            if envelope_hit:
+                name_hits.append(min(1.0, envelope_hit + 0.08))
+        full_hit = fuzzy_name_hit(name, ctx["full_norm"])
+        if full_hit:
+            name_hits.append(full_hit * 0.6)
+    if name_hits:
+        reasons.append("name")
+        weak.append(max(name_hits))
+    curated = 0.0
+    email = norm(account.get("email") or "")
+    if email:
+        domain = email.split("@")[-1] if "@" in email else ""
+        if email in ctx["mail"] or email in ctx["full_norm"]:
+            curated = 0.8
+            weak.append(0.8)
+            reasons.append("email")
+        elif domain and len(domain) >= 4 and (domain in ctx["mail"] or domain in ctx["full_norm"]):
+            curated = 0.75
+            weak.append(0.75)
+            reasons.append("email-domain")
+    for hint in account.get("hints", []):
+        hint_type = field_id(hint.get("field") or "")
+        if hint_type == "party.self":
+            hit = max(_hint_text_or_pattern_hits(ctx["head_raw"], ctx["head"], hint), 0.0)
+            if hit:
+                curated = max(curated, min(0.88, hit))
+                reasons.append("hint:party.self")
+            elif _hint_text_or_pattern_hits(ctx["full"], ctx["full_norm"], hint):
+                weak.append(0.6)
+                reasons.append("hint:party.self:body")
+        elif hint_type == "invoice.customer.id" and customer:
+            pattern = (hint.get("pattern") or "").strip()
+            label = (hint.get("label") or "").strip()
+            if pattern:
+                try:
+                    if re.fullmatch(pattern, customer):
+                        strong = max(strong, 0.92)
+                        reasons.append("hint:customer")
+                except re.error:
+                    pass
+            elif label and norm(label) == norm(customer):
+                strong = max(strong, 0.9)
+                reasons.append("hint:customer")
+        elif hint_type in ("sender.iban", "sender.vat"):
+            continue
+        elif hint_type == "invoice.id" and ctx["number"]:
+            pattern = (hint.get("pattern") or "").strip()
+            try:
+                if pattern and re.fullmatch(pattern, ctx["number"]):
+                    weak.append(0.5)
+                    reasons.append("hint:invoice.id")
+            except re.error:
+                pass
+    weak_score = 0.0
+    if weak:
+        ordered = sorted(weak, reverse=True)
+        weak_score = min(ordered[0], NAME_ONLY_CAP)
+        if len(ordered) > 1 and ordered[1] >= 0.5:
+            weak_score = min(0.85, ordered[0] + 0.1)
+    quality = max(strong, curated, weak_score)
+    if strong and (curated or weak_score >= 0.5):
+        quality = min(1.0, quality + 0.03)
+    own_ibans = ctx["ibans"][account["id"]]
+    if ctx["iban"] and own_ibans and ctx["iban"] not in own_ibans and ctx["iban"] in ctx["iban_owner"]:
+        quality -= 0.4
+        reasons.append("conflict:iban")
+    own_vats = ctx["vats"][account["id"]]
+    if ctx["vat"] and own_vats and ctx["vat"] not in own_vats:
+        quality -= 0.4
+        reasons.append("conflict:vat")
+    return round(max(0.0, quality), 2), reasons
+
+
+def match_account(lines: list[Line], accounts: list[dict], iban: str, meta: dict | None, customer_number: str = "", vat: str = "", number: str = "") -> dict:
+    parties = [dict(account, id=account.get("id") or "") for account in accounts if _is_party(account)]
+    outgoing = outgoing_document(lines, accounts, iban)
+    head_raw, envelope_raw = _counterpart_text(lines, accounts, outgoing)
     full = " ".join(line.text for line in lines)
-    head_norm = norm(head)
-    full_norm = norm(full)
-    envelope_norm = norm(envelope_text)
-    best = {"id": "", "quality": 0.0}
-    mail = norm((meta or {}).get("from", ""))
-    for account in accounts:
-        classes = set((account.get("classes") or "").split())
-        if "self" in classes:
-            continue
-        if not ({"creditor", "debitor"} & classes or account.get("type") in ("creditor", "debitor")):
-            continue
-        quality = 0.0
-        names = [account.get("name") or "", account.get("company") or ""]
-        for name in names:
-            quality = max(quality, fuzzy_name_hit(name, head_norm), fuzzy_name_hit(name, full_norm) * 0.95)
-            if envelope_norm:
-                envelope_hit = fuzzy_name_hit(name, envelope_norm)
-                if envelope_hit > 0:
-                    # Absenderzeile im Kuvertfenster ist der stärkste Namenshinweis
-                    quality = max(quality, min(1.0, envelope_hit + 0.08))
-        for account_iban in account.get("ibans", []):
-            cleaned = iban_ok(account_iban) or re.sub(r"\s+", "", account_iban).upper()
-            if iban and cleaned == iban:
-                quality = max(quality, 0.95)
-        email = norm(account.get("email") or "")
-        if email:
-            if email in mail or email in full_norm:
-                quality = max(quality, 0.8)
-            domain = email.split("@")[-1] if "@" in email else ""
-            if domain and len(domain) >= 4 and (domain in mail or domain in full_norm):
-                quality = max(quality, 0.78)
-        stored_customer = (account.get("customerId") or "").strip()
-        if customer_number and stored_customer and norm(customer_number) == norm(stored_customer):
-            quality = max(quality, 0.9)
-        for hint in account.get("hints", []):
-            hint_type = field_id(hint.get("field") or "")
-            hit = _hint_text_or_pattern_hits(full, full_norm, hint)
-            if hit <= 0 and hint_type != "invoice.customer.id":
-                continue
-            if hint_type == "party.self":
-                quality = max(quality, hit)
-            elif hint_type == "invoice.customer.id" and customer_number:
-                pattern = (hint.get("pattern") or "").strip()
-                label = (hint.get("label") or "").strip()
-                if pattern:
-                    try:
-                        if re.fullmatch(pattern, customer_number):
-                            quality = max(quality, 0.92)
-                    except re.error:
-                        pass
-                elif label and norm(label) == norm(customer_number):
-                    quality = max(quality, 0.9)
-            elif hit > 0:
-                quality = max(quality, min(0.85, hit - 0.05))
-        if quality > best["quality"]:
-            best = {"id": account.get("id") or "", "quality": round(quality, 2)}
-    return best
+    ibans = {account["id"]: _account_ibans(account) for account in parties}
+    iban_owner = {value for values in ibans.values() for value in values}
+    ctx = {
+        "head_raw": head_raw,
+        "head": norm(head_raw),
+        "envelope": norm(envelope_raw),
+        "full": full,
+        "full_norm": norm(full),
+        "full_compact": _compact(full),
+        "mail": norm((meta or {}).get("from", "")),
+        # Bei Ausgangsrechnungen sind IBAN und USt-Id auf dem Beleg die eigenen.
+        "iban": "" if outgoing else (iban_ok(iban or "") or _compact(iban or "")),
+        "vat": "" if outgoing else _compact(vat),
+        "customer": (customer_number or "").strip(),
+        "number": (number or "").strip(),
+        "ibans": ibans,
+        "iban_owner": iban_owner,
+        "vats": {account["id"]: _account_vats(account) for account in parties},
+    }
+    scored = []
+    for account in parties:
+        quality, reasons = _score_account(account, ctx)
+        if quality > 0:
+            scored.append({"id": account["id"], "quality": quality, "reasons": reasons})
+    scored.sort(key=lambda item: item["quality"], reverse=True)
+    candidates = scored[:2]
+    direction = "invoice.out" if outgoing else "invoice.in"
+    if not scored:
+        return {"id": "", "quality": 0.0, "direction": direction, "candidates": []}
+    best = scored[0]
+    if len(scored) > 1 and best["quality"] - scored[1]["quality"] < AMBIGUOUS_GAP:
+        return {"id": "", "quality": 0.0, "direction": direction, "candidates": candidates, "ambiguous": True}
+    return {"id": best["id"], "quality": best["quality"], "direction": direction, "candidates": candidates}
 
 
 def extract_customer_number(words: list[Word], lines: list[Line]) -> dict:
@@ -1104,12 +1249,25 @@ def assign_words(words: list[Word], accounts: list[dict] | None = None, meta: di
     add_hint_anchors(lines, anchors, accounts)
     iban_value, iban_word = find_iban(words)
     customer_number = extract_customer_number(words, lines)
-    account = match_account(lines, accounts, iban_value, meta, customer_number.get("value") or "")
+    vat_word = None
+    vat_value = ""
+    vat_anchors = anchors.get("vat", [])
+    for word in words:
+        got = vat_ok(word.text)
+        if not got:
+            continue
+        if vat_anchors and nearest(word, vat_anchors) > 240:
+            continue
+        vat_word = word
+        vat_value = got
+        break
+    numbers = number_options(words, accounts)
+    provisional = pick("invoiceNumber", numbers, lines, anchors, accounts, set(), model, "")
+    account = match_account(lines, accounts, iban_value, meta, customer_number.get("value") or "", vat_value, provisional.get("value") or "")
     account_id = account.get("id") or ""
     used: set[int] = set()
     dates = date_options(words)
     moneys = money_options(words)
-    numbers = number_options(words, accounts)
     invoice_date = pick("invoiceDate", dates, lines, anchors, accounts, used, model, account_id)
     service_date = pick("serviceDate", dates, lines, anchors, accounts, used, model, account_id)
     due_date = pick("dueDate", dates, lines, anchors, accounts, used, model, account_id)
@@ -1127,18 +1285,6 @@ def assign_words(words: list[Word], accounts: list[dict] | None = None, meta: di
             continue
         bic_word = word
         bic_value = got
-        break
-    vat_word = None
-    vat_value = ""
-    vat_anchors = anchors.get("vat", [])
-    for word in words:
-        got = vat_ok(word.text)
-        if not got:
-            continue
-        if vat_anchors and nearest(word, vat_anchors) > 240:
-            continue
-        vat_word = word
-        vat_value = got
         break
     seller_name, seller_address = pick_seller(lines, accounts, account)
     # Skonto/Rabatt/Mahngebühr nur bei echtem Label-Anker — sonst Quatsch aus Positionsbeträgen

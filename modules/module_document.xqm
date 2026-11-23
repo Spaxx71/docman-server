@@ -29,6 +29,7 @@ module namespace document = "http://bintellix.com/docman/document";
 (: banking imports document — do not import banking here (circular dependency breaks RESTXQ registration). :)
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
 import module namespace di="http://bintellix.com/docman/document-intelligence" at "/db/apps/docman/modules/module_document-intelligence.xqm";
+import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 
 declare namespace docman = "http://docman.bintellix.com";
 
@@ -555,9 +556,11 @@ declare function document:updateDocument($home-data as xs:string, $tenant as xs:
 					let $moveAttachements := for $attachment in $document/Tasks/*/Files/File[@uploadSrc]
 						return local:moveAttachement($home-data, $tenant, $year, $binder, $attachment)
 					let $hashes := document:stamp-file-hashes($home-data, $document, false())
+					let $evidence := document:check-evidence($home-data, $tenant, $year, $binder, $document-id)
 					return
 					<updated resource="{$resource-uri}" document-id="{$document-id}" filename="{$filename||'.dm.xml'}">
 						{$moveAttachements}
+						{$evidence}
 					</updated>
 		}
 	catch * {
@@ -825,6 +828,115 @@ declare function local:moveFileFromTransfer($home-data as xs:string, $tenant as 
 };
 
 
+
+declare %private function document:evidence-money($value) as xs:decimal? {
+	let $text := normalize-space(replace(replace(string($value), '\s', ''), ',', '.'))
+	return if ($text castable as xs:decimal) then xs:decimal($text) else ()
+};
+
+declare %private function document:evidence-date($value) as xs:date? {
+	let $text := substring(normalize-space(string($value)), 1, 10)
+	return if ($text castable as xs:date) then xs:date($text) else ()
+};
+
+declare %private function document:evidence-field($intel as element(DocmanIntelligence)*, $id as xs:string) as xs:string {
+	normalize-space(string(($intel/Fields/Field[@id = $id]/@value)[1]))
+};
+
+declare %private function document:evidence-level($levels as xs:string*) as xs:string {
+	if ($levels = 'none') then 'none'
+	else if ($levels = 'part') then 'part'
+	else if (exists($levels[. != ''])) then 'done'
+	else 'none'
+};
+
+(: Vorgang gegen File/DocmanIntelligence. Schreibt @evidence am Process. :)
+declare function document:check-evidence($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $binder as xs:string, $document-id as xs:string) as element(Evidence) {
+	let $collection := concat($home-data, '/', $tenant, '/', $year, '/', $binder)
+	let $process := collection($collection)/Process[@id = $document-id]
+	return
+		if (empty($process)) then <Evidence error="Vorgang fehlt."/>
+		else
+			let $intel := $process//DocmanIntelligence[@status = 'done']
+			let $accounts :=
+				if (doc-available(account:year-path($home-data, $tenant, $year))) then
+					account:accounts($home-data, $tenant, $year)
+				else ()
+			let $master := (
+				$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)[@isMaster = 'true'],
+				$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+			)[1]
+			let $owner := normalize-space(string($master/Owner))
+			let $account := $accounts[@kto = $owner][1]
+			let $iban-read := upper-case(replace(document:evidence-field($intel, 'sender.iban'), '\s', ''))
+			let $iban-account := distinct-values((
+				tokenize(string($account/@iban), '[,\s]+')[normalize-space(.) != ''],
+				for $iban in $account/BankAccounts/BankAccount/@iban return upper-case(replace(string($iban), '\s', ''))
+			))
+			let $vat-read := upper-case(replace(document:evidence-field($intel, 'sender.vat'), '\s', ''))
+			let $vat-account := upper-case(replace(normalize-space(string($account/VATID)), '\s', ''))
+			let $payable := (document:evidence-money(document:evidence-field($intel, 'invoice.amount.payable')), document:evidence-money(document:evidence-field($intel, 'invoice.amount.brutto')))[1]
+			let $face := (document:evidence-money($process/TotalAmount/@value), document:evidence-money($master/Amount/@value))[1]
+			let $skonto := document:evidence-money(document:evidence-field($intel, 'invoice.amount.skonto'))
+			let $invoice-date := document:evidence-date(document:evidence-field($intel, 'invoice.date'))
+			let $process-date := document:evidence-date($process/@date)
+			let $ref-read := document:evidence-field($intel, 'invoice.id')
+			let $ref-process := normalize-space(string($master/RefID))
+			let $direction-read := normalize-space(string(($intel/Document/@type, $intel/Account/@direction)[1]))
+			let $direction-process :=
+				if (local-name($master) = 'InvoiceOutTask') then 'invoice.out'
+				else if (local-name($master) = 'InvoiceInTask') then 'invoice.in'
+				else ''
+			let $marks := (
+				<Mark field="account" level="{
+					if (empty($intel) or $owner = '') then 'none'
+					else if (normalize-space(string($intel/Account/@id)) = $owner) then 'done'
+					else if (normalize-space(string($intel/Account/@id)) = '') then 'part'
+					else 'none'
+				}"/>,
+				<Mark field="iban" level="{
+					if ($iban-read = '') then ''
+					else if ($iban-read = $iban-account) then 'done'
+					else if (exists($iban-account)) then 'none'
+					else 'part'
+				}"/>,
+				<Mark field="vat" level="{
+					if ($vat-read = '' or $vat-account = '') then ''
+					else if ($vat-read = $vat-account) then 'done'
+					else 'none'
+				}"/>,
+				<Mark field="amount" level="{
+					if (empty($payable) or empty($face)) then 'none'
+					else if (abs($payable - $face) le 0.005) then 'done'
+					else if (exists($skonto) and abs(($face - $skonto) - $payable) le 0.005) then 'part'
+					else 'none'
+				}"/>,
+				<Mark field="date" level="{
+					if (empty($invoice-date) or empty($process-date)) then 'none'
+					else if ($invoice-date = $process-date) then 'done'
+					else if (abs(days-from-duration($invoice-date - $process-date)) le 3) then 'part'
+					else 'none'
+				}"/>,
+				<Mark field="reference" level="{
+					if ($ref-read = '' or $ref-process = '') then 'none'
+					else if (contains(upper-case($ref-process), upper-case($ref-read)) or contains(upper-case($ref-read), upper-case($ref-process))) then 'done'
+					else 'none'
+				}"/>,
+				<Mark field="direction" level="{
+					if ($direction-read = '' or $direction-process = '') then ''
+					else if ($direction-read = $direction-process) then 'done'
+					else 'none'
+				}"/>
+			)
+			let $level := document:evidence-level($marks/@level ! string(.))
+			let $written :=
+				if (exists($process/@evidence)) then update value $process/@evidence with $level
+				else update insert attribute evidence {$level} into $process
+			return
+				<Evidence process="{$document-id}" binder="{$binder}" level="{$level}">
+					{$marks[normalize-space(@level) != '']}
+				</Evidence>
+};
 
 (: Test from .xqy
 import module namespace document="http://bintellix.com/docman/document" at "/db/apps/docman/modules/module_document.xqm"; 

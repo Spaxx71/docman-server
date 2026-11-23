@@ -18,7 +18,9 @@ All rights reserved by bintellix GmbH, Germany
 ======================================================================== 
 :)
 
-xquery version "3.0";
+xquery version "3.1";
+
+import module namespace account = "http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 
 
 (:
@@ -53,17 +55,17 @@ declare function local:role($account as element(Account)) as xs:string {
 };
 
 declare function local:party($account as element(Account)) as element(party) {
-	<party id="{string($account/@id)}" name="{string($account/Name)}" role="{local:role($account)}" email="{string($account/Contact/Email)}" website="{string($account/Contact/Website)}">{
+	<party id="{string($account/@id)}" name="{string($account/Name)}" role="{local:role($account)}" email="{string-join(account:channel-values($account, 'email'), '; ')}" website="{string(account:channel-values($account, 'website')[1])}">{
 		lower-case(string-join((
 			$account/@id, $account/Name, $account/Company/Name, $account/Person/Vorname, $account/Person/Nachname,
-			$account/Contact/Email, $account/Contact/Website, local:role($account)
+			account:channel-values($account, 'email'), account:channel-values($account, 'website'), local:role($account)
 		), ' '))
 	}</party>
 };
 
 declare function local:people($home-data as xs:string, $tenant as xs:string, $year as xs:string) as element(party)* {
-	let $doc := doc($home-data || '/' || $tenant || '/' || $year || '/accounts.dm.xml')
-	for $account in $doc/Accounts/Account[@type = 'ledger_account' or tokenize(normalize-space(string(@classes)), '\s+') = ('creditor', 'debitor')]
+	let $rows := if ($year castable as xs:integer) then account:accounts($home-data, $tenant, xs:integer($year)) else ()
+	for $account in $rows[@type = 'ledger_account' or tokenize(normalize-space(string(@classes)), '\s+') = ('creditor', 'debitor')]
 	order by string($account/Name)
 	return local:party($account)
 };
@@ -103,26 +105,19 @@ declare function local:annotate($message as element(), $parties as element(party
 		}
 };
 
-declare function local:remember-email($account as element(Account), $address as xs:string) as element() {
+declare function local:remember-email($account as element(), $address as xs:string) as element() {
 	let $known :=
-		for $part in tokenize(lower-case(string($account/Contact/Email)), '[;,\s]+')
-		return local:sender-email($part)
+		for $part in account:channel-values($account, 'email')
+		for $piece in tokenize(lower-case($part), '[;,\s]+')
+		return local:sender-email($piece)
 	return
 		if ($address = $known) then
 			<ok/>
-		else if (exists($account/Contact/Email)) then
-			if (normalize-space(string($account/Contact/Email)) = '') then (
-				update value $account/Contact/Email with $address,
-				<ok/>
-			) else (
-				update value $account/Contact/Email with concat(string($account/Contact/Email), '; ', $address),
-				<ok/>
-			)
-		else if (exists($account/Contact)) then (
-			update insert <Email>{$address}</Email> into $account/Contact,
+		else if (exists($account/contacts)) then (
+			update insert <contact type="email">{$address}</contact> into $account/contacts,
 			<ok/>
 		) else (
-			update insert <Contact><Vorname/><Nachname/><Email>{$address}</Email><Website/><Telefon/></Contact> into $account,
+			update insert <contacts><contact type="email">{$address}</contact></contacts> into $account,
 			<ok/>
 		)
 };
@@ -134,11 +129,12 @@ declare function local:link($home-data as xs:string, $tenant as xs:string, $year
 		let $id := normalize-space(request:get-parameter('link-account', ''))
 		let $address := local:sender-email(request:get-parameter('link-email', ''))
 		let $account :=
-			if ($id = '' or $address = '') then ()
+			if ($id = '' or $address = '' or not($year castable as xs:integer)) then ()
 			else
-				try {
-					doc($home-data || '/' || $tenant || '/' || $year || '/accounts.dm.xml')/Accounts/Account[string(@id) = $id][@type = 'ledger_account' or tokenize(normalize-space(string(@classes)), '\s+') = ('creditor', 'debitor')]
-				} catch * { () }
+				let $joined := account:getAccount($home-data, $tenant, xs:integer($year), $id)
+				let $found := account:mutable($home-data, $tenant, xs:integer($year), $id)
+				where exists($found) and ($joined/@type = 'ledger_account' or tokenize(normalize-space(string($joined/@classes)), '\s+') = ('creditor', 'debitor'))
+				return $found
 		return
 			if (empty($account)) then
 				<error>Das Personenkonto wurde nicht gefunden.</error>

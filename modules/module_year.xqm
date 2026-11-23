@@ -25,6 +25,7 @@ xquery version "3.1";
 module namespace year = "http://bintellix.com/docman/year";
 
 import module namespace email="http://bintellix.com/docman/email" at "/db/apps/docman/modules/module_email.xqm";
+import module namespace account="http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 
 
 declare function year:existsYear($dm-home-data as xs:string, $tenant-id as xs:string, $year as xs:string) as xs:boolean {
@@ -146,7 +147,9 @@ declare function year:createNewYear(
 					<Files>
 						<Accounts>
 						{
-							if (xmldb:get-child-resources($from) = "accounts.dm.xml") then
+							if (account:has-book($dm-home-data, $tenant)) then
+								xmldb:store($to, "accounts.dm.xml", account:project-year($dm-home-data, $tenant, $old-year, $new-year))
+							else if (xmldb:get-child-resources($from) = "accounts.dm.xml") then
 								xmldb:copy-resource($from, "accounts.dm.xml", $to, "accounts.dm.xml")
 							else
 								<skipped>accounts.dm.xml missing in source year</skipped>
@@ -162,8 +165,9 @@ declare function year:createNewYear(
 						</Year>
 						<BankAccounts>
 						{
-							for $file in xmldb:get-child-resources($from)
-							where matches($file, "bank\-account_[0-9A-Za-z]+\.dm\.xml")
+							for $file in xmldb:get-child-resources($from)[matches(., "bank\-account_[0-9A-Za-z]+\.dm\.xml")]
+							let $detail := doc($from || "/" || $file)/BankAccount/BankAccountDetail
+							where account:in-year(string($detail/@valid-from), string($detail/@valid-till), $new-year)
 							return
 								<BankAccount file="{$file}">
 									<Filename>{xmldb:copy-resource($from, $file, $to, $file)}</Filename>

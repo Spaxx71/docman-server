@@ -9,6 +9,7 @@ Wwb GUI (not SSL/TLS): http://localhost:8080/exist/apps/docman/index.html
 
 
 RESTful API: https://localhost:8443/exist/restxq/docman/rest/index.html
+Belege, Zahlungen, Matchings und der weitere Ausbau: docu/belegfluss.md
 Zuordnung von Kontobewegungen und Vorgängen: docu/bank-zuordnung.md
 For webDAV acces: https://localhost:8443/exist/webdav/db/apps/docman/
 

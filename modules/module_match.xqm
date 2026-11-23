@@ -2,6 +2,8 @@ xquery version "3.1";
 
 module namespace match = "http://bintellix.com/docman/match";
 
+import module namespace account = "http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
+
 declare function match:suggestions(
 	$home-data as xs:string,
 	$tenant as xs:string,
@@ -66,6 +68,58 @@ declare function match:apply(
 			<Applied>{count($applied[not(@error)])}</Applied>
 			{$applied}
 		</Suggestions>
+};
+
+(: Schreibt alle full/auto-Zeilen des Jahres, jede erneut geprüft. :)
+declare function match:apply-all($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $user as xs:string) as element(ApplyAll) {
+	let $opt := match:settings($home-data, $tenant, $year)
+	let $stack := match:stack($home-data, $tenant, $year, 'payment', ())
+	let $actor := local:actor($user)
+	let $candidates := $stack/Row[@class = 'full'][Group/@auto = 'true']
+	let $results :=
+		for $row in $candidates
+		let $payment-id := string($row/@id)
+		let $bank := string($row/@bank)
+		let $fresh := match:suggestions($home-data, $tenant, $year, $bank, $payment-id, (), xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after), xs:decimal($opt/@tolerance))
+		let $group := ($fresh/Group[@auto = 'true'][Payment/@id = $payment-id])[1]
+		return
+			if (empty($group)) then
+				<Skipped payment="{$payment-id}" bank="{$bank}" reason="nicht mehr eindeutig"/>
+			else if ($group/Process/@evidence = 'none') then
+				<Skipped payment="{$payment-id}" bank="{$bank}" reason="Belegprüfung rot"/>
+			else
+				let $written :=
+					for $proc in $group/Process
+					return local:write-task($home-data, $tenant, $year, $group/Payment, $proc, $actor)
+				return
+					if (exists($written[@error])) then
+						<Skipped payment="{$payment-id}" bank="{$bank}" reason="{string(($written[@error]/@error)[1])}"/>
+					else
+						<Written payment="{$payment-id}" bank="{$bank}" processes="{count($written)}"/>
+	return
+		<ApplyAll written="{count($results/self::Written)}" skipped="{count($results/self::Skipped)}" candidates="{count($candidates)}">
+			{$results}
+		</ApplyAll>
+};
+
+declare function match:quality($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Quality) {
+	let $stack := match:stack($home-data, $tenant, $year, 'payment', ())
+	let $auto := count($stack/Row/Group[@auto = 'true'])
+	let $full := count($stack/Row[@class = 'full'])
+	let $open := count($stack/Row)
+	let $collection := concat($home-data, '/', $tenant, '/', $year)
+	let $linked := count(collection($collection)/Process/Tasks/PaymentTask)
+	let $di-changed :=
+		count(
+			for $process in collection($collection)/Process
+			let $intel := ($process//DocmanIntelligence[@status = 'done'])[1]
+			let $read := normalize-space(string($intel/Account/@id))
+			let $owner := normalize-space(string(($process/Tasks/(InvoiceInTask|InvoiceOutTask)[@isMaster = 'true']/Owner, $process/Tasks/(InvoiceInTask|InvoiceOutTask)/Owner)[1]))
+			where $read != '' and $owner != '' and $read != $owner
+			return $process
+		)
+	return
+		<Quality year="{$year}" open="{$open}" auto="{$auto}" full="{$full}" linked="{$linked}" di-account-corrections="{$di-changed}" auto-rate="{if ($open = 0) then '0.00' else format-number($auto div $open, '0.00')}"/>
 };
 
 declare function local:actor($user as xs:string) as xs:string {
@@ -220,14 +274,16 @@ declare function local:model($home-data as xs:string, $tenant as xs:string, $yea
 	let $collection := concat($home-data, '/', $tenant, '/', $year)
 	let $accounts :=
 		if (doc-available(concat($collection, '/accounts.dm.xml'))) then
-			doc(concat($collection, '/accounts.dm.xml'))/Accounts/Account
+			account:accounts($home-data, $tenant, $year)
 		else ()
+	let $past := match:history($home-data, $tenant, $year)
 	let $parties :=
 		for $account in $accounts
 		return
 			<Party kto="{string($account/@kto)}" name="{normalize-space(string($account/Name))}">
-				{local:party-keys($account)}
+				{local:party-keys($account, $past)}
 			</Party>
+	let $rejects := local:rejects($home-data, $tenant, $year)
 	let $tasks := collection($collection)/Process/Tasks/PaymentTask
 	let $booked-by-id := map:merge(
 		for $task in $tasks
@@ -262,7 +318,7 @@ declare function local:model($home-data as xs:string, $tenant as xs:string, $yea
 		let $open := if (exists($face)) then $face - $booked else ()
 		let $date := local:date($process/@date)
 		where exists($master) and exists($open) and exists($date) and abs($open) ge 0.005
-		return local:proc($process, $master, $open, $date, $parties)
+		return local:proc($process, $master, $open, $date, $parties, $rejects[@process = $process/@id]/@payment ! string(.))
 	return
 		<Model>
 			{$pays}
@@ -271,17 +327,41 @@ declare function local:model($home-data as xs:string, $tenant as xs:string, $yea
 };
 
 declare function local:party-keys($account as element(Account)) as element(Key)* {
+	local:party-keys($account, ())
+};
+
+(: Stammschlüssel plus IBAN/Gläubiger-ID/Mandat aus mindestens zwei bestätigten Zahlungen. :)
+declare function local:party-keys($account as element(Account), $past as element(Past)*) as element(Key)* {
+	let $owner := string($account/@kto)
+	let $rows := $past[@owner = $owner]
 	let $ibans := distinct-values((
 		tokenize(string($account/@iban), '[,\s]+')[normalize-space(.) != ''],
-		for $iban in $account/BankAccounts/BankAccount/@iban return normalize-space(string($iban))
+		for $iban in $account/BankAccounts/BankAccount/@iban return normalize-space(string($iban)),
+		for $iban in distinct-values($rows/@iban[normalize-space(.) != ''])
+		where count($rows[@iban = $iban]) ge 2
+		return string($iban)
 	))
-	let $debtees := tokenize(string($account/@debtee), '[,\s]+')[normalize-space(.) != '']
+	let $debtees := distinct-values((
+		tokenize(string($account/@debtee), '[,\s]+')[normalize-space(.) != ''],
+		for $id in $account/BankAccounts/BankAccount/@creditorId return upper-case(replace(string($id), '\s', '')),
+		for $creditor in distinct-values($rows/@creditor[normalize-space(.) != ''])
+		where count($rows[@creditor = $creditor]) ge 2
+		return upper-case(replace(string($creditor), '\s', ''))
+	))[. != '']
+	let $mandates := distinct-values((
+		for $ref in $account/BankAccounts/BankAccount/@mandateRef return upper-case(normalize-space(string($ref))),
+		for $mandate in distinct-values($rows/@mandate[normalize-space(.) != ''])
+		where count($rows[@mandate = $mandate]) ge 2
+		return upper-case(normalize-space(string($mandate)))
+	))[. != '']
 	return (
-		<Key>kto:{string($account/@kto)}</Key>,
+		<Key>kto:{$owner}</Key>,
 		for $iban in $ibans[. != '']
 		return <Key>iban:{upper-case(replace($iban, '\s', ''))}</Key>,
 		for $debtee in $debtees
-		return <Key>creditor:{upper-case($debtee)}</Key>
+		return <Key>creditor:{upper-case($debtee)}</Key>,
+		for $mandate in $mandates
+		return <Key>mandate:{$mandate}</Key>
 	)
 };
 
@@ -298,10 +378,12 @@ declare function local:face($process as element(Process), $master as element()) 
 
 declare function local:pay($bank as element(BankAccount), $accounting as element(Accounting), $open as xs:decimal, $date as xs:date, $parties as element(Party)*) as element(Pay) {
 	let $iban := upper-case(replace(normalize-space(string($accounting/IBAN)), '\s', ''))
-	let $creditor := upper-case(normalize-space(string($accounting/CreditorID)))
+	let $creditor := match:clean-ref($accounting/CreditorID)
+	let $mandate := match:clean-ref($accounting/MandantRef)
 	let $matched := $parties[
 		($iban != '' and Key = concat('iban:', $iban))
 		or ($creditor != '' and Key = concat('creditor:', $creditor))
+		or ($mandate != '' and Key = concat('mandate:', $mandate))
 	]
 	let $type := normalize-space(string($accounting/Amount/@type))
 	let $direction := local:pay-direction($type, $open)
@@ -317,16 +399,21 @@ declare function local:pay($bank as element(BankAccount), $accounting as element
 	), ' '))
 	let $unit := normalize-space(string($accounting/CurrencyUnit))
 	return
-		<Pay id="{$accounting/@id}" bank="{string($bank/@kto)}" amount="{format-number($open, '0.00')}" match="{format-number($match, '0.00')}" direction="{$direction}" date="{string($date)}" unit="{if ($unit = ('EUR', 'USD')) then $unit else 'EUR'}" customer="{if ($customer = ('NONREF', '')) then '' else $customer}" endtoend="{if ($endtoend = ('NOTPROVIDED', '')) then '' else $endtoend}" purpose="{$purpose}" iban="{$iban}" creditor="{$creditor}" recipient="{normalize-space(string($accounting/Recipient))}">
+		<Pay id="{$accounting/@id}" bank="{string($bank/@kto)}" amount="{format-number($open, '0.00')}" match="{format-number($match, '0.00')}" direction="{$direction}" date="{string($date)}" unit="{if ($unit = ('EUR', 'USD')) then $unit else 'EUR'}" customer="{if ($customer = ('NONREF', '')) then '' else $customer}" endtoend="{if ($endtoend = ('NOTPROVIDED', '')) then '' else $endtoend}" mandate="{$mandate}" purpose="{$purpose}" iban="{$iban}" creditor="{$creditor}" recipient="{normalize-space(string($accounting/Recipient))}">
 			{
 				if ($iban != '') then <Key>iban:{$iban}</Key> else (),
 				if ($creditor != '') then <Key>creditor:{$creditor}</Key> else (),
+				if ($mandate != '') then <Key>mandate:{$mandate}</Key> else (),
 				$matched/Key
 			}
 		</Pay>
 };
 
-declare function local:proc($process as element(Process), $master as element(), $open as xs:decimal, $date as xs:date, $parties as element(Party)*) as element(Proc) {
+declare function local:intel-field($intel as element(DocmanIntelligence)*, $id as xs:string) as xs:string {
+	normalize-space(string(($intel/Fields/Field[@id = $id]/@value)[1]))
+};
+
+declare function local:proc($process as element(Process), $master as element(), $open as xs:decimal, $date as xs:date, $parties as element(Party)*, $rejected as xs:string*) as element(Proc) {
 	let $salary := local-name($master) = 'EmployeeSalaryTask'
 	let $owner := normalize-space(string($master/Owner))
 	let $tasks := $process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
@@ -339,12 +426,21 @@ declare function local:proc($process as element(Process), $master as element(), 
 		else normalize-space(string(($tasks/Description[normalize-space(.) != ''])[1]))
 	let $direction := local:proc-direction(local-name($master), $master/@isStorno = 'true')
 	let $match := local:signed($direction, $open)
+	let $intel := $process//DocmanIntelligence[@status = 'done']
+	let $iban := upper-case(replace(local:intel-field($intel, 'sender.iban'), '\s', ''))
+	let $customer := local:intel-field($intel, 'invoice.customer.id')
+	let $invoice-id := local:intel-field($intel, 'invoice.id')
+	let $due := local:date(local:intel-field($intel, 'invoice.date.due'))
+	let $skonto-until := local:date(local:intel-field($intel, 'invoice.skonto.until'))
+	let $skonto-amount := (local:money(local:intel-field($intel, 'invoice.amount.skonto')), local:money(local:intel-field($intel, 'invoice.amount.discount')))[1]
+	let $evidence := normalize-space(string($process/@evidence))
 	return
-		<Proc id="{$process/@id}" binder="{string($process/@binder)}" name="{string($process/@name)}" owner="{$owner}" ownerName="{string(($party/@name)[1])}" amount="{format-number($open, '0.00')}" match="{format-number($match, '0.00')}" direction="{$direction}" date="{string($date)}" ref="{if ($salary) then '' else normalize-space(string($master/RefID))}" trans="{if ($salary) then '' else normalize-space(string($master/TransactionID))}" description="{$description}" task="{local-name($master)}" storno="{if ($master/@isStorno = 'true') then 'true' else 'false'}" salary="{if ($salary) then 'true' else 'false'}" employee="{$employee}" month="{$month}">
+		<Proc id="{$process/@id}" binder="{string($process/@binder)}" name="{string($process/@name)}" owner="{$owner}" ownerName="{string(($party/@name)[1])}" amount="{format-number($open, '0.00')}" match="{format-number($match, '0.00')}" direction="{$direction}" date="{string($date)}" due="{if (exists($due)) then string($due) else ''}" skonto-until="{if (exists($skonto-until)) then string($skonto-until) else ''}" skonto-amount="{if (exists($skonto-amount)) then format-number($skonto-amount, '0.00') else ''}" evidence="{$evidence}" ref="{if ($salary) then '' else normalize-space(string($master/RefID))}" trans="{if ($salary) then '' else normalize-space(string($master/TransactionID))}" description="{$description}" task="{local-name($master)}" storno="{if ($master/@isStorno = 'true') then 'true' else 'false'}" salary="{if ($salary) then 'true' else 'false'}" employee="{$employee}" month="{$month}">
 			{for $kto in $owners return <Key>kto:{$kto}</Key>}
 			{$party/Key}
+			{if ($iban != '') then <Key>iban:{$iban}</Key> else ()}
 			{for $name in distinct-values($party/@name[normalize-space(.) != '']) return <Name>{normalize-space(string($name))}</Name>}
-			{for $ref in distinct-values($tasks/RefID[normalize-space(.) != '']) return <Ref>{normalize-space($ref)}</Ref>}
+			{for $ref in distinct-values(($tasks/RefID[normalize-space(.) != ''], $invoice-id[. != ''], $customer[. != ''])) return <Ref>{normalize-space($ref)}</Ref>}
 			{for $ref in distinct-values($tasks/TransactionID[normalize-space(.) != '']) return <Trans>{normalize-space($ref)}</Trans>}
 			{for $text in distinct-values($tasks/Description[normalize-space(.) != '']) return <Text>{normalize-space($text)}</Text>}
 			{if (normalize-space(string($process/Notes)) != '') then <Note>{normalize-space(string($process/Notes))}</Note> else ()}
@@ -354,6 +450,7 @@ declare function local:proc($process as element(Process), $master as element(), 
 				for $ref in $process/Tasks/PaymentTask/RefID
 				return <Linked>{normalize-space(string($ref))}</Linked>
 			}
+			{for $payment in distinct-values($rejected) return <Linked rejected="true">{$payment}</Linked>}
 		</Proc>
 };
 
@@ -700,11 +797,11 @@ declare function local:giver-pays($pay as element(Pay), $members as element(Proc
 };
 
 declare function local:payment-view($pay as element(Pay)) as element(Payment) {
-	<Payment bank="{$pay/@bank}" id="{$pay/@id}" amount="{$pay/@amount}" date="{$pay/@date}" unit="{$pay/@unit}" customer="{$pay/@customer}" endtoend="{$pay/@endtoend}" purpose="{$pay/@purpose}" iban="{$pay/@iban}" creditor="{$pay/@creditor}" recipient="{$pay/@recipient}"/>
+	<Payment bank="{$pay/@bank}" id="{$pay/@id}" amount="{$pay/@amount}" date="{$pay/@date}" unit="{$pay/@unit}" customer="{$pay/@customer}" endtoend="{$pay/@endtoend}" mandate="{$pay/@mandate}" purpose="{$pay/@purpose}" iban="{$pay/@iban}" creditor="{$pay/@creditor}" recipient="{$pay/@recipient}"/>
 };
 
 declare function local:process-view($proc as element(Proc), $pay as element(Pay), $before as xs:integer, $after as xs:integer, $amount-level as xs:string) as element(Process) {
-	<Process id="{$proc/@id}" binder="{$proc/@binder}" name="{$proc/@name}" owner="{$proc/@owner}" ownerName="{$proc/@ownerName}" amount="{$proc/@amount}" date="{$proc/@date}" ref="{$proc/@ref}" trans="{$proc/@trans}" description="{$proc/@description}" task="{$proc/@task}" storno="{$proc/@storno}" salary="{$proc/@salary}" distance="{local:day-count($proc, $pay)}">
+	<Process id="{$proc/@id}" binder="{$proc/@binder}" name="{$proc/@name}" owner="{$proc/@owner}" ownerName="{$proc/@ownerName}" amount="{$proc/@amount}" date="{$proc/@date}" due="{$proc/@due}" evidence="{$proc/@evidence}" ref="{$proc/@ref}" trans="{$proc/@trans}" description="{$proc/@description}" task="{$proc/@task}" storno="{$proc/@storno}" salary="{$proc/@salary}" distance="{local:day-count($proc, $pay)}">
 		{local:marks($proc, $pay, $before, $after, $amount-level)}
 		{$proc/Posten}
 	</Process>
@@ -778,8 +875,8 @@ declare function local:task($tenant as xs:string, $year as xs:integer, $pay as e
 declare variable $match:fillers := ('GMBH', 'AG', 'KG', 'SE', 'OHG', 'UG', 'EV', 'UND', 'ODER', 'DER', 'DIE', 'DAS', 'DEN', 'DEM', 'DES', 'EIN', 'EINE', 'FUER', 'FUR', 'VON', 'MIT', 'BEI', 'AUF', 'AUS', 'ZUM', 'ZUR', 'IM', 'IN', 'AM', 'AN', 'RECHNUNG', 'ZAHLUNG', 'GUTSCHRIFT', 'BELEG');
 
 declare function local:accounts($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Account)* {
-	let $path := concat($home-data, '/', $tenant, '/', $year, '/accounts.dm.xml')
-	return if (doc-available($path)) then doc($path)/Accounts/Account else ()
+	let $path := account:year-path($home-data, $tenant, $year)
+	return if (doc-available($path)) then account:accounts($home-data, $tenant, $year) else ()
 };
 
 declare function local:posten-amount($task as element()) as xs:decimal? {
@@ -806,6 +903,48 @@ declare function local:words($text) as xs:string* {
 	return $tokens[not(. = $match:fillers)][string-length(.) ge 2][not(matches(., '^(19|20)[0-9]{2}$'))]
 };
 
+(: Gläubiger-ID oder Mandat ohne Leerzeichen; manche Banken hängen SEPA-Felder wie SVWZ+ an. :)
+declare function match:clean-ref($value) as xs:string {
+	let $compact := upper-case(replace(normalize-space(string($value)), '\s', ''))
+	let $cut := replace($compact, '(SVWZ|EREF|MREF|KREF|CRED|ABWA|ABWE)\+.*$', '')
+	return if ($cut = ('NONREF', 'NOTPROVIDED')) then '' else $cut
+};
+
+declare function match:distance($left as xs:string, $right as xs:string) as xs:integer {
+	let $s := string-to-codepoints(substring($left, 1, 40))
+	let $t := string-to-codepoints(substring($right, 1, 40))
+	let $last := fold-left(1 to count($s), 0 to count($t), function ($row, $i) {
+		fold-left(1 to count($t), $i, function ($acc, $j) {
+			($acc, min(($acc[last()] + 1, $row[$j + 1] + 1, $row[$j] + (if ($s[$i] = $t[$j]) then 0 else 1))))
+		})
+	})
+	return $last[last()]
+};
+
+(: Levenshtein höchstens 1 ab sechs Zeichen, höchstens 2 ab zehn. :)
+declare function match:fuzzy-same($left as xs:string, $right as xs:string) as xs:boolean {
+	let $length := min((string-length($left), string-length($right)))
+	return
+		$left = $right
+		or ($length ge 6 and abs(string-length($left) - string-length($right)) le 2 and match:distance($left, $right) le (if ($length ge 10) then 2 else 1))
+};
+
+(: 1 = gleiche Wörter, sonst Anteil gemeinsamer (auch ähnlicher) Wörter ohne Rechtsformen und Füllwörter. :)
+declare function match:name-score($left, $right) as xs:decimal {
+	let $a := distinct-values(local:words($left))
+	let $b := distinct-values(local:words($right))
+	let $compact-a := string-join($a, '')
+	let $compact-b := string-join($b, '')
+	return
+		if (empty($a) or empty($b)) then xs:decimal(0)
+		else if ($compact-a = $compact-b) then xs:decimal(1)
+		else
+			let $hits := count($a[some $other in $b satisfies match:fuzzy-same(., $other)])
+			let $share := xs:decimal(2 * $hits) div xs:decimal(count($a) + count($b))
+			let $inside := min((string-length($compact-a), string-length($compact-b))) ge 5 and (contains($compact-a, $compact-b) or contains($compact-b, $compact-a))
+			return if ($inside) then max(($share, xs:decimal(0.85))) else $share
+};
+
 declare function local:ordered($hay as xs:string*, $need as xs:string*) as xs:boolean {
 	if (empty($need)) then true()
 	else if (empty($hay)) then false()
@@ -817,13 +956,23 @@ declare function local:compact($text) as xs:string {
 	upper-case(replace(string($text), '[^0-9A-Z]', ''))
 };
 
-declare function local:number-hit($purpose, $number) as xs:boolean {
+declare function local:ocr-fold($text as xs:string) as xs:string {
+	translate($text, 'OISB', '0158')
+};
+
+(: true = exakter Kompaktvergleich, 'ocr' = nur mit OCR-Ersetzung, false = kein Treffer. :)
+declare function local:number-hit-kind($purpose, $number) as xs:string {
 	let $token := local:compact($number)
 	let $hay := local:compact($purpose)
-	return string-length($token) ge 4 and (
-		contains($hay, $token)
-		or (string-length($token) ge 8 and contains($hay, substring($token, 1, 6)) and contains($hay, substring($token, string-length($token) - 3)))
-	)
+	return
+		if (string-length($token) lt 4) then 'none'
+		else if (contains($hay, $token) or (string-length($token) ge 8 and contains($hay, substring($token, 1, 6)) and contains($hay, substring($token, string-length($token) - 3)))) then 'exact'
+		else if (contains(local:ocr-fold($hay), local:ocr-fold($token))) then 'ocr'
+		else 'none'
+};
+
+declare function local:number-hit($purpose, $number) as xs:boolean {
+	local:number-hit-kind($purpose, $number) = ('exact', 'ocr')
 };
 
 declare function local:phrase-level($purpose, $texts as xs:string*) as xs:string {
@@ -848,13 +997,22 @@ declare function local:rule-holds($rule as element(), $pay as element(Pay)) as x
 		else if ($type = ('SEPA_DIRECT-DEBIT_IBAN', 'SEPA_CREDIT-TRANSFER_IBAN')) then
 			$pay/@iban = upper-case(replace($text, '\s', ''))
 		else if ($type = 'SEPA_DIRECT-DEBIT_CREDITOR-ID') then
-			contains(string($pay/@creditor), upper-case($text))
+			contains(string($pay/@creditor), upper-case(replace($text, '\s', '')))
 		else if ($type = 'PAYER_BANK-ACCOUNT_CONCERNED') then
 			string($pay/@bank) = $text
 		else if ($type = 'SEPA_PAYMENT-DETAILS_REGEX') then
 			try { matches(string($pay/@purpose), local:rule-text($rule), 'i') } catch * { false() }
 		else
 			local:ordered(local:words($pay/@purpose), local:words($text))
+};
+
+(: Pflichtregeln müssen alle greifen; gibt es nur Wahlregeln, genügt eine. :)
+declare function local:rules-hold($rules as element()*, $pay as element(Pay)) as xs:boolean {
+	let $required := $rules[not(@use = 'optional')]
+	return
+		exists($rules)
+		and (every $rule in $required satisfies local:rule-holds($rule, $pay))
+		and (exists($required) or exists($rules[local:rule-holds(., $pay)]))
 };
 
 declare function local:intervals($account as element(Account)?, $date as xs:date?) as element(PeriodicPayment)* {
@@ -886,7 +1044,7 @@ declare function local:twin($pay as element(Pay), $pays as element(Pay)*, $befor
 };
 
 declare function local:learned($model as element(Model), $owner as xs:string) as element(Learned)? {
-	let $ids := $model/Proc[@owner = $owner]/Linked
+	let $ids := $model/Proc[@owner = $owner]/Linked[not(@rejected = 'true')]
 	let $pays := $model/Pay[@id = $ids]
 	let $count := count($pays)
 	where $count ge 3
@@ -944,8 +1102,13 @@ declare function local:skonto-explains($proc as element(Proc), $pay as element(P
 	let $base := abs(local:sum(for $amount in $proc/Posten[@direction = $pay/@direction][not(@role = 'storno')]/@amount return xs:decimal($amount)))
 	let $rate := xs:decimal($opt/@skonto) div 100
 	let $notes := string-join(($proc/Note, $proc/Posten/@text, $pay/@purpose), ' ')
+	let $known := if ($proc/@skonto-amount castable as xs:decimal) then xs:decimal($proc/@skonto-amount) else ()
+	let $until := local:date($proc/@skonto-until)
+	let $pay-date := local:date($pay/@date)
+	let $in-time := empty($until) or (exists($pay-date) and $pay-date le $until)
 	return $proc/@direction = $pay/@direction and $fee gt xs:decimal($opt/@rounding) and (
-		local:words($notes) = 'SKONTO'
+		(exists($known) and local:near($fee, $known, xs:decimal($opt/@rounding)) and $in-time)
+		or local:words($notes) = 'SKONTO'
 		or ($base gt 0 and $fee le $base * $rate)
 	)
 };
@@ -964,8 +1127,15 @@ declare function local:dunning-word($notes as xs:string) as xs:boolean {
 };
 
 declare function local:field-view($proc as element(Proc), $pay as element(Pay), $also as element(Pay)*, $accounts as element(Account)*, $learned as element(Learned)?, $opt as element(Opt), $amount-level as xs:string) as element(Process) {
-	<Process id="{$proc/@id}" binder="{$proc/@binder}" name="{$proc/@name}" owner="{$proc/@owner}" ownerName="{$proc/@ownerName}" amount="{$proc/@amount}" date="{$proc/@date}" ref="{$proc/@ref}" trans="{$proc/@trans}" description="{$proc/@description}" task="{$proc/@task}" storno="{$proc/@storno}" salary="{$proc/@salary}" distance="{local:day-count($proc, $pay)}">
+	let $iban := replace(string(($proc/Key[starts-with(., 'iban:')])[1]), '^iban:', '')
+	return
+	<Process id="{$proc/@id}" binder="{$proc/@binder}" name="{$proc/@name}" owner="{$proc/@owner}" ownerName="{$proc/@ownerName}" amount="{$proc/@amount}" date="{$proc/@date}" due="{$proc/@due}" evidence="{$proc/@evidence}" ref="{$proc/@ref}" trans="{$proc/@trans}" description="{$proc/@description}" task="{$proc/@task}" storno="{$proc/@storno}" salary="{$proc/@salary}" distance="{local:day-count($proc, $pay)}">
 		{local:field-marks($proc, $pay, $also, $accounts, $learned, $opt, $amount-level)}
+		{
+			if ($proc/@due != '' or $iban != '' or count($proc/Ref) gt 1) then
+				<Evidence payable="{$proc/@amount}" date="{$proc/@date}" due="{$proc/@due}" invoiceId="{$proc/@ref}" customer="{string(($proc/Ref[not(. = $proc/@ref)])[1])}" iban="{$iban}" quality=""/>
+			else ()
+		}
 		{$proc/Posten}
 	</Process>
 };
@@ -974,35 +1144,91 @@ declare function local:field-marks($proc as element(Proc), $pay as element(Pay),
 	let $side := $proc/Posten[@direction = $pay/@direction]
 	let $dates := for $post in ($side, $proc)[1] return local:date($post/@date)
 	let $date := ($dates, local:date($proc/@date))[1]
+	let $due := local:date($proc/@due)
 	let $pay-date := local:date($pay/@date)
 	let $account := local:party-account($accounts, $proc)
 	let $interval := string((local:intervals($account, $pay-date)/Period/@interval)[1])
 	let $period := local:period-holds($interval, $date, $pay-date)
-	let $perfect := exists($date) and exists($pay-date) and local:in-window($date, $pay-date, xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after)) and $period
+	let $anchor := ($due, $date)[1]
+	let $perfect := exists($anchor) and exists($pay-date) and local:in-window($anchor, $pay-date, xs:integer($opt/@perfect-before), xs:integer($opt/@perfect-after)) and $period
 	let $potential := exists($date) and exists($pay-date) and local:in-window($date, $pay-date, xs:integer($opt/@potential-before), xs:integer($opt/@potential-after)) and $period
 	let $date-level := if ($perfect) then 'done' else if ($potential) then 'part' else 'none'
 	let $purpose := local:purpose-of($proc, ($pay, $also))
 	let $refs := ($side/@ref, $proc/Ref, $proc/@ref)[normalize-space(.) != '']
 	let $trans := ($side/@trans, $proc/Trans, $proc/@trans)[normalize-space(.) != '']
 	let $rules := local:intervals($account, $pay-date)/PaymentRules/PaymentRule
-	let $rule-hit := exists($rules[local:rule-holds(., $pay)])
-	let $text-rule := exists($rules[@type = ('SEPA_PAYMENT-DETAILS_REGEX', 'SEPA_PAYMENT-DETAILS_ASCII')][local:rule-holds(., $pay)])
+	let $rule-nodes := $rules[local:rule-holds(., $pay)]
+	let $rule-hit := exists(local:intervals($account, $pay-date)[local:rules-hold(PaymentRules/PaymentRule, $pay)])
+	let $text-rule := $rule-nodes[@type = ('SEPA_PAYMENT-DETAILS_REGEX', 'SEPA_PAYMENT-DETAILS_ASCII')]
 	let $phrase :=
 		if ($proc/@salary = 'true') then local:phrase-level($purpose, ($proc/@employee, $proc/@month))
 		else local:phrase-level($purpose, ($side/@text, $proc/Text, $proc/Note))
 	let $template-level := local:phrase-level($purpose, $account/ProcessTemplates/ProcessTemplate/Description)
-	let $learned-hit := exists($learned/Word[local:words($purpose) = string(.)])
-	let $name-level := local:phrase-level($purpose, ($proc/@ownerName, $proc/@employee))
+	let $learned-words := $learned/Word[local:words($purpose) = string(.)]
+	let $recipient-score := match:name-score(string($pay/@recipient), string-join(($proc/@ownerName, $account/Name, $account/FieldHints/FieldHint[@field = 'party.self']/@label), ' '))
+	let $shared-keys := $proc/Key[. = $pay/Key]
+	let $ref-hits :=
+		for $ref in $refs
+		let $kind := local:number-hit-kind($purpose, string($ref))
+		where $kind != 'none'
+		return <Hit source="reference" kind="{$kind}" want="{string($ref)}">{$purpose}</Hit>
+	let $trans-hits :=
+		for $ref in $trans
+		let $kind := local:number-hit-kind($purpose, string($ref))
+		where $kind != 'none'
+		return <Hit source="transaction" kind="{$kind}" want="{string($ref)}">{$purpose}</Hit>
+	let $mandate-hit :=
+		if (normalize-space(string($pay/@mandate)) != '' and $proc/Key = concat('mandate:', upper-case(normalize-space(string($pay/@mandate))))) then
+			<Hit source="mandate" kind="exact" want="{string($pay/@mandate)}">{string($pay/@mandate)}</Hit>
+		else ()
+	let $endtoend-hit :=
+		if (normalize-space(string($pay/@endtoend)) != '' and exists($trans[local:number-hit($purpose, string(.))] | $proc/Trans[local:number-hit(string($pay/@endtoend), string(.))])) then
+			<Hit source="transaction" kind="exact" want="{string($pay/@endtoend)}">{string($pay/@endtoend)}</Hit>
+		else ()
+	let $purpose-level :=
+		if (exists($text-rule) or $phrase = 'done') then 'done'
+		else if ($phrase = 'part' or $template-level = ('done', 'part') or exists($learned-words)) then 'part'
+		else 'none'
+	let $counter-level :=
+		if (exists($shared-keys) or $rule-hit) then 'done'
+		else if ($recipient-score ge 0.85 or local:phrase-level($purpose, ($proc/@ownerName, $proc/@employee)) = ('done', 'part')) then 'part'
+		else 'none'
+	let $ref-level :=
+		if (exists($ref-hits[@kind = 'exact'])) then 'done'
+		else if (exists($ref-hits)) then 'part'
+		else 'none'
+	let $trans-level :=
+		if (exists($trans-hits[@kind = 'exact']) or exists($endtoend-hit) or exists($mandate-hit)) then 'done'
+		else if (exists($trans-hits)) then 'part'
+		else 'none'
 	return (
 		<Mark field="amount" level="{$amount-level}"/>,
-		<Mark field="date" level="{$date-level}" days="{if (exists($date) and exists($pay-date)) then days-from-duration($pay-date - $date) else ''}"/>,
+		<Mark field="date" level="{$date-level}" days="{if (exists($anchor) and exists($pay-date)) then days-from-duration($pay-date - $anchor) else ''}"/>,
 		if ($proc/@salary = 'true') then ()
 		else (
-			<Mark field="reference" level="{if (exists($refs[local:number-hit($purpose, string(.))])) then 'done' else 'none'}"/>,
-			<Mark field="transaction" level="{if (exists($trans[local:number-hit($purpose, string(.))])) then 'done' else 'none'}"/>
+			<Mark field="reference" level="{$ref-level}">{$ref-hits}</Mark>,
+			<Mark field="transaction" level="{$trans-level}">{$trans-hits}{$endtoend-hit}{$mandate-hit}</Mark>
 		),
-		<Mark field="purpose" level="{if ($text-rule or $phrase = 'done') then 'done' else if ($phrase = 'part' or $template-level = ('done', 'part') or $learned-hit) then 'part' else 'none'}"/>,
-		<Mark field="counterparty" level="{if ($proc/Key = $pay/Key or $rule-hit) then 'done' else if ($name-level = ('done', 'part')) then 'part' else 'none'}"/>
+		<Mark field="purpose" level="{$purpose-level}">
+			{
+				for $rule in $text-rule
+				return <Hit source="rule" rule="{normalize-space(string($rule))}" kind="{if ($rule/@type = 'SEPA_PAYMENT-DETAILS_REGEX') then 'regex' else 'exact'}" use="{if ($rule/@use = 'optional') then 'optional' else 'required'}">{string($pay/@purpose)}</Hit>,
+				if ($phrase = ('done', 'part')) then <Hit source="purpose" kind="{if ($phrase = 'done') then 'exact' else 'part'}">{string($pay/@purpose)}</Hit> else (),
+				if ($template-level = ('done', 'part')) then <Hit source="template" kind="{if ($template-level = 'done') then 'exact' else 'part'}">{string($pay/@purpose)}</Hit> else (),
+				for $word in $learned-words return <Hit source="learned" kind="exact">{$word/string()}</Hit>
+			}
+		</Mark>,
+		<Mark field="counterparty" level="{$counter-level}">
+			{
+				for $key in $shared-keys
+				return <Hit source="{tokenize(string($key), ':')[1]}" kind="exact">{string($key)}</Hit>,
+				for $rule in $rule-nodes[not(@type = ('SEPA_PAYMENT-DETAILS_REGEX', 'SEPA_PAYMENT-DETAILS_ASCII'))]
+				return <Hit source="rule" rule="{normalize-space(string($rule))}" kind="exact" use="{if ($rule/@use = 'optional') then 'optional' else 'required'}">{normalize-space(string($rule))}</Hit>,
+				if ($recipient-score ge 0.85) then
+					<Hit source="recipient" kind="fuzzy" score="{format-number($recipient-score, '0.00')}" want="{normalize-space(string($proc/@ownerName))}">{string($pay/@recipient)}</Hit>
+				else ()
+			}
+		</Mark>
 	)
 };
 
@@ -1105,10 +1331,6 @@ declare function local:one-group($proc as element(Proc), $pay as element(Pay), $
 		</Group>
 };
 
-declare function local:learned-for($proc as element(Proc), $accounts as element(Account)*) as element(Learned)? {
-	()
-};
-
 declare function local:field-groups($model as element(Model), $accounts as element(Account)*, $past as element(Past)*, $payment-id as xs:string?, $process-id as xs:string?, $opt as element(Opt)) as element(Group)* {
 	let $payment := normalize-space(string($payment-id))
 	let $process := normalize-space(string($process-id))
@@ -1142,10 +1364,7 @@ declare function local:field-groups($model as element(Model), $accounts as eleme
 
 declare function local:missing-periodic($pay as element(Pay), $model as element(Model), $accounts as element(Account)*, $found as element(Group)*) as element(Group)* {
 	for $account in $accounts
-	let $hit := local:intervals($account, local:date($pay/@date))[
-		exists(PaymentRules/PaymentRule)
-		and empty(PaymentRules/PaymentRule[not(local:rule-holds(., $pay))])
-	]
+	let $hit := local:intervals($account, local:date($pay/@date))[local:rules-hold(PaymentRules/PaymentRule, $pay)]
 	let $owner := string($account/@kto)
 	where exists($hit) and empty($found/Process[@owner = $owner]) and empty($model/Proc[@owner = $owner][local:touches($pay, .)])
 	return
@@ -1156,20 +1375,6 @@ declare function local:missing-periodic($pay as element(Pay), $model as element(
 		</Group>
 };
 
-declare function local:process-candidate($pay as element(Pay), $proc as element(Proc)) as xs:boolean {
-	let $side := $proc/Posten[@direction = $pay/@direction][not(@role = 'storno')]
-	let $sum := local:sum(for $amount in $side/@amount return xs:decimal($amount))
-	let $target := xs:decimal($pay/@match)
-	let $notes := string-join(($proc/Note, $proc/Posten/@text, $pay/@purpose), ' ')
-	let $fee := abs($target - $sum)
-	return exists($side) and (
-		local:same($sum, $target)
-		or exists($side[local:same(xs:decimal(@amount), $target)])
-		or local:skonto-explains($proc, $pay, match:default-settings())
-		or (local:dunning-word($notes) and $fee gt 0.005 and $fee le 99.99)
-	)
-};
-
 declare function local:touches($pay as element(Pay), $proc as element(Proc)) as xs:boolean {
 	$proc/Posten/@direction = $pay/@direction and (
 		$proc/Key = $pay/Key
@@ -1177,6 +1382,12 @@ declare function local:touches($pay as element(Pay), $proc as element(Proc)) as 
 		or exists(($proc/Ref, $proc/@ref)[local:number-hit($pay/@purpose, string(.))])
 		or exists($proc/Posten[local:same(abs(xs:decimal(@amount)), abs(xs:decimal($pay/@match)))])
 	)
+};
+
+(: Auto nur bei eindeutigem Treffer mit starkem Signal und ohne rote Belegprüfung. :)
+declare function local:strong-signal($group as element(Group)) as xs:boolean {
+	exists($group/Process/Mark[@field = ('counterparty', 'reference')][@level = 'done'])
+	and not($group/Process/@evidence = 'none')
 };
 
 declare function local:finish($groups as element(Group)*, $bank as xs:string?, $payment-id as xs:string?, $process-id as xs:string?) as element(Group)* {
@@ -1197,7 +1408,7 @@ declare function local:finish($groups as element(Group)*, $bank as xs:string?, $
 			attribute auto {'false'},
 			$group/*
 		}
-	let $ready := $ranked[@level = 'done'][not(Invite)]
+	let $ready := $ranked[@level = 'done'][not(Invite)][local:strong-signal(.)]
 	let $unique := $ready[
 		let $pay := string(Payment/@id)
 		let $proc := string(Process/@id)
@@ -1206,7 +1417,7 @@ declare function local:finish($groups as element(Group)*, $bank as xs:string?, $
 	return
 		for $group in $ranked
 		let $ready :=
-			if ($group/Payment/@id = $unique/Payment/@id and $group/Process/@id = $unique/Process/@id and $group/@level = 'done' and not($group/Invite)) then
+			if ($group/Payment/@id = $unique/Payment/@id and $group/Process/@id = $unique/Process/@id and $group/@level = 'done' and not($group/Invite) and local:strong-signal($group)) then
 				element Group { $group/@*[not(local-name() = 'auto')], attribute auto {'true'}, $group/* }
 			else $group
 		let $class := local:match-class($ready)
@@ -1388,8 +1599,7 @@ declare function match:save-pattern(
 	$kto as xs:string,
 	$body as element()
 ) as element(Saved) {
-	let $path := concat($home-data, '/', $tenant, '/', $year, '/accounts.dm.xml')
-	let $account := doc($path)/Accounts/Account[@kto = $kto][1]
+	let $account := account:mutable($home-data, $tenant, $year, $kto)
 	return
 		if (empty($account)) then <Saved error="Kreditor nicht gefunden."/>
 		else
@@ -1471,7 +1681,25 @@ declare function local:history($home-data as xs:string, $tenant as xs:string, $y
 	let $amount := local:money($task/Amount/@value)
 	where $id != '' and exists($accounting) and exists($amount)
 	return
-		<Past owner="{$owner}" date="{substring(normalize-space(string($accounting/ValueDate)), 1, 10)}" amount="{format-number(abs($amount), '0.00')}" purpose="{normalize-space(string-join(($accounting/CustomerRef[not(. = ('NONREF', 'NOTPROVIDED'))], $accounting/EndToEndRef[not(. = ('NONREF', 'NOTPROVIDED'))], $accounting/PaymentDetail, $accounting/Usage), ' '))}"/>
+		<Past owner="{$owner}" id="{$id}" process="{string($process/@id)}" date="{substring(normalize-space(string($accounting/ValueDate)), 1, 10)}" amount="{format-number(abs($amount), '0.00')}" direction="{if (normalize-space(string($accounting/Amount/@type)) = 'DEBIT' or $amount lt 0) then 'out' else 'in'}" iban="{upper-case(replace(normalize-space(string($accounting/IBAN)), '\s', ''))}" creditor="{match:clean-ref($accounting/CreditorID)}" mandate="{match:clean-ref($accounting/MandantRef)}" other="{normalize-space(string(($process/Tasks/CommodityTask/Other[normalize-space(.) != ''])[1]))}" purpose="{normalize-space(string-join(($accounting/CustomerRef[not(. = ('NONREF', 'NOTPROVIDED'))], $accounting/EndToEndRef[not(. = ('NONREF', 'NOTPROVIDED'))], $accounting/PaymentDetail, $accounting/Usage), ' '))}"/>
+};
+
+(: Bestätigte Verknüpfungen Zahlung–Vorgang des Jahres und des Vorjahres. :)
+declare function match:history($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Past)* {
+	local:history($home-data, $tenant, $year),
+	if (xmldb:collection-available(concat($home-data, '/', $tenant, '/', string($year - 1)))) then local:history($home-data, $tenant, $year - 1) else ()
+};
+
+declare function match:learned($past as element(Past)*, $owner as xs:string) as element(Learned)? {
+	local:learned-from($past, $owner)
+};
+
+declare function match:infer-interval($dates as xs:date*) as xs:string {
+	local:infer-interval($dates)
+};
+
+declare function match:words($text) as xs:string* {
+	local:words($text)
 };
 
 declare function local:learned-from($past as element(Past)*, $owner as xs:string) as element(Learned)? {
@@ -1517,7 +1745,7 @@ declare function local:insert-periodic($home-data as xs:string, $tenant as xs:st
 		if (empty($accounting) or empty($date) or empty($open) or empty($account)) then <Invited error="Intervall oder Zahlung nicht gefunden."/>
 		else
 			let $pay := local:pay($bank, $accounting, $open, $date, ())
-			let $periodic := (local:intervals($account, $date)[exists(PaymentRules/PaymentRule) and empty(PaymentRules/PaymentRule[not(local:rule-holds(., $pay))])])[1]
+			let $periodic := (local:intervals($account, $date)[local:rules-hold(PaymentRules/PaymentRule, $pay)])[1]
 			return
 				if (empty($periodic)) then <Invited error="Kein passendes Zahlungsintervall."/>
 				else
@@ -1623,6 +1851,37 @@ declare function match:save-settings($home-data as xs:string, $tenant as xs:stri
 	let $mode := sm:chmod($uri, 'rwxrwxr-x')
 	let $group := sm:chgrp($uri, 'docman')
 	return $opt
+};
+
+declare function local:rejects($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(Reject)* {
+	let $path := concat($home-data, '/', $tenant, '/', string($year), '/matching-rejects.xml')
+	return if (doc-available($path)) then doc($path)/Rejects/Reject else ()
+};
+
+(: Abgelehnte Paare Zahlung–Vorgang schlägt der Matcher nicht mehr vor. $undo nimmt die Ablehnung zurück. :)
+declare function match:reject($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $payment-id as xs:string, $body as element()?, $user as xs:string) as element(Rejected) {
+	let $process := normalize-space(string($body/@process))
+	let $undo := string($body/@undo) = 'true'
+	let $collection := concat($home-data, '/', $tenant, '/', string($year))
+	let $path := concat($collection, '/matching-rejects.xml')
+	let $entry := <Reject payment="{$payment-id}" process="{$process}" user="{$user}" at="{current-dateTime()}"/>
+	return
+		if ($process = '' or normalize-space($payment-id) = '') then <Rejected error="Zahlung oder Vorgang fehlt."/>
+		else
+			try {
+				let $done :=
+					if (doc-available($path)) then (
+						update delete doc($path)/Rejects/Reject[@payment = $payment-id][@process = $process],
+						if ($undo) then () else update insert $entry into doc($path)/Rejects
+					)
+					else if ($undo) then ()
+					else
+						let $stored := xmldb:store($collection, 'matching-rejects.xml', <Rejects>{$entry}</Rejects>)
+						let $mode := sm:chmod(xs:anyURI($path), 'rwxrwxr-x')
+						let $group := sm:chgrp(xs:anyURI($path), 'docman')
+						return ()
+				return <Rejected payment="{$payment-id}" process="{$process}" undo="{$undo}"/>
+			} catch * { <Rejected error="{$err:description}"/> }
 };
 
 declare function local:match-class($group as element(Group)) as xs:string {
@@ -1931,4 +2190,60 @@ declare function match:stack($home-data as xs:string, $tenant as xs:string, $yea
 	let $open := local:sum(for $row in $rows return abs(xs:decimal($row/@amount)))
 	let $explained := local:sum(for $row in $rows[@class = ('full', 'single', 'group')] return abs(xs:decimal($row/@amount)))
 	return <Stack side="{if ($side = 'process') then 'process' else 'payment'}" open="{format-number($open, '0.00')}" explained="{format-number($explained, '0.00')}" rest="{format-number($open - $explained, '0.00')}" count="{count($rows)}">{$rows}</Stack>
+};
+
+(: Intervall-Prüfung mit denselben Regeln wie der Matcher (Text, Regex, Gläubiger-ID). :)
+declare function match:interval-findings($home-data as xs:string, $tenant as xs:string, $year as xs:integer) as element(IntervalFindings) {
+	let $accounts := local:accounts($home-data, $tenant, $year)
+	let $model := local:model($home-data, $tenant, $year)
+	let $marks :=
+		for $pay in $model/Pay
+		let $date := local:date($pay/@date)
+		let $matched := $accounts[local:party-keys(., ()) = $pay/Key]
+		let $hits :=
+			for $account in $matched
+			for $interval in local:intervals($account, $date)
+			where local:rules-hold($interval/PaymentRules/PaymentRule, $pay)
+				and (
+					empty(($interval/Period/@amount-min, $interval/Period/@amount-max)[normalize-space(.) != ''])
+					or local:in-span($account, $pay)
+				)
+			return <Hit account="{string($account/@kto)}" name="{normalize-space(string($account/Name))}" interval="{string($interval/Period/@interval)}" label="{normalize-space(string($interval/@name))}"/>
+		let $mark :=
+			if (exists($hits)) then 'match'
+			else if (exists($matched[PeriodicPayments/PeriodicPayment])) then 'breach'
+			else ''
+		where $mark != ''
+		return
+			<Mark bank="{string($pay/@bank)}" payment="{string($pay/@id)}" mark="{$mark}" account="{string(($hits/@account, $matched/@kto)[1])}" date="{string($pay/@date)}" amount="{string($pay/@amount)}">
+				{$hits}
+				{
+					if ($mark = 'breach') then
+						<Finding id="breach:{string($pay/@bank)}:{string($pay/@id)}" kind="alert" when="{string($pay/@date)}" account="{string(($matched/@kto)[1])}" bank="{string($pay/@bank)}">
+							{concat(normalize-space(string(($matched/Name)[1])), ': Die Bankposition vom ', string($pay/@date), ' über ', string($pay/@amount), ' liegt außerhalb der hinterlegten Zahlungsintervalle.')}
+						</Finding>
+					else ()
+				}
+			</Mark>
+	let $missing :=
+		for $account in $accounts[PeriodicPayments/PeriodicPayment]
+		for $interval in $account/PeriodicPayments/PeriodicPayment
+		let $from := local:date(($interval/Period/@valid-from)[1])
+		let $till := local:date(($interval/Period/@valid-till)[1])
+		let $year-start := xs:date(concat(string($year), '-01-01'))
+		let $year-end := xs:date(concat(string($year), '-12-31'))
+		let $window-from := (if (exists($from) and $from gt $year-start) then $from else $year-start)
+		let $window-till := (if (exists($till) and $till lt $year-end) then $till else $year-end)
+		let $pays := $model/Pay[Key = local:party-keys($account, ())][local:rules-hold($interval/PaymentRules/PaymentRule, .)]
+		let $latest := max(($pays/@date ! local:date(.), $window-from))
+		where exists($latest) and days-from-duration(current-date() - $latest) gt 40 and $window-till ge current-date()
+		return
+			<Finding id="missing:{string($account/@kto)}:{string($interval/@name)}" kind="alert" when="{string(current-date())}" account="{string($account/@kto)}" bank="">
+				{concat(normalize-space(string($account/Name)), ': Im Zahlungsintervall ', normalize-space(string($interval/@name)), ' fehlt eine aktuelle Zahlung.')}
+			</Finding>
+	return
+		<IntervalFindings year="{$year}" marks="{count($marks)}" findings="{count(($marks/Finding, $missing))}">
+			{$marks}
+			{$missing}
+		</IntervalFindings>
 };

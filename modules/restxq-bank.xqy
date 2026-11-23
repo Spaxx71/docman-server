@@ -814,6 +814,20 @@ function dmbank:matchCommitJSON($user as xs:string*, $tenant as xs:string, $year
 	match:commit($main:home-data, $tenant, $year, $accounting-id, local:match-money($tolerance, 0.01), string(($user, 'Guest')[1]), local:match-body($body))
 };
 
+(: Rumpf: <Reject process="PRO…" undo="false"/> :)
+declare
+    %rest:POST("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-reject")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchRejectXML($user as xs:string*, $tenant as xs:string, $year as xs:integer, $bank-account as xs:string, $accounting-id as xs:string, $body) {
+	match:reject($main:home-data, $tenant, $year, $accounting-id, local:match-body($body), string(($user, 'Guest')[1]))
+};
+
 declare
     %rest:POST("{$body}")
     %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/banks/{$bank-account}/accountings/{$accounting-id}/match-invite")
@@ -906,6 +920,39 @@ declare
     %output:media-type("application/json")
 function dmbank:saveMatchingSettingsJSON($tenant as xs:string, $year as xs:integer, $body) {
 	match:save-settings($main:home-data, $tenant, $year, local:settings-node($body))
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/interval-findings")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:intervalFindingsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	match:interval-findings($main:home-data, $tenant, $year)
+};
+
+declare
+    %rest:POST
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/matchings/apply")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchingsApplyXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	match:apply-all($main:home-data, $tenant, $year, string(($user, 'Guest')[1]))
+};
+
+declare
+    %rest:GET
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/matchings/quality")
+    %rest:query-param("user", "{$user}", "Guest")
+    %rest:produces("application/xml")
+    %output:method("xml")
+    %output:media-type("application/xml")
+function dmbank:matchingsQualityXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
+	match:quality($main:home-data, $tenant, $year)
 };
 
 declare

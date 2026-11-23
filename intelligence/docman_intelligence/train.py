@@ -87,14 +87,20 @@ def collect_rows(examples_xml: str) -> dict:
             continue
         confirmed = {}
         account_id = ""
+        read_account = ""
         for child in document.iter():
             kind = _local(child.tag)
-            if kind == "Account" and not account_id:
-                account_id = child.attrib.get("id", "")
+            if kind == "Account" and not read_account:
+                read_account = child.attrib.get("id", "")
             if kind == "Confirmed":
                 field_name = child.attrib.get("field", "")
-                if field_name in TRAIN_FIELDS and child.attrib.get("value"):
-                    confirmed[field_name] = child.attrib["value"]
+                value = child.attrib.get("value", "")
+                if field_name == "account" and value:
+                    account_id = value
+                elif field_name in TRAIN_FIELDS and value:
+                    confirmed[field_name] = value
+        if not account_id:
+            account_id = read_account
         if not confirmed:
             continue
         words = words_of(document)

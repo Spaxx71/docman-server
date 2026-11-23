@@ -51,11 +51,11 @@ declare function local:accountAsJson($node as node(), $pos as xs:integer) {
             "Nachname": $node/Person/Nachname/text()
         },
         "Contact": map {
-            "Vorname": $node/Contact/Vorname/text(),
-            "Nachname": $node/Contact/Nachname/text(),
-            "Email": $node/Contact/Email/text(),
-            "Website": $node/Contact/Website/text(),
-            "Telefon": $node/Contact/Telefon/text()
+            "Vorname": $node/contacts/contact[@type = 'person'][1]/Vorname/text(),
+            "Nachname": $node/contacts/contact[@type = 'person'][1]/Nachname/text(),
+            "Email": string-join(account:channel-values($node, 'email'), '; '),
+            "Website": account:channel-values($node, 'website')[1],
+            "Telefon": account:channel-values($node, 'phone')[1]
         },
         "CustomerID": $node/CustomerID/text(),
         "BankAccounts": (
@@ -120,6 +120,19 @@ declare
 
 function dmaccounts:listAccountsXML($user as xs:string*, $tenant as xs:string, $year as xs:integer) {
 	account:listAccounts($main:home-data, $tenant, $year)
+};
+
+(: Kontorahmen und Nummernkreise des Jahres. Ersetzt keine Buchungskonten. :)
+declare
+    %rest:PUT("{$body}")
+    %rest:path("/docman/xml/tenants/{$tenant}/years/{$year}/accounts")
+    %rest:consumes("application/xml")
+    %rest:consumes("text/xml")
+    %output:media-type("application/xml")
+    %output:method("xml")
+    %rest:query-param("user", "{$user}", "Guest")
+function dmaccounts:putNumbering($user as xs:string*, $tenant as xs:string, $year as xs:integer, $body) {
+	account:store-numbering($main:home-data, $tenant, $year, $body)
 };
 
 declare

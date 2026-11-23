@@ -232,6 +232,95 @@ def test_kundennummer_matcht_konto():
     assert result["account"]["quality"] >= 0.9
 
 
+def _creditor(id_, name, ibans=(), vat="", hints=()):
+    return {"id": id_, "classes": "creditor", "name": name, "company": "", "ibans": list(ibans), "vat": vat, "hints": list(hints)}
+
+
+def test_namenskollision_bleibt_offen():
+    words = W(
+        ("Telekom", 40, 40, 100, 52),
+        ("Deutschland", 105, 40, 190, 52),
+        ("Rechnung", 40, 100, 120, 112),
+        ("4711", 140, 100, 200, 112),
+    )
+    accounts = [
+        _creditor("festnetz", "Telekom Deutschland"),
+        _creditor("mobil", "Telekom Deutschland Mobilfunk"),
+    ]
+    result = assign_words(words, accounts)
+    assert result["account"]["id"] == ""
+    assert result["account"]["ambiguous"]
+    assert len(result["account"]["candidates"]) == 2
+
+
+def test_name_allein_bleibt_unter_sieben_zehnteln():
+    words = W(("Reichelt", 40, 40, 100, 52), ("Elektronik", 105, 40, 180, 52))
+    result = assign_words(words, [_creditor("r", "Reichelt Elektronik")])
+    assert result["account"]["id"] == "r"
+    assert result["account"]["quality"] <= 0.7
+
+
+def test_fremde_iban_senkt_namenstreffer():
+    words = W(
+        ("Reichelt", 40, 40, 100, 52),
+        ("Elektronik", 105, 40, 180, 52),
+        ("IBAN", 40, 700, 80, 712),
+        (IBAN, 100, 700, 340, 712),
+    )
+    accounts = [
+        _creditor("reichelt", "Reichelt Elektronik", ibans=["DE02120300000000202051"]),
+        _creditor("andere", "Andere GmbH", ibans=[IBAN]),
+    ]
+    result = assign_words(words, accounts)
+    assert result["account"]["id"] == "andere"
+    reichelt = [item for item in result["account"]["candidates"] if item["id"] == "reichelt"]
+    assert not reichelt or "conflict:iban" in reichelt[0]["reasons"]
+
+
+def test_ust_id_trifft_konto():
+    words = W(
+        ("Lieferant", 40, 40, 100, 52),
+        ("USt-IdNr.", 40, 800, 90, 812),
+        ("DE251391407", 100, 800, 170, 812),
+    )
+    result = assign_words(words, [_creditor("x", "Ganz Anders", vat="DE 251 391 407")])
+    assert result["account"]["id"] == "x"
+    assert result["account"]["quality"] >= 0.9
+
+
+def test_glaeubiger_id_trifft_konto():
+    words = W(
+        ("Lastschrift", 40, 40, 120, 52),
+        ("Gläubiger-ID", 40, 600, 120, 612),
+        ("DE98ZZZ09999999999", 130, 600, 300, 612),
+    )
+    account = _creditor("lsv", "Versorger")
+    account["creditorIds"] = ["DE98 ZZZ0 9999 9999 99"]
+    result = assign_words(words, [account])
+    assert result["account"]["id"] == "lsv"
+    assert result["account"]["quality"] >= 0.9
+
+
+def test_ausgangsrechnung_sucht_debitor_im_empfaenger():
+    words = W(
+        ("bintellix", 40, 40, 100, 52),
+        ("GmbH", 105, 40, 150, 52),
+        ("Muster", 40, 200, 100, 212),
+        ("Kunde", 105, 200, 160, 212),
+        ("AG", 165, 200, 190, 212),
+        ("IBAN", 40, 700, 80, 712),
+        (IBAN, 100, 700, 340, 712),
+    )
+    accounts = [
+        {"id": "self", "classes": "self", "name": "bintellix GmbH", "company": "", "ibans": [IBAN], "hints": []},
+        {"id": "kunde", "classes": "debitor", "name": "Muster Kunde AG", "company": "", "ibans": [], "hints": []},
+        _creditor("bank", "Irgendwer", ibans=[IBAN]),
+    ]
+    result = assign_words(words, accounts)
+    assert result["account"]["direction"] == "invoice.out"
+    assert result["account"]["id"] == "kunde"
+
+
 def test_kein_skonto_ohne_label():
     words = W(
         ("Bezeichnung", 40, 200, 140, 212),

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <xs:element name="Contacts">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Contact" type="ContactRecord" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+    <xs:key name="ContactIdKey">
+      <xs:selector xpath="Contact"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+  </xs:element>
+
+  <xs:complexType name="ContactRecord">
+    <xs:sequence>
+      <xs:element name="Name" type="xs:string"/>
+      <xs:element name="CustomerID" type="xs:string" minOccurs="0"/>
+      <xs:element name="Service" type="xs:string" minOccurs="0"/>
+      <xs:choice minOccurs="0">
+        <xs:element name="Company" type="xs:anyType"/>
+        <xs:element name="Person" type="xs:anyType"/>
+      </xs:choice>
+      <xs:element name="contacts" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="contact" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType mixed="true">
+                <xs:sequence>
+                  <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
+                </xs:sequence>
+                <xs:attribute name="type" type="xs:NCName" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Notes" type="xs:string" minOccurs="0"/>
+      <xs:element name="BankAccounts" type="xs:anyType" minOccurs="0"/>
+      <xs:element name="ProcessTemplates" type="xs:anyType" minOccurs="0"/>
+      <xs:element name="PeriodicPayments" type="xs:anyType" minOccurs="0"/>
+      <xs:element name="FieldHints" type="xs:anyType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:NMTOKEN" use="required"/>
+    <xs:attribute name="debtee" type="xs:string"/>
+    <xs:attribute name="iban" type="xs:string"/>
+    <xs:attribute name="valid-from" type="xs:date"/>
+    <xs:attribute name="valid-till" type="xs:date"/>
+  </xs:complexType>
+
+</xs:schema>

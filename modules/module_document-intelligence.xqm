@@ -12,6 +12,7 @@ module namespace di = "http://bintellix.com/docman/document-intelligence";
 declare namespace file = "http://exist-db.org/xquery/file";
 
 import module namespace main = "http://bintellix.com/docman/main" at "/db/apps/docman/modules/module_main.xqm";
+import module namespace account = "http://bintellix.com/docman/account" at "/db/apps/docman/modules/module_account.xqm";
 import module namespace process = "http://exist-db.org/xquery/process";
 import module namespace scheduler = "http://exist-db.org/xquery/scheduler";
 
@@ -115,11 +116,11 @@ declare function di:command() as xs:string {
 };
 
 declare function di:accounts($home as xs:string, $tenant as xs:string, $year) as element() {
-	let $path := $home || '/' || $tenant || '/' || $year || '/accounts.dm.xml'
-	let $accounts := if (doc-available($path)) then doc($path)/Accounts else ()
+	let $path := account:year-path($home, $tenant, xs:integer($year))
+	let $accounts := if (doc-available($path)) then account:accounts($home, $tenant, xs:integer($year)) else ()
 	return
 		<Accounts>{
-			for $account in $accounts/Account
+			for $account in $accounts
 			let $classes := tokenize(normalize-space(string($account/@classes)), '\s+')
 			let $type := string($account/@type)
 			where $classes = ('creditor', 'debitor', 'self') or $type = ('creditor', 'debitor', 'self')
@@ -127,7 +128,7 @@ declare function di:accounts($home as xs:string, $tenant as xs:string, $year) as
 				<Account id="{$account/@id}" classes="{string-join(($classes[normalize-space(.) != ''], $type[normalize-space(.) != '']), ' ')}" type="{$type}">
 					<Name>{string($account/Name)}</Name>
 					<Company>{string($account/Company/Name)}</Company>
-					<Email>{string($account/Contact/Email)}</Email>
+					<Email>{string-join(account:channel-values($account, 'email'), '; ')}</Email>
 					<VatId>{string($account/VatId)}</VatId>
 					<CustomerID>{string($account/CustomerID)}</CustomerID>
 					<Address>{string($account/Address)}</Address>
@@ -136,6 +137,10 @@ declare function di:accounts($home as xs:string, $tenant as xs:string, $year) as
 						for $bank in $account/BankAccounts/BankAccount
 						where normalize-space(string($bank/@iban)) != ''
 						return <IBAN>{string($bank/@iban)}</IBAN>
+					}
+					{
+						for $id in distinct-values(($account/@debtee, $account/BankAccounts/BankAccount/@creditorId)[normalize-space(.) != ''] ! normalize-space(string(.)))
+						return <CreditorID>{$id}</CreditorID>
 					}
 					<Hints>{
 						for $hint in $account/FieldHints/Hint
@@ -328,8 +333,10 @@ declare function di:invoice-direction($intel as element(), $accounts as element(
 	let $self-hit :=
 		some $name in $self-names[string-length(.) >= 4]
 		satisfies ($seller != '' and contains($seller, $name)) or ($seller != '' and contains($name, $seller))
+	let $read := string($intel/Account/@direction)
 	return
-		if ($self-hit) then 'invoice.out'
+		if ($read = ('invoice.in', 'invoice.out')) then $read
+		else if ($self-hit) then 'invoice.out'
 		else 'invoice.in'
 };
 
@@ -720,16 +727,30 @@ declare function di:archive($home as xs:string, $tenant as xs:string, $year, $fi
 
 declare function di:confirmed($process as element()?) as element()* {
 	if (empty($process)) then ()
-	else (
-		if (normalize-space(string($process/@date)) = '') then ()
-		else <Confirmed field="invoiceDate" value="{string($process/@date)}"/>,
-		if (normalize-space(string($process/TotalAmount/@value)) = '') then ()
-		else <Confirmed field="payable" value="{string($process/TotalAmount/@value)}"/>,
-		let $ref := normalize-space(string(($process//RefID)[1]))
-		return
-			if ($ref = '') then ()
-			else <Confirmed field="invoiceNumber" value="{$ref}"/>
-	)
+	else
+		let $master := (
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)[@isMaster = 'true'],
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+		)[1]
+		let $owner := normalize-space(string($master/Owner))
+		let $direction :=
+			if (local-name($master) = 'InvoiceOutTask') then 'invoice.out'
+			else if (local-name($master) = 'InvoiceInTask') then 'invoice.in'
+			else ''
+		let $due := normalize-space(string(($process//DueDate, $process//DocmanIntelligence/Fields/Field[@id = 'invoice.date.due']/@value)[1]))
+		return (
+			if (normalize-space(string($process/@date)) = '') then ()
+			else <Confirmed field="invoiceDate" value="{string($process/@date)}"/>,
+			if (normalize-space(string($process/TotalAmount/@value)) = '') then ()
+			else <Confirmed field="payable" value="{string($process/TotalAmount/@value)}"/>,
+			let $ref := normalize-space(string(($process//RefID)[1]))
+			return
+				if ($ref = '') then ()
+				else <Confirmed field="invoiceNumber" value="{$ref}"/>,
+			if ($owner = '') then () else <Confirmed field="account" value="{$owner}"/>,
+			if ($direction = '') then () else <Confirmed field="direction" value="{$direction}"/>,
+			if ($due = '') then () else <Confirmed field="dueDate" value="{$due}"/>
+		)
 };
 
 declare function di:remember($examples as xs:string, $name as xs:string, $process as element()?) as item()* {
@@ -810,8 +831,8 @@ declare function di:propose-hint($field as xs:string, $label as xs:string, $patt
 
 (: Einmalige Hint-Vorschläge für Kreditoren — schreibt accounts.hint-proposals.xml, ändert accounts.dm.xml nicht. :)
 declare function di:propose-creditor-hints($home as xs:string, $tenant as xs:string, $year) as element() {
-	let $path := $home || '/' || $tenant || '/' || $year || '/accounts.dm.xml'
-	let $accounts := if (doc-available($path)) then doc($path)/Accounts else ()
+	let $path := account:year-path($home, $tenant, xs:integer($year))
+	let $accounts := if (doc-available($path)) then account:accounts($home, $tenant, xs:integer($year)) else ()
 	let $examples := $home || '/' || $tenant || '/intelligence/examples'
 	let $example-docs :=
 		if (xmldb:collection-available($examples)) then collection($examples)/DocmanIntelligence
@@ -824,7 +845,7 @@ declare function di:propose-creditor-hints($home as xs:string, $tenant as xs:str
 	let $intel-docs := ($example-docs, $transfer-docs)
 	let $proposals :=
 		<AccountHintProposals tenant="{$tenant}" year="{$year}" created="{current-dateTime()}" note="Vorschläge zur manuellen Übernahme in FieldHints. accounts.dm.xml bleibt unverändert.">{
-			for $account in $accounts/Account
+			for $account in $accounts
 			let $classes := tokenize(normalize-space(string-join(($account/@classes, $account/@type), ' ')), '\s+')
 			where $classes = 'creditor' or string($account/@type) = 'creditor'
 			let $existing := $account/FieldHints/Hint
@@ -947,8 +968,8 @@ declare function di:check() as element(check) {
 			'module_document-intelligence.xqm hat kein setuid (mode ohne s). initialize.xqy ausführen.'
 		else if (exists($probe/@error)) then
 			'process:execute schlägt fehl: ' || string($probe/@error)
-		else if (not(contains($probe-version, '0.1.7')) and not(starts-with($probe-version, '0.1.7'))) then
-			'Programm-Version ist "' || $probe-version || '", nötig ist 0.1.7 (Kreditor/IBAN/Kundennummer). install.xqy, dann als root: sh /tmp/docman-intelligence/install-linux.sh'
+		else if (not(contains($probe-version, '0.1.8')) and not(starts-with($probe-version, '0.1.8'))) then
+			'Programm-Version ist "' || $probe-version || '", nötig ist 0.1.8 (Konto aus Bestätigung). install.xqy, dann als root: sh /tmp/docman-intelligence/install-linux.sh'
 		else if (not($job-setuid-ok)) then
 			'Job-Datei ohne setuid. install.xqy oder initialize.xqy ausführen.'
 		else if (not($installed)) then
@@ -960,7 +981,7 @@ declare function di:check() as element(check) {
 		else if (count($queue) = 0) then
 			'Job und Programm ok, Warteschlange leer.'
 		else
-			'Bereit (0.1.7): ' || count($queue) || ' in der Queue. Status-at=' || string($status/@at)
+			'Bereit (0.1.8): ' || count($queue) || ' in der Queue. Status-at=' || string($status/@at)
 	return
 		<check>
 			<Who>{di:who()}</Who>
