@@ -92,9 +92,10 @@ declare function account:kto-on($book as element()?, $year as xs:integer) as xs:
 };
 
 declare %private function account:join($book as element(), $year-account as element(Account)?, $year as xs:integer) as element(Account) {
-	<Account id="{string(($year-account/@id, $book/@id)[1])}" kto="{string($year-account/@kto)}" type="{string(($year-account/@type, 'ledger_account')[1])}" classes="{string($year-account/@classes)}">
+	<Account id="{string(($year-account/@id, $book/@id)[1])}" kto="{string($year-account/@kto)}" type="{string(($year-account/@type, 'ledger_account')[1])}" classes="{string($year-account/@classes)}" contactsRef="{string(($year-account/@contactsRef[normalize-space(.) != ''], $book/@id)[1])}">
 		{$book/@debtee}
 		<Name>{string(($year-account/Name, $book/Name)[1])}</Name>
+		{$book/Alias}
 		<Notes>{string($year-account/Notes)}</Notes>
 		{$book/(Service|Company|Person|contacts|Notes|CustomerID)}
 		<BankAccounts>
@@ -165,6 +166,14 @@ declare function account:speaking-id($name as xs:string, $fallback as xs:string)
 	let $folded := replace(replace(replace(replace(replace(replace(replace($name, 'ä', 'ae'), 'ö', 'oe'), 'ü', 'ue'), 'Ä', 'Ae'), 'Ö', 'Oe'), 'Ü', 'Ue'), 'ß', 'ss')
 	let $slug := replace(replace(replace($folded, '[^A-Za-z0-9]+', '_'), '^_+|_+$', ''), '_+', '_')
 	return if ($slug != '') then $slug else $fallback
+};
+
+declare function account:is-uuid($value as xs:string?) as xs:boolean {
+	matches(normalize-space(string($value)), '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+};
+
+declare function account:fresh-contact-id() as xs:string {
+	lower-case(util:uuid())
 };
 
 declare %private function account:kept($incoming as element()?, $previous as element()?, $name as xs:string) as element()? {
@@ -261,6 +270,7 @@ declare %private function account:book-entry($account as element(Account), $id a
 			{$account/@debtee}
 			{if (normalize-space(string(($account/@iban, $previous/@iban)[1])) != '') then attribute iban {normalize-space(string(($account/@iban, $previous/@iban)[1]))} else ()}
 			<Name>{normalize-space(string(($account/Name[normalize-space(.) != ''], $previous/Name)[1]))}</Name>
+			{account:kept($account, $previous, 'Alias')}
 			{account:kept($account, $previous, 'CustomerID')}
 			{account:kept($account, $previous, 'Service')}
 			{account:party-kept($account, $previous)}
@@ -623,6 +633,7 @@ declare %private function account:contact-from-year($account as element(Account)
 		{$account/@debtee}
 		{if (normalize-space(string($account/@iban)) != '') then attribute iban {normalize-space(string($account/@iban))} else ()}
 		<Name>{string($account/Name)}</Name>
+		{$account/Alias}
 		{$account/CustomerID}
 		{$account/Service}
 		{account:chosen-party($account)}
@@ -694,6 +705,7 @@ declare %private function account:composed-contact($incoming as element(), $prev
 			{($incoming/@debtee, $previous/@debtee)[1]}
 			{if (normalize-space(string(($incoming/@iban, $previous/@iban)[1])) != '') then attribute iban {normalize-space(string(($incoming/@iban, $previous/@iban)[1]))} else ()}
 			<Name>{normalize-space(string(($incoming/Name, $previous/Name)[1]))}</Name>
+			{account:kept($incoming, $previous, 'Alias')}
 			{account:kept($incoming, $previous, 'CustomerID')}
 			{account:kept($incoming, $previous, 'Service')}
 			{account:party-kept($incoming, $previous)}
@@ -709,8 +721,16 @@ declare %private function account:composed-contact($incoming as element(), $prev
 declare function account:store-contact($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $id as xs:string, $contact as item()) as element(Contact) {
 	let $incoming := if ($contact instance of document-node()) then $contact/*[1] else $contact
 	let $book := account:ensure-book($home-data, $tenant, $year)
-	let $previous := $book/Contacts/Contact[lower-case(@id) = lower-case($id)]
-	let $kept-id := if ($previous) then string($previous/@id) else normalize-space(string(($incoming/@id[normalize-space(.) != ''], $id)[1]))
+	let $path-id := normalize-space($id)
+	let $previous :=
+		if (account:is-uuid($path-id)) then $book/Contacts/Contact[lower-case(@id) = lower-case($path-id)]
+		else if (account:is-uuid(string($incoming/@id))) then $book/Contacts/Contact[lower-case(@id) = lower-case($incoming/@id)]
+		else ()
+	let $kept-id :=
+		if ($previous) then string($previous/@id)
+		else if (account:is-uuid(string($incoming/@id))) then lower-case(normalize-space(string($incoming/@id)))
+		else if (account:is-uuid($path-id)) then lower-case($path-id)
+		else account:fresh-contact-id()
 	let $incoming-till := if ($incoming/@valid-till) then normalize-space(string($incoming/@valid-till)) else ()
 	let $own := lower-case($kept-id) = (account:own-contact-ids($home-data, $tenant) ! lower-case(.))
 	let $entry := account:composed-contact($incoming, $previous, $kept-id, $year, $own)
@@ -723,14 +743,22 @@ declare function account:store-contact($home-data as xs:string, $tenant as xs:st
 			(update insert $entry into $book/Contacts, $entry)
 };
 
-(: Neuer Debitor oder Kreditor: Kontaktbuch und Jahreskonto in einem Schritt, ohne Zwischenlesen. :)
+(: Neuer Debitor oder Kreditor: Kontakt-UUID, Jahreskonto mit sprechender Id und contactsRef. :)
 declare function account:create-party($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $incoming as element()) as element(Account) {
-	let $id := normalize-space(string($incoming/@id))
-	let $book := account:ensure-book($home-data, $tenant, $year)
+	let $contact-id :=
+		if (account:is-uuid(string($incoming/@contactsRef))) then lower-case(normalize-space(string($incoming/@contactsRef)))
+		else if (account:is-uuid(string($incoming/@id))) then lower-case(normalize-space(string($incoming/@id)))
+		else account:fresh-contact-id()
+	let $name := normalize-space(string($incoming/Name))
+	let $kto := normalize-space(string($incoming/@kto))
+	let $slug := account:speaking-id($name, $kto)
 	let $year-doc := account:ensure-year($home-data, $tenant, $year)
-	let $entry := account:composed-contact($incoming, (), $id, $year, false())
+	let $taken := $year-doc/Accounts/Account[lower-case(@id) = lower-case($slug)]
+	let $account-id := if (exists($taken)) then concat($slug, '_', $kto) else $slug
+	let $book := account:ensure-book($home-data, $tenant, $year)
+	let $entry := account:composed-contact($incoming, (), $contact-id, $year, false())
 	let $row :=
-		<Account id="{$id}" kto="{$incoming/@kto}" type="ledger_account" classes="{$incoming/@classes}" contactsRef="{$id}">
+		<Account id="{$account-id}" kto="{$kto}" type="ledger_account" classes="{$incoming/@classes}" contactsRef="{$contact-id}">
 			<Name>{normalize-space(string($entry/Name))}</Name>
 			{($incoming/Notes, <Notes/>)[1]}
 			<BudgetCategories/>
@@ -814,6 +842,7 @@ declare %private function account:reshaped($entry as element()) as element(Conta
 	<Contact id="{$entry/@id}">
 		{$entry/@*[not(local-name() = ('id', 'type', 'classes'))]}
 		<Name>{normalize-space(string($entry/Name))}</Name>
+		{$entry/Alias}
 		{$entry/CustomerID}
 		{$entry/Service}
 		{account:chosen-party($entry)}
@@ -824,6 +853,58 @@ declare %private function account:reshaped($entry as element()) as element(Conta
 		{$entry/PeriodicPayments}
 		{$entry/FieldHints}
 	</Contact>
+};
+
+(: Kontakt-Ids auf UUID umstellen und contactsRef in allen Jahresdateien nachziehen. :)
+declare function account:uuid-contacts($home-data as xs:string, $tenant as xs:string) as element(UuidContacts) {
+	let $path := account:book-path($home-data, $tenant)
+	return
+		if (not(doc-available($path))) then <UuidContacts tenant="{$tenant}" status="missing"/>
+		else
+			let $col := concat($home-data, '/', $tenant)
+			let $changed :=
+				for $contact in doc($path)/Contacts/Contact
+				let $old := normalize-space(string($contact/@id))
+				where $old != '' and not(account:is-uuid($old))
+				let $new := account:fresh-contact-id()
+				let $id-write := update value $contact/@id with $new
+				let $years :=
+					for $name in xmldb:get-child-collections($col)
+					where $name castable as xs:integer
+					let $year-path := account:year-path($home-data, $tenant, xs:integer($name))
+					where doc-available($year-path)
+					for $row in doc($year-path)/Accounts/Account
+					let $ref := normalize-space(string($row/@contactsRef))
+					let $row-id := normalize-space(string($row/@id))
+					where lower-case($ref) = lower-case($old)
+						or ($ref = '' and lower-case($row-id) = lower-case($old))
+						or (account:person($row) and lower-case($row-id) = lower-case($old))
+					return
+						if ($row/@contactsRef) then update value $row/@contactsRef with $new
+						else update insert attribute contactsRef {$new} into $row
+				return <Contact old="{$old}" new="{$new}" accounts="{count($years)}">{$id-write, $years}</Contact>
+			return
+				<UuidContacts tenant="{$tenant}" status="done" changed="{count($changed)}">
+					{$changed}
+				</UuidContacts>
+};
+
+declare function account:uuid-contacts-all($home-data as xs:string) as element(UuidContactsAll) {
+	<UuidContactsAll>{
+		for $tenant in xmldb:get-child-collections($home-data)
+		where doc-available(account:book-path($home-data, $tenant))
+			or exists(
+				for $year in xmldb:get-child-collections(concat($home-data, '/', $tenant))[. castable as xs:integer]
+				where doc-available(account:year-path($home-data, $tenant, xs:integer($year)))
+				return 1
+			)
+		order by $tenant
+		return
+			if (doc-available(account:book-path($home-data, $tenant))) then
+				account:uuid-contacts($home-data, $tenant)
+			else
+				<UuidContacts tenant="{$tenant}" status="no-book"/>
+	}</UuidContactsAll>
 };
 
 

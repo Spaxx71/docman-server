@@ -41,7 +41,9 @@ declare %private function proposals:party-kind($account as element(Account)) as 
 declare %private function proposals:names($account as element(Account)) as xs:string* {
 	distinct-values((
 		normalize-space(string($account/Name)),
+		normalize-space(string($account/Alias)),
 		normalize-space(string($account/Company/Name)),
+		normalize-space(string-join(($account/Person/Vorname, $account/Person/Nachname), ' ')),
 		for $hint in $account/FieldHints/Hint[@field = 'party.self'] return normalize-space(string($hint/@label))
 	)[. != ''])
 };
@@ -544,6 +546,23 @@ declare %private function proposals:clean-account($incoming as element(Account),
 	</Account>
 };
 
+(: Preferred, wenn frei; sonst nächste freie Nummer der Klasse (Kreditor ab 70000, Debitor ab 10000). :)
+declare %private function proposals:next-kto($accounts as element(Account)*, $kind as xs:string, $preferred as xs:string) as xs:string {
+	let $taken := distinct-values($accounts/@kto[. castable as xs:integer] ! xs:integer(.))
+	let $want := if ($preferred castable as xs:integer) then xs:integer($preferred) else 0
+	return
+		if ($want gt 0 and not($taken = $want)) then string($want)
+		else
+			let $fallback := if ($kind = 'debitor') then 10000 else 70000
+			let $class-taken := $accounts[proposals:party-kind(.) = $kind]/@kto[. castable as xs:integer] ! xs:integer(.)
+			let $start := max(($class-taken, $fallback)) + 1
+			let $free :=
+				for $n in $start to ($start + 1000)
+				where not($taken = $n)
+				return $n
+			return string(($free, $start)[1])
+};
+
 declare %private function proposals:apply($home-data as xs:string, $tenant as xs:string, $year as xs:integer, $proposal as element(Proposal), $payload as element()?) as element(Accepted) {
 	let $kind := string($proposal/@kind)
 	let $kto := string($proposal/@kto)
@@ -560,23 +579,37 @@ declare %private function proposals:apply($home-data as xs:string, $tenant as xs
 				else if (normalize-space(string($incoming/Name)) = '') then <Accepted error="Name fehlt."/>
 				else if (empty($class)) then <Accepted error="Kreditor oder Debitor wählen."/>
 				else
-					let $account := proposals:clean-account($incoming, $new-kto, $class)
-					let $contact-id := string($account/@id)
+					let $contact-id :=
+						let $ref := normalize-space(string($incoming/@contactsRef))
+						let $given := normalize-space(string($incoming/@id))
+						return
+							if (account:is-uuid($ref)) then lower-case($ref)
+							else if (account:is-uuid($given)) then lower-case($given)
+							else if ($given != '' and $given != $new-kto) then $given
+							else account:speaking-id(string($incoming/Name), $new-kto)
 					let $known := account:contact($home-data, $tenant, $year, $contact-id)
-					let $existing := $accounts[lower-case(@id) = lower-case($contact-id)][1]
+					let $existing :=
+						($accounts[lower-case(account:contacts-ref(.)) = lower-case($contact-id)],
+						 $accounts[lower-case(@id) = lower-case($contact-id)])[1]
 					return
 						if (exists($existing) or exists($known)) then
-							(: Id/Kontakt schon da: bestehendes Konto nutzen, fehlende Banken ergänzen. :)
-							let $use-kto := string(($existing/@kto[. != ''], $new-kto)[1])
-							let $use-class := string(($existing/@classes[. != ''], $class)[1])
-							let $use-id := string(($existing/@id, $known/@id, $contact-id)[1])
+							(: Kontakt schon da: Jahreszeile behalten/anlegen, Banken ergänzen. :)
+							let $use-class := tokenize(string(($existing/@classes, $class)[1]), '\s+')[. = ('creditor', 'debitor')][1]
+							let $use-kto :=
+								if (exists($existing/@kto[. != ''])) then string($existing/@kto)
+								else proposals:next-kto($accounts, $use-class, $new-kto)
+							let $contact-ref := string(($known/@id, $existing/@contactsRef[normalize-space(.) != ''], $existing/@id, $contact-id)[1])
+							let $account-id := string(($existing/@id, account:speaking-id(string(($known/Name, $incoming/Name)[1]), $use-kto))[1])
+							let $account := proposals:clean-account($incoming, $use-kto, $use-class)
 							let $ensured :=
 								if (exists($existing)) then $existing
 								else
 									account:storeAccount(
-										$home-data, $tenant, $year, $use-id,
-										<Account id="{$use-id}" kto="{$use-kto}" type="ledger_account" classes="{$use-class}" contactsRef="{$use-id}">
+										$home-data, $tenant, $year, $account-id,
+										<Account id="{$account-id}" kto="{$use-kto}" type="ledger_account" classes="{$use-class}" contactsRef="{$contact-ref}">
 											<Name>{normalize-space(string(($known/Name, $account/Name)[1]))}</Name>
+											{$known/Alias}
+											{$account/Alias}
 											{($account/Notes, <Notes/>)[1]}
 											<BudgetCategories/>
 											{($account/Accounting, <Accounting openingBalance="0" closingBalance="0" debitSum="0" creditSum="0"/>)[1]}
@@ -595,11 +628,12 @@ declare %private function proposals:apply($home-data as xs:string, $tenant as xs
 								return
 									let $box := proposals:ensure($target, 'BankAccounts')
 									return update insert $bank into $box
-							return <Accepted kind="{$kind}" kto="{$use-kto}" account="{$use-id}" contact="{$use-id}" reused="true"/>
-						else if (exists($accounts[string(@kto) = $new-kto])) then <Accepted error="Kontonummer {$new-kto} ist vergeben."/>
+							return <Accepted kind="{$kind}" kto="{$use-kto}" account="{$account-id}" contact="{$contact-ref}" reused="true"/>
 						else
+							let $free-kto := proposals:next-kto($accounts, $class, $new-kto)
+							let $account := proposals:clean-account($incoming, $free-kto, $class)
 							let $saved := account:create-party($home-data, $tenant, $year, $account)
-							return <Accepted kind="{$kind}" kto="{$new-kto}" account="{string($saved/@id)}" contact="{string($saved/@contactsRef)}"/>
+							return <Accepted kind="{$kind}" kto="{$free-kto}" account="{string($saved/@id)}" contact="{string($saved/@contactsRef)}"/>
 		else if (empty($target)) then <Accepted error="Konto {$kto} nicht gefunden."/>
 		else if ($kind = 'bank-add') then
 			let $bank := $payload/descendant-or-self::BankAccount[1]
