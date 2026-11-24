@@ -114,7 +114,7 @@ declare function match:quality($home-data as xs:string, $tenant as xs:string, $y
 			for $process in collection($collection)/Process
 			let $intel := ($process//DocmanIntelligence[@status = 'done'])[1]
 			let $read := normalize-space(string($intel/Account/@id))
-			let $owner := normalize-space(string(($process/Tasks/(InvoiceInTask|InvoiceOutTask)[@isMaster = 'true']/Owner, $process/Tasks/(InvoiceInTask|InvoiceOutTask)/Owner)[1]))
+			let $owner := normalize-space(string(($process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask)[@isMaster = 'true']/Owner, $process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask)/Owner)[1]))
 			where $read != '' and $owner != '' and $read != $owner
 			return $process
 		)
@@ -177,6 +177,8 @@ declare function local:proc-label($proc as element(Proc)) as xs:string {
 		if ($proc/@storno = 'true') then 'einer Gehaltsgutschrift' else 'einem Gehalt'
 	else if ($proc/@task = 'InvoiceOutTask') then
 		if ($proc/@storno = 'true') then 'einer Gutschrift einer ausgehenden Rechnung' else 'einer ausgehenden Rechnung'
+	else if ($proc/@task = 'ShoppingTask') then
+		'einem Shopping'
 	else
 		if ($proc/@storno = 'true') then 'einer Gutschrift einer eingehenden Rechnung' else 'einer eingehenden Rechnung'
 };
@@ -305,8 +307,8 @@ declare function local:model($home-data as xs:string, $tenant as xs:string, $yea
 	let $procs :=
 		for $process in collection($collection)/Process
 		let $master := (
-			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)[@isMaster = 'true'],
-			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)[@isMaster = 'true'],
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)
 		)[1]
 		let $face := if ($master) then local:face($process, $master) else ()
 		let $booked := local:sum(
@@ -416,7 +418,7 @@ declare function local:intel-field($intel as element(DocmanIntelligence)*, $id a
 declare function local:proc($process as element(Process), $master as element(), $open as xs:decimal, $date as xs:date, $parties as element(Party)*, $rejected as xs:string*) as element(Proc) {
 	let $salary := local-name($master) = 'EmployeeSalaryTask'
 	let $owner := normalize-space(string($master/Owner))
-	let $tasks := $process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+	let $tasks := $process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)
 	let $owners := distinct-values($tasks/Owner[normalize-space(.) != ''])
 	let $party := $parties[@kto = $owners]
 	let $employee := normalize-space(string(($tasks/EmployeeName[normalize-space(.) != ''])[1]))
@@ -887,7 +889,7 @@ declare function local:posten-amount($task as element()) as xs:decimal? {
 };
 
 declare function local:posten($process as element(Process)) as element(Posten)* {
-	for $task in $process/Tasks/(CommodityTask|InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask|DiscountTask|DunningFeeTask|DunningChargeTask)
+	for $task in $process/Tasks/(CommodityTask|InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask|DiscountTask|DunningFeeTask|DunningChargeTask)
 	let $amount := local:posten-amount($task)
 	where exists($amount) and abs($amount) ge 0.005
 	let $direction := if ($amount lt 0) then 'out' else 'in'
@@ -1532,13 +1534,13 @@ declare function local:matching-template($accounts as element(Account)*, $owner 
 declare function local:insert-credit($process as element(Process), $accounts as element(Account)*, $body as element(), $user as xs:string) as element(Invited) {
 	let $source := ($process/Tasks/*[@id = $body/@source])[1]
 	let $amount := xs:decimal($body/@amount)
-	let $owner := string(($process/Tasks/(InvoiceInTask|InvoiceOutTask)/Owner)[1])
+	let $owner := string(($process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask)/Owner)[1])
 	let $template := local:matching-template($accounts, $owner, string($body/@text))
 	let $other := string(($template/Other/@kto[normalize-space(.) != ''], $source/Other)[1])
 	let $tax := string(($template/Tax/@key[normalize-space(.) != ''], $source/Tax/@key, 'L-19')[1])
 	let $booking := ($source/Bookings/Booking)[1]
 	let $tax-key := string(($booking/@taxKey, '1')[1])
-	let $ref := normalize-space(string($process/Tasks/(InvoiceInTask|InvoiceOutTask)/RefID))
+	let $ref := normalize-space(string($process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask)/RefID))
 	let $text := concat('Gutschrift ', normalize-space(string(($template/Description[normalize-space(.) != ''], $body/@text)[1])))
 	let $task :=
 		<CommodityTask type="invoice-in" id="{concat('ACC', util:uuid())}" date="{string($process/@date)}" created="{current-dateTime()}" isMaster="false" user="{$user}" isStorno="true">
@@ -1561,7 +1563,7 @@ declare function local:insert-credit($process as element(Process), $accounts as 
 
 declare function local:insert-fee($process as element(Process), $accounts as element(Account)*, $body as element(), $user as xs:string) as element(Invited) {
 	let $amount := xs:decimal($body/@amount)
-	let $owner := string(($process/Tasks/(InvoiceInTask|InvoiceOutTask)/Owner)[1])
+	let $owner := string(($process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask)/Owner)[1])
 	let $name := string($body/@task)
 	let $label := if ($name = 'DiscountTask') then 'Skonto' else 'Mahngebühr'
 	let $template := local:matching-template($accounts, $owner, $label)
@@ -1673,7 +1675,7 @@ declare function local:history($home-data as xs:string, $tenant as xs:string, $y
 		map {'duplicates': 'use-last'}
 	)
 	for $process in collection($collection)/Process
-	let $owner := normalize-space(string(($process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)/Owner)[1]))
+	let $owner := normalize-space(string(($process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)/Owner)[1]))
 	where $owner != ''
 	for $task in $process/Tasks/PaymentTask
 	let $id := normalize-space(string($task/RefID))

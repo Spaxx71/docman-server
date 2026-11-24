@@ -729,8 +729,8 @@ declare function di:confirmed($process as element()?) as element()* {
 	if (empty($process)) then ()
 	else
 		let $master := (
-			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)[@isMaster = 'true'],
-			$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)[@isMaster = 'true'],
+			$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)
 		)[1]
 		let $owner := normalize-space(string($master/Owner))
 		let $direction :=

@@ -856,6 +856,13 @@ declare function document:check-evidence($home-data as xs:string, $tenant as xs:
 	let $process := collection($collection)/Process[@id = $document-id]
 	return
 		if (empty($process)) then <Evidence error="Vorgang fehlt."/>
+		else if (exists($process/Tasks/ShoppingTask)) then
+			let $level := 'pseudo'
+			let $written :=
+				if (exists($process/@evidence)) then update value $process/@evidence with $level
+				else update insert attribute evidence {$level} into $process
+			return
+				<Evidence process="{$document-id}" binder="{$binder}" level="{$level}"/>
 		else
 			let $intel := $process//DocmanIntelligence[@status = 'done']
 			let $accounts :=
@@ -863,8 +870,8 @@ declare function document:check-evidence($home-data as xs:string, $tenant as xs:
 					account:accounts($home-data, $tenant, $year)
 				else ()
 			let $master := (
-				$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)[@isMaster = 'true'],
-				$process/Tasks/(InvoiceInTask|InvoiceOutTask|EmployeeSalaryTask)
+				$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)[@isMaster = 'true'],
+				$process/Tasks/(InvoiceInTask|InvoiceOutTask|ShoppingTask|EmployeeSalaryTask)
 			)[1]
 			let $owner := normalize-space(string($master/Owner))
 			let $account := $accounts[@kto = $owner][1]

@@ -164,6 +164,47 @@
           </xs:complexContent>
         </xs:complexType>
       </xs:element>
+      <xs:element name="ShoppingTask">
+        <xs:annotation>
+          <xs:documentation>Shopping / Ladenkauf (Vormerkung)</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:complexContent>
+            <xs:extension base="Task">
+              <xs:sequence>
+                <xs:element name="Files">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="File" minOccurs="0" maxOccurs="unbounded" type="FileType"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+                <xs:element name="Bookings">
+                  <xs:annotation>
+                    <xs:documentation>no subelements allowed</xs:documentation>
+                  </xs:annotation>
+                </xs:element>
+                <xs:element name="Amount">
+                  <xs:complexType>
+                    <xs:attribute ref="value"/>
+                    <xs:attribute ref="unit"/>
+                  </xs:complexType>
+                </xs:element>
+                <xs:element name="Owner" type="xs:positiveInteger"/>
+                <xs:element name="RefID" type="RefID"/>
+                <xs:element name="TransactionID" type="TransactionID"/>
+                <xs:element name="Description">
+                  <xs:simpleType>
+                    <xs:restriction base="Description">
+                      <xs:minLength value="1"/>
+                    </xs:restriction>
+                  </xs:simpleType>
+                </xs:element>
+              </xs:sequence>
+            </xs:extension>
+          </xs:complexContent>
+        </xs:complexType>
+      </xs:element>
       <xs:element name="InvoiceOutTask">
         <xs:annotation>
           <xs:documentation>Rechnung (ausgehend)</xs:documentation>
@@ -886,6 +927,7 @@
       <xs:enumeration value="invoice-in-storno"/>
       <xs:enumeration value="invoice-out"/>
       <xs:enumeration value="invoice-out-storno"/>
+      <xs:enumeration value="shopping"/>
       <xs:enumeration value="payment-bank"/>
       <xs:enumeration value="transfer-voucher"/>
       <xs:enumeration value="note"/>
@@ -907,6 +949,7 @@
       <xs:enumeration value="doc-invoice-in-storno"/>
       <xs:enumeration value="doc-invoice-out"/>
       <xs:enumeration value="doc-invoice-out-storno"/>
+      <xs:enumeration value="doc-receipt"/>
       <xs:enumeration value="doc-periodic-payment"/>
       <xs:enumeration value="doc-payment-cash"/>
       <xs:enumeration value="doc-payment-bank"/>
